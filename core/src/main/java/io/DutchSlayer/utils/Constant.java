@@ -33,7 +33,11 @@ public class Constant {
     // === Bullet ===
     public static final float BULLET_WIDTH = 24f;
     public static final float BULLET_HEIGHT = 10f;
-    public static final float BULLET_SPEED = 400f;
+    public static final float BULLET_SPEED = 1000f;
+
+    public static final float GRENADE_SPEED = 600f;
+    public static final float GRENADE_RADIUS = 80f;
+    public static final float GRENADE_TIMER = 1.5f; // delay meledak
 
     // === Spawn Position ===
     public static final float PLAYER_START_X = 100f;

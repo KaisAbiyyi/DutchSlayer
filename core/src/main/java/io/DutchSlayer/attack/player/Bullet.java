@@ -1,4 +1,4 @@
-package io.DutchSlayer.player;
+package io.DutchSlayer.attack.player;
 
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import io.DutchSlayer.utils.Constant;
@@ -25,31 +25,24 @@ public class Bullet {
         this.fromEnemy = fromEnemy;
     }
 
-
     public void update(float delta, float camLeft, float camRight) {
         x += vx * delta;
         y += vy * delta;
 
         if (!fromEnemy) {
-            // Untuk peluru player, mati jika keluar dari kamera
+            // Bullet player: hanya aktif selama masih di dalam viewport kamera
             if (x + width < camLeft || x > camRight ||
                 y < -height || y > Constant.SCREEN_HEIGHT + height) {
                 isAlive = false;
             }
         } else {
-            // Untuk peluru enemy, mati jika keluar dari batas map
+            // Bullet enemy: hidup selama masih di dalam map
             if (x < -width || x > Constant.MAP_WIDTH + width ||
                 y < -height || y > Constant.SCREEN_HEIGHT + height) {
                 isAlive = false;
             }
         }
     }
-
-    public void update(float delta) {
-        update(delta, -Float.MAX_VALUE, Float.MAX_VALUE);
-    }
-
-
 
     public void render(ShapeRenderer shapeRenderer) {
         shapeRenderer.setColor(1, 0, 0, 1); // merah
