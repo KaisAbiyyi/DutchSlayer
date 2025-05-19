@@ -14,6 +14,7 @@ public class Main extends Game {
     public void create() {
         batch = new SpriteBatch();
         this.setScreen(new GameScreen(this)); // Set awal ke menu utama
+//        this.setScreen(new MainMenuScreen(this));
     }
 
     @Override

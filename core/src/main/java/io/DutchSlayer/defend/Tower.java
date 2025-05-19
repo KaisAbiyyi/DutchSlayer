@@ -16,7 +16,7 @@ public class Tower {
     public final float x, y;
 
     private float cooldown = 0f;
-    private final float fireRate = 6f;   // 3x per detik
+    private final float fireRate = 5f;   // 3x per detik
     private final float range    = 1280f;   // melihat seluruh layar
 
     public Tower(Texture towerTex,
