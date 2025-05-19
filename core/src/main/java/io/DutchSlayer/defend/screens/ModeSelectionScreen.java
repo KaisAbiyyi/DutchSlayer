@@ -16,7 +16,7 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 import io.DutchSlayer.Main;
 import io.DutchSlayer.defend.untils.GameMode;
 
-public class MainMenuScreen implements Screen {
+public class ModeSelectionScreen implements Screen {
 
     private final Main game;
     private final Stage stage;
@@ -24,14 +24,14 @@ public class MainMenuScreen implements Screen {
     private final OrthographicCamera camera;
     private final Skin skin;
 
-    public MainMenuScreen(Main game) {
+    public ModeSelectionScreen(Main game) {
         this.game = game;
         this.camera = new OrthographicCamera();
-        this.viewport = new FitViewport(800, 480, camera); // Ganti sesuai constant kamu
+        this.viewport = new FitViewport(800, 480, camera); // Sesuaikan jika perlu
         this.stage = new Stage(viewport);
         Gdx.input.setInputProcessor(stage);
 
-        this.skin = new Skin(Gdx.files.internal("uiskin/uiskin.json")); // pastikan file ini ada
+        this.skin = new Skin(Gdx.files.internal("uiskin/uiskin.json")); // Pastikan ada di assets
 
         createUI();
     }
@@ -41,44 +41,36 @@ public class MainMenuScreen implements Screen {
         table.setFillParent(true);
         stage.addActor(table);
 
-        TextButton startButton = new TextButton("Start Game", skin);
-        TextButton aboutButton = new TextButton("About Us", skin);
-        TextButton fullscreenButton = new TextButton("Toggle Fullscreen", skin);
+        TextButton towerDefenseButton = new TextButton("Tower Defense", skin);
+        TextButton platformerButton = new TextButton("Platformer", skin);
+        TextButton backButton = new TextButton("Back", skin);
 
-        startButton.addListener(new ClickListener() {
+        towerDefenseButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                // Cek apakah mode sudah dipilih
-                if (Main.currentMode == GameMode.NONE) {
-                    game.setScreen(new ModeSelectionScreen(game));
-//                } else {
-//                    game.setScreen(new StageSelectionScreen(game));
-                }
+                Main.currentMode = GameMode.TOWER_DEFENSE;
+                game.setScreen(new StageSelectionScreen(game,true));
             }
         });
 
-        aboutButton.addListener(new ClickListener() {
+        platformerButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                // Belum ada, kamu bisa buat AboutScreen jika mau
-                System.out.println("About clicked");
+                Main.currentMode = GameMode.PLATFORMER;
+                game.setScreen(new StageSelectionScreen(game,false));
             }
         });
 
-        fullscreenButton.addListener(new ClickListener() {
+        backButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                if (Gdx.graphics.isFullscreen()) {
-                    Gdx.graphics.setWindowedMode(800, 480); // ganti dengan ukuran asli
-                } else {
-                    Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());
-                }
+                game.setScreen(new MainMenuScreen(game));
             }
         });
 
-        table.add(startButton).pad(10).row();
-        table.add(aboutButton).pad(10).row();
-        table.add(fullscreenButton).pad(10).row();
+        table.add(towerDefenseButton).pad(10).row();
+        table.add(platformerButton).pad(10).row();
+        table.add(backButton).pad(10).row();
     }
 
     @Override
