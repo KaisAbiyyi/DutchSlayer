@@ -2,7 +2,7 @@ package io.DutchSlayer;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import io.DutchSlayer.screens.MainMenuScreen;
+import io.DutchSlayer.defend.screens.MainMenuScreen; // Menggunakan MainMenuScreen dari package defend
 
 public class Main extends Game {
 
@@ -11,7 +11,7 @@ public class Main extends Game {
     @Override
     public void create() {
         batch = new SpriteBatch();
-        this.setScreen(new MainMenuScreen(this)); // Set awal ke menu utama
+        this.setScreen(new MainMenuScreen(this)); // Memanggil MainMenuScreen dari defend package
     }
 
     @Override
