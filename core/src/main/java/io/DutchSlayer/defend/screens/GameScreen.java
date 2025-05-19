@@ -36,11 +36,10 @@ public class GameScreen implements Screen {
     private final Texture bgTree;
     private final Texture terrain;
 
-    public GameScreen(Main game) {
+    public GameScreen(Main game, int stage) {
         this.game = game;
         this.shapeRenderer = new ShapeRenderer();
         this.spriteBatch = new SpriteBatch();
-
         this.camera = new OrthographicCamera();
         this.viewport = new FitViewport(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT, camera);
         this.viewport.apply();
