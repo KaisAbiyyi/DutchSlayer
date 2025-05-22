@@ -14,11 +14,16 @@ public class Enemy {
     private final Rectangle bounds;
     private final float scaledWidth;
     private final float scaledHeight;
-    private float speed = 100f;  // piksel per detik
+//    private float speed = 100f;  // piksel per detik
+    private final float baseSpeed = 100f;
+    private float currentSpeed = baseSpeed;
+    private float slowTimer   = 0f;       // waktu tersisa slow
+
+    private int health;     // HP
 
     public Enemy(Texture tex, float xCenter, float yCenter) {
         this.tex    = tex;
-        // hitung ukuran ter‐skala
+        this.health = 1;
         this.scaledWidth  = tex.getWidth() * SCALE;
         this.scaledHeight = tex.getHeight() * SCALE;
         // simpan posisi sebagai center
@@ -31,9 +36,30 @@ public class Enemy {
         );
     }
 
+    public void takeDamage(int dmg) {
+        health -= dmg;
+    }
+
+    public boolean isDestroyed() {
+        return health <= 0;
+    }
+
+    /** Panggil untuk menerapkan slow pada musuh */
+    public void slow(float duration) {
+        slowTimer = duration;
+    }
+
     public void update(float delta) {
-        pos.x -= speed * delta;
-        bounds.setPosition(pos.x - scaledWidth/2, pos.y - scaledHeight/2);
+        // kelola slow
+        if (slowTimer > 0f) {
+            slowTimer -= delta;
+            currentSpeed = baseSpeed * 0.5f;   // misal 50% speed
+        } else {
+            currentSpeed = baseSpeed;
+        }
+
+        pos.x -= currentSpeed * delta;
+        bounds.setPosition(pos.x - bounds.width/2, pos.y - bounds.height/2);
     }
 
     public void drawBatch(SpriteBatch batch) {

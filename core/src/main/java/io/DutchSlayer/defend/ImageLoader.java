@@ -12,12 +12,14 @@ public class ImageLoader {
     public static Texture towerTex;
     public static Texture enemyTex;
     public static Texture projTex;
+    public static Texture trapTex;
 
     /** Panggil sekali di create() sebelum digunakan */
     public static void load() {
         towerTex = loadOrNull("Defend/Tower.png");
         enemyTex = loadOrNull("Defend/Enemy.png");
         projTex  = loadOrNull("Defend/Projectile.png");
+        trapTex = loadOrNull("Defend/Trap.png");
     }
 
     private static Texture loadOrNull(String path) {
@@ -34,5 +36,6 @@ public class ImageLoader {
         if (towerTex != null) towerTex.dispose();
         if (enemyTex  != null) enemyTex.dispose();
         if (projTex   != null) projTex.dispose();
+        if (trapTex != null) trapTex.dispose();
     }
 }
