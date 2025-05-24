@@ -23,7 +23,7 @@ public class Enemy {
 
     public Enemy(Texture tex, float xCenter, float yCenter) {
         this.tex    = tex;
-        this.health = 1;
+        this.health = 3;
         this.scaledWidth  = tex.getWidth() * SCALE;
         this.scaledHeight = tex.getHeight() * SCALE;
         // simpan posisi sebagai center
@@ -37,7 +37,7 @@ public class Enemy {
     }
 
     public void takeDamage(int dmg) {
-        health -= dmg;
+        health = Math.max(0, health - dmg);
     }
 
     public boolean isDestroyed() {
@@ -85,4 +85,8 @@ public class Enemy {
     public float getX()     { return pos.x; }
     public float getWidth() { return scaledWidth; }
     public Rectangle getBounds() { return bounds; }
+
+    public int getHealth() {
+        return health;
+    }
 }

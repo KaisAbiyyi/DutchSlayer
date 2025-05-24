@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Array;
 
 public class Projectile {
     private final Texture tex;
@@ -13,16 +14,16 @@ public class Projectile {
     private final float scaledW, scaledH;
     private final Rectangle bounds;
     private final float speed = 400f;
-    private static final float SCALE = 0.2f;
 
-    public Projectile(Texture tex, float startX, float startY, float targetX, float targetY) {
+    public Projectile(Texture tex, float startX, float startY, float targetX, float targetY, float scale) {
         this.tex = tex;
         this.pos = new Vector2(startX, startY);
         // ukuran ter‐skala
-        this.scaledW = tex.getWidth() * SCALE;
-        this.scaledH = tex.getHeight() * SCALE;
+        this.scaledW = tex.getWidth() * scale;
+        this.scaledH = tex.getHeight() * scale;
         // arah ke target
-        Vector2 dir = new Vector2(targetX - startX, targetY - startY).nor();
+        float direction = Math.signum(targetX - startX); // +1 kalau ke kanan, -1 kalau ke kiri
+        Vector2 dir = new Vector2(direction, 0f); // nol di sumbu Y
         this.vel = dir.scl(speed);
         // bounds berpusat
         this.bounds = new Rectangle(
@@ -55,6 +56,16 @@ public class Projectile {
         if (tex == null) {
             shapes.setColor(Color.YELLOW);
             shapes.circle(pos.x, pos.y, scaledW/2);
+        }
+    }
+
+    public void onHit(Array<Enemy> enemies) {
+        // default: beri damage ke 1 musuh saja
+        for (Enemy e : enemies) {
+            if (getBounds().overlaps(e.getBounds())) {
+                e.takeDamage(1);
+                break;
+            }
         }
     }
 
