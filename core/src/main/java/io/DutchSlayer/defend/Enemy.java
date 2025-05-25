@@ -14,10 +14,19 @@ public class Enemy {
     private final Rectangle bounds;
     private final float scaledWidth;
     private final float scaledHeight;
-//    private float speed = 100f;  // piksel per detik
+
     private final float baseSpeed = 100f;
-    private float currentSpeed = baseSpeed;
+    private float currentSpeed = 100f;
     private float slowTimer   = 0f;       // waktu tersisa slow
+
+    private boolean isKnockedBack = false;
+    private float knockbackTimer = 0f;
+    private float knockbackDuration = 0.5f;  // Durasi knockback 0.5 detik
+    private float knockbackSpeed = 200f;     // Kecepatan mundur
+    private float originalSpeed;
+
+    private float attackCooldown = 0f;
+    private static final float ATTACK_COOLDOWN_DURATION = 1f;  // 1 detik antar serangan
 
     private int health;     // HP
 
@@ -34,6 +43,21 @@ public class Enemy {
             scaledWidth,
             scaledHeight
         );
+        this.originalSpeed = this.baseSpeed;
+    }
+
+    // Method untuk memulai knockback
+    public void knockback() {
+        if (!isKnockedBack) {  // Hanya knockback jika belum dalam state knockback
+            isKnockedBack = true;
+            knockbackTimer = knockbackDuration;
+            attackCooldown = ATTACK_COOLDOWN_DURATION;
+            System.out.println("Enemy knockback started!"); // Debug
+        }
+    }
+
+    public boolean canAttack() {
+        return attackCooldown <= 0 && !isKnockedBack;
     }
 
     public void takeDamage(int dmg) {
@@ -50,11 +74,30 @@ public class Enemy {
     }
 
     public void update(float delta) {
-        // kelola slow
-        if (slowTimer > 0f) {
+        // Handle knockback
+        if (isKnockedBack) {
+            knockbackTimer -= delta;
+            if (knockbackTimer <= 0) {
+                isKnockedBack = false;
+                System.out.println("Knockback ended!"); // Debug
+            }
+        }
+
+        // Handle attack cooldown
+        if (attackCooldown > 0) {
+            attackCooldown -= delta;
+        }
+
+        // 3) Determine current speed
+        if (isKnockedBack) {
+            // PERBAIKAN: Saat knockback, bergerak mundur
+            currentSpeed = -knockbackSpeed;  // Negatif = mundur
+        } else if (slowTimer > 0f) {
+            // Slow effect
             slowTimer -= delta;
-            currentSpeed = baseSpeed * 0.5f;   // misal 50% speed
+            currentSpeed = baseSpeed * 0.5f;
         } else {
+            // Normal movement
             currentSpeed = baseSpeed;
         }
 
@@ -62,8 +105,20 @@ public class Enemy {
         bounds.setPosition(pos.x - bounds.width/2, pos.y - bounds.height/2);
     }
 
+    // Getter untuk cek status knockback
+    public boolean isKnockedBack() {
+        return isKnockedBack;
+    }
+
+
     public void drawBatch(SpriteBatch batch) {
         if (tex != null) {
+            // Visual effect saat knockback
+//            Color oldColor = batch.getColor();
+//            if (isKnockedBack) {
+//                batch.setColor(1f, 0.5f, 0.5f, 1f); // Warna kemerahan saat knockback
+//            }
+
             batch.draw(
                 tex,
                 pos.x - scaledWidth/2,
@@ -71,12 +126,14 @@ public class Enemy {
                 scaledWidth,
                 scaledHeight
             );
+
+//            batch.setColor(oldColor); // Restore color
         }
     }
 
     public void drawShape(ShapeRenderer shapes) {
         if (tex == null) {
-            shapes.setColor(Color.RED);
+            shapes.setColor(isKnockedBack ? Color.ORANGE : Color.RED);
             float radius = scaledWidth/2f;
             shapes.circle(pos.x, pos.y, radius);
         }

@@ -18,17 +18,23 @@ public class Tower {
     public final float x, y;
 
     private float cooldown = 0f;
-//    private float fireRate = 5f;
-    private final float range    = 1280f;
-    private int upgradeLevel = 0;
-    private static final int MAX_UPGRADE_LEVEL = 10;
-    private int attackPower = 1;
-    private int defensePower = 0;
+    // PERBAIKAN: Sistem upgrade yang fleksibel
+    private int totalUpgradeCount = 0;              // Total upgrade yang sudah dilakukan
+    private static final int MAX_TOTAL_UPGRADES = 10;  // Maksimal 10 upgrade total
+
+    // Level individual untuk setiap stat
+    private int attackLevel = 0;     // Level attack (0 = base level)
+    private int defenseLevel = 0;    // Level defense (0 = base level)
+    private int speedLevel = 0;      // Level speed (0 = base level)
+
 
     private TowerType type = null;
-    private float fireRate;
-    private int   damage;
-    private float slowDuration;       // hanya untuk SLOW
+    private float baseFireRate;      // Fire rate awal (backup)
+    private float fireRate;          // Fire rate aktual
+    private int baseDamage;          // Damage awal (backup)
+    private int damage;              // Damage aktual
+    private int baseHealth;          // Health awal (backup)
+    private float slowDuration;
 
     private float projScale;
 
@@ -66,26 +72,33 @@ public class Tower {
         this.y = yCenter;
         this.projScale = projScale;
 
+        // Set base stats berdasarkan tower type
         this.type = type;
         switch(type) {
             case BASIC:
-                this.fireRate = 5f;
-                this.damage   = 1;
+                this.baseFireRate  = 5f;
+                this.baseDamage      = 1;
                 break;
             case AOE:
-                this.fireRate    = 4f;
-                this.damage      = 2;
+                this.baseFireRate    = 4f;
+                this.baseDamage         = 2;
                 break;
             case FAST:
-                this.fireRate    = 0.5f;
-                this.damage      = 1;
+                this.baseFireRate    = 0.5f;
+                this.baseDamage         = 1;
                 break;
             case SLOW:
-                this.fireRate    = 1.5f;
-                this.damage      = 0;
+                this.baseFireRate    = 1.5f;
+                this.baseDamage         = 0;
                 this.slowDuration= 2f;
                 break;
         }
+
+        // Initialize current stats = base stats
+        this.fireRate = this.baseFireRate;
+        this.damage = this.baseDamage;
+        this.baseHealth = initialHealth;
+        this.health = initialHealth;
     }
 
     /** Dikurangi HP-nya */
@@ -109,18 +122,18 @@ public class Tower {
         switch(type) {
             case BASIC:
                 projs.add(new Projectile(
-                    projTex, x, y, target.getX(), ty, projScale
+                    projTex, x, y, target.getX(), ty, projScale, damage
                 ));
                 break;
             case AOE:
                 projs.add(new AoeProjectile(
                     projTex, x, y, target.getX(), ty,
-                    damage, 100f, projScale         // radius 100
+                     400f, projScale, damage         // radius 100
                 ));
                 break;
             case FAST:
                 projs.add(new Projectile(
-                    projTex, x, y, target.getX(), ty, projScale
+                    projTex, x, y, target.getX(), ty, projScale, 1000f, damage
                 ));
                 break;
             case SLOW:
@@ -132,6 +145,104 @@ public class Tower {
         }
 
         cooldown = fireRate;
+    }
+
+
+
+    public void upgradeAttack() {
+        if (totalUpgradeCount < MAX_TOTAL_UPGRADES) {
+            attackLevel++;
+            totalUpgradeCount++;
+
+            // Increase damage berdasarkan level
+            damage = baseDamage + attackLevel;
+            System.out.println("Tower Type: " + type);
+            System.out.println("Attack Level: " + attackLevel);
+
+//            System.out.println("Attack upgraded! Level: " + attackLevel +
+//                ", Damage: " + damage +
+//                ", Upgrades left: " + getRemainingUpgrades());
+        }
+    }
+
+    public void upgradeDefense() {
+        if (totalUpgradeCount < MAX_TOTAL_UPGRADES) {
+            defenseLevel++;
+            totalUpgradeCount++;
+
+            // Increase max health berdasarkan level
+            int healthIncrease = defenseLevel * 2;  // +2 HP per level
+            int newMaxHealth = baseHealth + healthIncrease;
+
+            // Restore beberapa HP juga (bonus healing)
+            health = Math.min(health + 1, newMaxHealth);  // +1 HP heal
+
+            System.out.println("Tower Type: " + type);
+            System.out.println("Defense Level: " + defenseLevel);
+
+//            System.out.println("Defense upgraded! Level: " + defenseLevel +
+//                ", Health: " + health + "/" + newMaxHealth +
+//                ", Upgrades left: " + getRemainingUpgrades());
+        }
+    }
+
+    public void upgradeSpeed() {
+        if (totalUpgradeCount < MAX_TOTAL_UPGRADES) {
+            speedLevel++;
+            totalUpgradeCount++;
+
+            // Decrease fire rate (faster shooting) berdasarkan level
+            float speedBonus = speedLevel * 0.1f;  // -0.1s per level
+            fireRate = Math.max(0.05f, baseFireRate - speedBonus);  // Minimum 0.05s
+
+            System.out.println("Tower Type: " + type);
+            System.out.println("Speed Level: " + speedLevel);
+//            System.out.println("Speed upgraded! Level: " + speedLevel +
+//                ", Fire rate: " + fireRate +
+//                ", Upgrades left: " + getRemainingUpgrades());
+        }
+    }
+
+    public int getRemainingUpgrades() {
+        return MAX_TOTAL_UPGRADES - totalUpgradeCount;
+    }
+
+    public int getAttackLevel() {
+        return attackLevel;
+    }
+
+    public int getDefenseLevel() {
+        return defenseLevel;
+    }
+
+    public int getSpeedLevel() {
+        return speedLevel;
+    }
+
+    public int getTotalUpgradeCount() {
+        return totalUpgradeCount;
+    }
+
+    public boolean canUpgrade() {
+        return totalUpgradeCount < MAX_TOTAL_UPGRADES;
+    }
+
+    // Method untuk UI - tampilkan sisa upgrade
+    public String getUpgradeRemaining() {
+        return String.valueOf(getRemainingUpgrades());
+    }
+
+    // BONUS: Method untuk mendapatkan stats aktual
+    public int getCurrentDamage() {
+        return damage;
+    }
+
+    public float getCurrentFireRate() {
+        return fireRate;
+    }
+
+    public int getMaxHealth() {
+        return baseHealth + (defenseLevel * 2);
     }
 
     public void drawBatch(SpriteBatch batch) {
@@ -153,44 +264,8 @@ public class Tower {
         return health;
     }
 
-    public void upgradeAttack() {
-        if (upgradeLevel < MAX_UPGRADE_LEVEL) {
-            attackPower += 1;
-            upgradeLevel++;
-        }
-    }
-
-    public void upgradeDefense() {
-        if (upgradeLevel < MAX_UPGRADE_LEVEL) {
-            defensePower += 1;
-            upgradeLevel++;
-        }
-    }
-
-    public void upgradeSpeed() {
-        if (upgradeLevel < MAX_UPGRADE_LEVEL) {
-            fireRate = Math.max(0.1f, fireRate - 0.5f);
-            upgradeLevel++;
-        }
-    }
-
     public String getUpgradeLevel() {
-        return String.valueOf(upgradeLevel);
+        return String.valueOf(totalUpgradeCount);
     }
 
-    public int getAttackLevel() {
-        return attackPower;
-    }
-
-    public int getDefenseLevel() {
-        return health;
-    }
-
-    public int getSpeedLevel() {
-        return (int) fireRate;
-    }
-
-    public String getUpgradeRemaining() {
-        return String.valueOf(upgradeLevel);
-    }
 }

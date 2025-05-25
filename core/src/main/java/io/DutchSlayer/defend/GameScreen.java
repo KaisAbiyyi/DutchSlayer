@@ -33,6 +33,7 @@ public class GameScreen implements Screen {
 
     // deploy zones
     private final Array<Zone> zones = new Array<>();
+    private final Array<Zone> deployedTowerZones = new Array<>();  // Zone yang berisi tower
 
     // navbar selection
     private NavItem selectedType;
@@ -74,6 +75,7 @@ public class GameScreen implements Screen {
 
     // bounds tombol (akan di‐recalculated tiap render berdasar posisi panel)
     private Rectangle btnAttack, btnDefense , btnSpeed;
+    private boolean upgradeButtonsValid = false;
 
     // in GameScreen.java, fields section
     private boolean isPaused = false;
@@ -136,21 +138,22 @@ public class GameScreen implements Screen {
         }
 
         // setelah define deploy‐zones tower
-        int numTrapZones = 3;                  // kalau cuma mau 3 zone trap
-        float trapFirstCx = firstCenter + spacing*3;
-        float trapY0      = GROUND_Y;    // atau GROUND_Y + ZONE_OFFSET_Y kalau mau dinaikkan
+        int numTrapZones = 3;                           // kalau cuma mau 3 zone trap
+        float trapFirstCx = firstCenter + spacing*3;    // ← Start setelah 3 tower zones
+        float trapY0      = GROUND_Y;                   // SAMA dengan tower
         float trapWidth   = ImageLoader.towerTex.getWidth() * 0.2f;
         float trapHeight  = ImageLoader.towerTex.getHeight()* 0.1f;
         float skew        = 50f;         // sama dengan tower‐zone
+
         for (int i = 0; i < numTrapZones; i++) {
-            float cx = trapFirstCx + i * spacing;
+            float cx = trapFirstCx + i * spacing; // Spacing sama dengan tower
             float x0 = cx - trapWidth/2;
-            float y0 = trapY0;
+            float y0 = trapY0; // ← Y position sama dengan tower zones
             float[] v = {
-                x0,          y0,
-                x0 + trapWidth,      y0,
-                x0 + trapWidth + skew, y0 - trapHeight,
-                x0 + skew,            y0 - trapHeight
+                x0,                 y0,
+                x0 + trapWidth,     y0,
+                x0 + trapWidth + skew,  y0 - trapHeight,
+                x0 + skew,              y0 - trapHeight
             };
             trapVerts.add(v);
             trapZones.add(new Trap(v, 0.2f));
@@ -231,30 +234,90 @@ public class GameScreen implements Screen {
                     float py = selectedTowerUI.y - panelH/2;
                     Rectangle panelRect = new Rectangle(px, py, panelW, panelH);
 
-                    float btnW = 60, btnH = 20;
-                    // tombol Attack (atas)
-                    btnAttack  = new Rectangle(px+10, py + panelH - btnH - 10, btnW, btnH);
-                    // tombol Defense (tengah)
-                    btnDefense = new Rectangle(px+10, py + panelH - 2*btnH - 20, btnW, btnH);
-                    // tombol Speed (bawah)
-                    btnSpeed   = new Rectangle(px+10, py + panelH - 3*btnH - 30, btnW, btnH);
+                    // SUPER LARGE CLICK AREAS - Bagi panel jadi 3 bagian vertikal
+                    float sectionH = panelH / 3f;
+
+                    // Attack button - 1/3 bagian atas panel
+                    btnAttack = new Rectangle(px, py + sectionH*2, panelW, sectionH);
+
+                    // Defense button - 1/3 bagian tengah panel
+                    btnDefense = new Rectangle(px, py + sectionH, panelW, sectionH);
+
+                    // Speed button - 1/3 bagian bawah panel
+                    btnSpeed = new Rectangle(px, py, panelW, sectionH);
+                    upgradeButtonsValid = true;
 
                     if (panelRect.contains(x, y)) {
                         if (btnAttack.contains(x,y)) {
-                            selectedTowerUI.upgradeAttack();
+                            if (selectedTowerUI.canUpgrade()) {
+                                selectedTowerUI.upgradeAttack();
+                                System.out.println("Attack upgraded!");
+                            }
                             return true;
                         }
                         if (btnDefense.contains(x,y)) {
-                            selectedTowerUI.upgradeDefense();
+                            if (selectedTowerUI.canUpgrade()) {
+                                selectedTowerUI.upgradeDefense();
+                                System.out.println("Defense upgraded!");
+                            }
                             return true;
                         }
                         if (btnSpeed.contains(x,y)) {
-                            selectedTowerUI.upgradeSpeed();
+                            if (selectedTowerUI.canUpgrade()) {
+                                selectedTowerUI.upgradeSpeed();
+                                System.out.println("Speed upgraded!");
+                            }
                             return true;
                         }
                         return true;
                     }
                     selectedTowerUI = null;
+                    upgradeButtonsValid = false;
+                }
+
+                // kalau klik di area game world…
+                if (selectedType == NavItem.REMOVE) {
+                    // coba hapus tower dulu
+                    for (int i = towers.size - 1; i >= 0; i--) {
+                        Tower t = towers.get(i);
+                        if (t.getBounds().contains(x, y)) {
+                            try {
+                                // Coba ambil zone dengan index
+                                if (i < deployedTowerZones.size) {
+                                    Zone occupiedZone = deployedTowerZones.get(i);
+                                    towers.removeIndex(i);
+                                    deployedTowerZones.removeIndex(i);
+                                    occupiedZone.occupied = false;
+                                } else {
+                                    // Fallback: hapus tower saja, reset semua zone
+                                    towers.removeIndex(i);
+                                    resetAllEmptyZones();  // Method helper
+                                }
+                            } catch (IndexOutOfBoundsException e) {
+                                // Emergency fallback
+                                System.out.println("IndexOutOfBounds caught, using fallback");
+                                towers.removeIndex(i);
+                                resetAllEmptyZones();
+                            }
+
+                            selectedType = null;
+                            return true;
+                        }
+                    }
+                    // coba hapus trap
+                    for (int i = trapZones.size - 1; i >= 0; i--) {
+                        Trap tz = trapZones.get(i);
+                        // pakai trapVerts untuk cek hit
+                        if (Intersector.isPointInPolygon(trapVerts.get(i), 0, trapVerts.get(i).length, x, y)
+                            && tz.occupied) {
+                            tz.occupied = false;
+                            selectedType = null;
+                            return true;
+                        }
+                    }
+                    // kalau klik di mana-mana (tapi bukan objek) → batalkan Remove
+                    selectedType = null;
+                    return true;
                 }
 
                 // 0) klik tower untuk select
@@ -295,7 +358,8 @@ public class GameScreen implements Screen {
                     switch(selectedType) {
                         case T1: {
                             // Hitung kembali center zona seperti sebelumnya
-                            for (Zone z : zones) {
+                            for (int zoneIdx = 0; zoneIdx < zones.size; zoneIdx++) {
+                                Zone z = zones.get(zoneIdx);
                                 if (!z.occupied && z.contains(x,y) && gold >= TOWER_COST) {
                                     gold -= TOWER_COST;
                                     float cx = (z.verts[0] + z.verts[2] + z.verts[4] + z.verts[6]) / 4f;
@@ -312,6 +376,7 @@ public class GameScreen implements Screen {
                                         5, // initial HP
                                         0.1f
                                     ));
+                                    deployedTowerZones.add(z);
                                     z.occupied = true;
                                     selectedType = null;
                                     return true;
@@ -320,7 +385,8 @@ public class GameScreen implements Screen {
                             break;
                         }
                         case T2: {
-                            for (Zone z : zones) {
+                            for (int zoneIdx = 0; zoneIdx < zones.size; zoneIdx++) {
+                                Zone z = zones.get(zoneIdx);
                                 if (!z.occupied && z.contains(x,y) && gold >= TOWER_COST) {
                                     gold -= TOWER_COST;
                                     float cx = (z.verts[0] + z.verts[2] + z.verts[4] + z.verts[6]) / 4f;
@@ -337,6 +403,7 @@ public class GameScreen implements Screen {
                                         3,
                                         0.015f
                                     ));
+                                    deployedTowerZones.add(z);
                                     z.occupied = true;
                                     selectedType = null;
                                     return true;
@@ -345,7 +412,8 @@ public class GameScreen implements Screen {
                             break;
                         }
                         case T3: {
-                            for (Zone z : zones) {
+                            for (int zoneIdx = 0; zoneIdx < zones.size; zoneIdx++) {
+                                Zone z = zones.get(zoneIdx);
                                 if (!z.occupied && z.contains(x,y) && gold >= TOWER_COST) {
                                     gold -= TOWER_COST;
                                     float cx = (z.verts[0] + z.verts[2] + z.verts[4] + z.verts[6]) / 4f;
@@ -361,6 +429,7 @@ public class GameScreen implements Screen {
                                         TowerType.SLOW,
                                         10, 0.5f
                                     ));
+                                    deployedTowerZones.add(z);
                                     z.occupied = true;
                                     selectedType = null;
                                     return true;
@@ -382,31 +451,8 @@ public class GameScreen implements Screen {
                     selectedType = null;
                 }
 
-                // kalau klik di area game world…
-                if (selectedType == NavItem.REMOVE) {
-                    // coba hapus tower dulu
-                    for (int i = towers.size - 1; i >= 0; i--) {
-                        if (towers.get(i).getBounds().contains(x,y)) {
-                            towers.removeIndex(i);
-                            selectedType = null;
-                            return true;
-                        }
-                    }
-                    // coba hapus trap
-                    for (int i = trapZones.size - 1; i >= 0; i--) {
-                        Trap tz = trapZones.get(i);
-                        // pakai trapVerts untuk cek hit
-                        if (Intersector.isPointInPolygon(trapVerts.get(i), 0, trapVerts.get(i).length, x, y)
-                            && tz.occupied) {
-                            tz.occupied = false;
-                            selectedType = null;
-                            return true;
-                        }
-                    }
-                    // kalau klik di mana-mana (tapi bukan objek) → batalkan Remove
-                    selectedType = null;
-                    return true;
-                }
+
+
 
 
                 return false;
@@ -456,33 +502,52 @@ public class GameScreen implements Screen {
     private void update(float delta) {
         if (isPaused || isGameOver) return;
 
-        // 1) Gerakkan & cek serangan musuh ke tower
+        // 1) Update traps (handle cooldown)
+        for (Trap trap : trapZones) {
+            trap.update(delta);
+        }
+
+        // 2) Gerakkan & cek serangan musuh ke tower
         for (int i = enemies.size - 1; i >= 0; i--) {
             Enemy e = enemies.get(i);
             e.update(delta);    // ← DI SINI MUSUH MAJU
-            boolean attacked = false;
+
+            // Cek collision dengan tower
             for (int j = towers.size - 1; j >= 0; j--) {
                 Tower t = towers.get(j);
                 if (e.getBounds().overlaps(t.getBounds())) {
-                    t.takeDamage(1);
-                    attacked = true;
-                    if (t.isDestroyed()) {
-                        towers.removeIndex(j);
-                        if (t.isMain) isGameOver = true;
+                    if (e.canAttack()) {
+                        t.takeDamage(1);
+                        e.knockback();  // ← Knockback enemy
+
+                        if (t.isDestroyed()) {
+                            towers.removeIndex(j);
+                            if (t.isMain) isGameOver = true;
+                        }
                     }
                     break;
                 }
             }
-            if (attacked || e.getX() < -e.getWidth()/2) {
+            if (e.getX() < -e.getWidth()/2) {
                 enemies.removeIndex(i);
             }
         }
 
-        // 2) Tower menembak
+        // 3) Cek trap activation dengan visual effect
+        for (Trap trap : trapZones) {
+            if (trap.triggerTrap(enemies)) {
+                // BONUS: Bisa tambah particle effect atau screen shake di sini
+                System.out.println("TRAP TRIGGERED!");
+                // addParticleEffect(trap.getCenterX(), trap.getCenterY());
+            }
+        }
+
+        // 4) Tower menembak (sama seperti sebelumnya)
         for (Tower t : towers) {
             t.update(delta, enemies, projectiles);
         }
 
+        // 5) Update projectiles
         for (int i = projectiles.size - 1; i >= 0; i--) {
             Projectile p = projectiles.get(i);
             p.update(delta);
@@ -504,7 +569,7 @@ public class GameScreen implements Screen {
             }
         }
 
-        // 4) **Cleanup**: buang semua enemy yang HP ≤ 0 sekaligus reward gold
+        // 6) Cleanup dead enemies
         for (int j = enemies.size - 1; j >= 0; j--) {
             Enemy e = enemies.get(j);
             if (e.isDestroyed()) {
@@ -513,7 +578,7 @@ public class GameScreen implements Screen {
             }
         }
 
-        // — WAVE SPAWNING
+        // 7) Wave spawning (sama seperti sebelumnya)
         if (spawnCount < enemiesThisWave) {
             spawnTimer += delta;
             if (spawnTimer > 2f) {
@@ -536,7 +601,7 @@ public class GameScreen implements Screen {
             }
         }
 
-        // — Pendapatan pasif tiap 2 detik
+        // 8) Gold income
         goldTimer += delta;
         if (goldTimer >= INCOME_INTERVAL) {
             gold += INCOME_AMOUNT;
@@ -622,7 +687,7 @@ public class GameScreen implements Screen {
                     navTowerW[idx],
                     NAVBAR_HEIGHT
                 );
-            } else {
+            } else if (idx < NAV_TOWERS.length + NAV_TRAPS.length) {
                 // highlight hanya Trap yang dipilih
                 int trapIdx = idx - NAV_TOWERS.length;  // TRAP1→0, TRAP2→1, dst.
                 shapes.rect(
@@ -631,18 +696,20 @@ public class GameScreen implements Screen {
                     navTrapW[trapIdx],
                     NAVBAR_HEIGHT
                 );
+            } else if (selectedType == NavItem.REMOVE) {
+                shapes.setColor(1f, 1f, 0f, 0.3f);  // misal kuning semi
+                shapes.rect(
+                    btnRemove.x,
+                    btnRemove.y,
+                    btnRemove.width,
+                    btnRemove.height
+                );
+
             }
         }
 
         shapes.end();
 
-        if (selectedType == NavItem.REMOVE) {
-            // misal semi‐transparan kuning
-            shapes.begin(ShapeRenderer.ShapeType.Filled);
-            shapes.setColor(1f, 1f, 0f, 0.3f);
-            shapes.rect(btnRemove.x, btnRemove.y, btnRemove.width, NAVBAR_HEIGHT);
-            shapes.end();
-        }
 
         // draw deploy zones
         shapes.begin(ShapeRenderer.ShapeType.Line);
@@ -887,15 +954,15 @@ public class GameScreen implements Screen {
             float btnH    = 24f;
             float btnW    = panelW - margin*2;
 
-// stat labels and values
-            String[]  labels = {"Attack", "Defend", "Atk Speed"};
-            int[]     values = {
+            // stat labels and values
+            String[] labels = {"Attack", "Defend", "Atk Speed"};
+            int[] values = {
                 selectedTowerUI.getAttackLevel(),
                 selectedTowerUI.getDefenseLevel(),
                 selectedTowerUI.getSpeedLevel()
             };
 
-// vertical starting point just below the header
+            // vertical starting point just below the header
             float startY = headerY - 8;
 
             for (int i = 0; i < 3; i++) {
@@ -919,7 +986,7 @@ public class GameScreen implements Screen {
                 font.draw(game.batch, labels[i], px + margin + 4, y - btnH/2 + 6);
 
                 // right “X/10”
-                String valTxt = values[i] + "/10";
+                String valTxt = String.valueOf(values[i]);  // ← Hapus "/10"
                 layout.setText(font, valTxt);
                 font.draw(game.batch,
                     valTxt,
@@ -946,6 +1013,23 @@ public class GameScreen implements Screen {
         Zone(float[] verts) { this.verts = verts; }
         boolean contains(float x, float y) {
             return Intersector.isPointInPolygon(verts, 0, verts.length, x, y);
+        }
+    }
+
+    private void resetAllEmptyZones() {
+        for (Zone z : zones) {
+            boolean hasAnytower = false;
+            // Cek apakah masih ada tower di zone ini
+            for (Tower tower : towers) {
+                if (z.contains(tower.x, tower.y)) {
+                    hasAnytower = true;
+                    break;
+                }
+            }
+            // Jika tidak ada tower, bebaskan zone
+            if (!hasAnytower) {
+                z.occupied = false;
+            }
         }
     }
 

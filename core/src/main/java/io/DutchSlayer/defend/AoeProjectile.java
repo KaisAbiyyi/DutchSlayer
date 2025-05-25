@@ -11,7 +11,7 @@ public class AoeProjectile extends Projectile {
     public AoeProjectile(Texture tex,
                          float startX, float startY,
                          float targetX, float targetY,
-                         int damage, float radius, float scale) {
+                          float radius, float scale, int damage) {
         super(tex, startX, startY, targetX, targetY, scale);
         this.damage = damage;
         this.radius = radius;
@@ -19,13 +19,30 @@ public class AoeProjectile extends Projectile {
 
     @Override
     public void onHit(Array<Enemy> enemies) {
-        // iterasi semua musuh, damage bila dalam radius
+        float projX = getX();
+        float projY = getY();
+        int hitCount = 0;
+
+        // PERBAIKAN: Cek distance untuk AOE damage
         for (Enemy e : enemies) {
-            if (e.
-//                getBounds().overlaps(getX(), getX(), radius) ||
-                getBounds().contains(e.getBounds().x, e.getBounds().y)) {
+            float enemyX = e.getBounds().x + e.getBounds().width/2;
+            float enemyY = e.getBounds().y + e.getBounds().height/2;
+
+            float distance = (float) Math.sqrt(
+                Math.pow(projX - enemyX, 2) + Math.pow(projY - enemyY, 2)
+            );
+
+            System.out.println("Checking enemy at (" + enemyX + ", " + enemyY + "), distance: " + distance);
+
+            if (distance <= radius) {
                 e.takeDamage(damage);
+                hitCount++;
+                System.out.println(">>> AOE HIT! Enemy damaged for " + damage + " HP!");
+            } else {
+                System.out.println(">>> AOE MISS - too far");
             }
         }
+        System.out.println("AOE explosion hit " + hitCount + " enemies!");
+        System.out.println("================================");
     }
 }
