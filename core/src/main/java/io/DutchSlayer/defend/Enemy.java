@@ -17,7 +17,11 @@ public class Enemy {
 
     private final float baseSpeed = 100f;
     private float currentSpeed = 100f;
-    private float slowTimer   = 0f;       // waktu tersisa slow
+
+    // ===== TAMBAHAN UNTUK HEAVY SLOW =====
+    private boolean isSlowed = false;
+    private float slowDuration = 0f;
+    private float slowStrength = 0.5f;    // Default normal slow = 50% reduction
 
     private boolean isKnockedBack = false;
     private float knockbackTimer = 0f;
@@ -70,7 +74,18 @@ public class Enemy {
 
     /** Panggil untuk menerapkan slow pada musuh */
     public void slow(float duration) {
-        slowTimer = duration;
+        this.slowDuration = duration;
+        this.slowStrength = 0.5f; // Normal slow = 50% speed reduction
+        this.isSlowed = true;
+        System.out.println("Enemy slowed! Speed reduced by 50% for " + duration + "s");
+    }
+
+    /** Method untuk heavy slow (hampir berhenti) */
+    public void slowHeavy(float duration, float strength) {
+        this.slowDuration = duration;
+        this.slowStrength = strength; // 0.1f = 90% speed reduction
+        this.isSlowed = true;
+        System.out.println("Enemy heavily slowed! Speed reduced by " + ((1-strength)*100) + "% for " + duration + "s");
     }
 
     public void update(float delta) {
@@ -88,14 +103,23 @@ public class Enemy {
             attackCooldown -= delta;
         }
 
+        // ===== PERBAIKI SLOW HANDLING =====
+        if (isSlowed && slowDuration > 0) {
+            slowDuration -= delta;
+            if (slowDuration <= 0) {
+                isSlowed = false;
+                System.out.println("Slow effect ended!");
+            }
+        }
+
         // 3) Determine current speed
         if (isKnockedBack) {
             // PERBAIKAN: Saat knockback, bergerak mundur
             currentSpeed = -knockbackSpeed;  // Negatif = mundur
-        } else if (slowTimer > 0f) {
+        } else if (isSlowed) {
             // Slow effect
-            slowTimer -= delta;
-            currentSpeed = baseSpeed * 0.5f;
+            currentSpeed = baseSpeed * slowStrength;
+            System.out.println("🐌 Enemy moving slowly: " + currentSpeed + " (normal: " + baseSpeed + ")");
         } else {
             // Normal movement
             currentSpeed = baseSpeed;
@@ -113,11 +137,14 @@ public class Enemy {
 
     public void drawBatch(SpriteBatch batch) {
         if (tex != null) {
-            // Visual effect saat knockback
-//            Color oldColor = batch.getColor();
-//            if (isKnockedBack) {
-//                batch.setColor(1f, 0.5f, 0.5f, 1f); // Warna kemerahan saat knockback
-//            }
+            // ===== ENABLED: Visual effects =====
+            if (isKnockedBack) {
+                batch.setColor(1f, 0.5f, 0.5f, 1f); // Warna kemerahan saat knockback
+            } else if (isSlowed) {
+                batch.setColor(0.5f, 0.5f, 1f, 1f); // Warna biru saat slowed
+            } else {
+                batch.setColor(1f, 1f, 1f, 1f); // Normal color
+            }
 
             batch.draw(
                 tex,
@@ -133,9 +160,15 @@ public class Enemy {
 
     public void drawShape(ShapeRenderer shapes) {
         if (tex == null) {
-            shapes.setColor(isKnockedBack ? Color.ORANGE : Color.RED);
+            if (isKnockedBack) {
+                shapes.setColor(Color.ORANGE);
+            } else if (isSlowed) {
+                shapes.setColor(Color.BLUE);
+            } else {
+                shapes.setColor(Color.RED);
+            }
             float radius = scaledWidth/2f;
-            shapes.circle(pos.x, pos.y, radius);
+            shapes.circle(pos.x, pos.y, radius);;
         }
     }
 

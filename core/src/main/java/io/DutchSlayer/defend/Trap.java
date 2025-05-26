@@ -10,44 +10,93 @@ public class Trap {
     public final Rectangle bounds;
     public boolean occupied = false;
     private final float centerX, centerY;
-    private final Texture tex = ImageLoader.trapTex;
     private final float scale;
     private final float w, h;
-
-    // Trap effect properties
-    private static final int TRAP_DAMAGE = 1;
-    private static final float SLOW_DURATION = 3f;  // 3 detik slow effect
-    private float cooldown = 0f;  // Cooldown antar aktivasi trap
-    private static final float TRAP_COOLDOWN = 0.5f;  // 0.5 detik cooldown
-
-    private boolean isUsed = false;  // Tambahan: trap sudah digunakan
-    private static final boolean SINGLE_USE = true;  // Set true jika mau single-use
-
-    // TAMBAHAN: Simpan vertices untuk perhitungan Y yang sama dengan tower
     private float[] verts;
 
+    // ===== NEW: TRAP TYPE SYSTEM =====
+    private TrapType type;
+    private Texture tex;
+
+    // Trap effect properties
+    private float cooldown = 0f;
+    private static final float TRAP_COOLDOWN = 0.5f;
+    private boolean isUsed = false;
+    private static final boolean SINGLE_USE = true;
+
+    // ===== TRAP STATS PER TYPE =====
+    // Attack Trap: Damage + Light Slow
+    private static final int ATTACK_DAMAGE = 1;
+    private static final float ATTACK_SLOW_DURATION = 2f;
+
+    // Slow Trap: Heavy Slow (almost freeze)
+    private static final float SLOW_DURATION = 5f;
+    private static final float SLOW_STRENGTH = 0.1f; // 90% speed reduction
+
+    // Explosion Trap: AOE Damage
+    private static final int EXPLOSION_DAMAGE = 2;
+    private static final float EXPLOSION_RADIUS = 80f;
+
+
     // terima verts only untuk hit‐zone, plus scale untuk gambar
-    public Trap(float[] verts, float scale) {
+    public Trap(float[] verts, float scale, TrapType type) {
         this.verts = verts.clone();
+        this.type = type;
+        this.scale = scale;
+
         // hit‐zone calculation
         float minX = Float.MAX_VALUE;
-        float minY = Math.min(Math.min(verts[1], verts[3]), Math.min(verts[5], verts[7]));
+        float minY = Float.MAX_VALUE;
         float maxX = Float.MIN_VALUE;
-        float maxY = Math.max(Math.max(verts[1], verts[3]), Math.max(verts[5], verts[7]));
+        float maxY = Float.MIN_VALUE;
+
         for (int i = 0; i < verts.length; i += 2) {
             minX = Math.min(minX, verts[i]);
             maxX = Math.max(maxX, verts[i]);
             minY = Math.min(minY, verts[i+1]);
             maxY = Math.max(maxY, verts[i+1]);
         }
+        // ===== EXPANDED: Make collision area larger than visual =====
         bounds = new Rectangle(minX, minY, maxX-minX, maxY-minY);
 
-        // simpan center untuk draw, dan scale sprite
+        // simpan center untuk draw
         this.centerX = minX + (maxX-minX)/2f;
         this.centerY = minY + (maxY-minY)/2f;
-        this.scale   = scale;
+
+        // ===== SET TEXTURE BASED ON TYPE =====
+        switch(type) {
+            case ATTACK:
+                this.tex = ImageLoader.trapAttackTex;
+                break;
+            case SLOW:
+                this.tex = ImageLoader.trapSlowTex;
+                break;
+            case EXPLOSION:
+                this.tex = ImageLoader.trapBombTex;
+                break;
+            default:
+                this.tex = ImageLoader.trapTex; // Fallback
+                break;
+        }
+
+        // Fallback jika texture null
+        if (tex == null) {
+            tex = ImageLoader.trapTex; // Ultimate fallback
+        }
+
         this.w       = tex.getWidth()  * scale;
         this.h       = tex.getHeight() * scale;
+
+        System.out.println("=== TRAP CREATED ===");
+        System.out.println("=== TRAP CREATED ===");
+        System.out.println("Type: " + type);
+        System.out.println("Position: (" + centerX + ", " + centerY + ")");
+        System.out.println("Bounds: " + bounds);
+    }
+
+    // Old constructor for compatibility
+    public Trap(float[] verts, float scale) {
+        this(verts, scale, TrapType.ATTACK); // Default to ATTACK type
     }
 
     public boolean contains(float x, float y) {
@@ -69,15 +118,36 @@ public class Trap {
 
         boolean trapActivated = false;
 
-        // Cek semua enemy yang masuk area trap
+        // ===== IMPROVED: Better collision detection =====
         for (Enemy enemy : enemies) {
-            if (bounds.overlaps(enemy.getBounds())) {
-                // Beri damage dan slow effect
-                enemy.takeDamage(TRAP_DAMAGE);
-                enemy.slow(SLOW_DURATION);
-                trapActivated = true;
+            if (enemy.isDestroyed()) continue; // Skip dead enemies
 
-                System.out.println("Trap activated! Enemy damaged and slowed.");
+            // Check if enemy center point is inside trap bounds
+            float enemyX = enemy.getBounds().x + enemy.getBounds().width/2;
+            float enemyY = enemy.getBounds().y + enemy.getBounds().height/2;
+
+            // ===== SIMPLIFIED: Distance-based collision =====
+            float distance = (float) Math.sqrt(
+                Math.pow(centerX - enemyX, 2) + Math.pow(centerY - enemyY, 2)
+            );
+
+            // ===== VERY GENEROUS: 80px collision radius =====
+            boolean collision = distance < 80f;
+
+            // ===== DEBUG: Always log when enemy is nearby =====
+            if (distance < 120f) {
+                System.out.println("🔍 DISTANCE COLLISION CHECK:");
+                System.out.println("  Enemy center: (" + enemyX + ", " + enemyY + ")");
+                System.out.println("  Trap center: (" + centerX + ", " + centerY + ")");
+                System.out.println("  Distance: " + distance + " (threshold: 80px)");
+                System.out.println("  Collision: " + collision);
+                System.out.println("  Bounds collision: " + bounds.contains(enemyX, enemyY));
+            }
+
+            if (collision) {
+                System.out.println("🎯 " + type + " TRAP TRIGGERED BY DISTANCE!");
+                activateTrapEffect(enemy, enemies);
+                trapActivated = true;
                 break;
             }
         }
@@ -95,6 +165,63 @@ public class Trap {
         return trapActivated;
     }
 
+    private void activateTrapEffect(Enemy triggerEnemy, Array<Enemy> allEnemies) {
+        switch(type) {
+            case ATTACK:
+                System.out.println("=== ATTACK TRAP TRIGGERED ===");
+                triggerEnemy.takeDamage(ATTACK_DAMAGE);
+                triggerEnemy.slow(ATTACK_SLOW_DURATION);
+                System.out.println("Enemy took " + ATTACK_DAMAGE + " damage and slowed for " + ATTACK_SLOW_DURATION + "s");
+                break;
+
+            case SLOW:
+                System.out.println("=== SLOW TRAP TRIGGERED ===");
+                triggerEnemy.slowHeavy(SLOW_DURATION, SLOW_STRENGTH); // Heavy slow method
+                System.out.println("Enemy heavily slowed for " + SLOW_DURATION + "s (90% speed reduction)");
+                break;
+
+            case EXPLOSION:
+                System.out.println("=== EXPLOSION TRAP TRIGGERED ===");
+                explodeAOE(allEnemies);
+                break;
+        }
+    }
+
+    private void explodeAOE(Array<Enemy> enemies) {
+        int hitCount = 0;
+        float explodeX = centerX;
+        float explodeY = centerY;
+
+        System.out.println("EXPLOSION at (" + explodeX + ", " + explodeY + ") with radius " + EXPLOSION_RADIUS);
+        System.out.println("Total enemies in game: " + enemies.size);
+
+
+        for (Enemy e : enemies) {
+            if (e.isDestroyed()) continue;
+
+            float enemyX = e.getBounds().x + e.getBounds().width/2;
+            float enemyY = e.getBounds().y + e.getBounds().height/2;
+
+            float distance = (float) Math.sqrt(
+                Math.pow(explodeX - enemyX, 2) + Math.pow(explodeY - enemyY, 2)
+            );
+
+            System.out.println("🎯 Checking enemy at (" + enemyX + ", " + enemyY + ") - Distance: " + distance);
+
+            if (distance <= EXPLOSION_RADIUS) {
+                int oldHp = e.getHealth();
+                e.takeDamage(EXPLOSION_DAMAGE);
+                int newHp = e.getHealth();
+                hitCount++;
+                System.out.println("💥 EXPLOSION HIT! HP: " + oldHp + " → " + newHp + " (damage: " + EXPLOSION_DAMAGE + ")");
+            } else {
+                System.out.println("❌ Enemy too far (distance: " + distance + " > radius: " + EXPLOSION_RADIUS + ")");
+            }
+        }
+
+        System.out.println("Explosion hit " + hitCount + " enemies total!");
+    }
+
     // Getter untuk cooldown (untuk visual effects)
     public boolean isOnCooldown() {
         return cooldown > 0;
@@ -102,6 +229,18 @@ public class Trap {
 
     public boolean isUsed() {
         return SINGLE_USE && isUsed;
+    }
+
+    public TrapType getType() {
+        return type;
+    }
+
+    public float getCenterX() {
+        return centerX;
+    }
+
+    public float getCenterY() {
+        return centerY;
     }
 
     public void drawBatch(SpriteBatch batch) {

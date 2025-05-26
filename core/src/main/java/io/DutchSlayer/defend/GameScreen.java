@@ -41,9 +41,9 @@ public class GameScreen implements Screen {
     private final float[] navTowerW = new float[3];
     private static final String[] NAV_TOWERS = {"Tower1","Tower2","Tower3"};
 
-    private final float[] navTrapX = new float[4];
-    private final float[] navTrapW = new float[4];
-    private static final String[] NAV_TRAPS = {"Trap1","Trap2","Trap3","Trap4"};
+    private final float[] navTrapX = new float[3];
+    private final float[] navTrapW = new float[3];
+    private static final String[] NAV_TRAPS = {"TrapAtk","TrapSlow","TrapBomb"}; // ← Changed to 3 traps
 
 
     private float spawnTimer = 0f;
@@ -156,7 +156,7 @@ public class GameScreen implements Screen {
                 x0 + skew,              y0 - trapHeight
             };
             trapVerts.add(v);
-            trapZones.add(new Trap(v, 0.2f));
+            trapZones.add(new Trap(v, 0.2f, TrapType.ATTACK));
         }
 
         // calculate navbar hit areas
@@ -344,9 +344,9 @@ public class GameScreen implements Screen {
                         }
                     }
                     //Trap
-                    for (int i = 0; i < 4; i++) {
+                    for (int i = 0; i < NAV_TRAPS.length; i++) { // ← Use NAV_TRAPS.length instead of hardcoded 4
                         if (x >= navTrapX[i] && x <= navTrapX[i] + navTrapW[i]) {
-                            selectedType = NavItem.values()[NAV_TOWERS.length + i];  // atau TRAP1/2/3 …
+                            selectedType = NavItem.values()[NAV_TOWERS.length + i];
                             return true;
                         }
                     }
@@ -437,16 +437,36 @@ public class GameScreen implements Screen {
                             }
                             break;
                         }
-                        case TRAP1: case TRAP2: case TRAP3: case TRAP4:
+                        case TRAP1: case TRAP2: case TRAP3:
                             // deploy trap…
-                            for (Trap tz : trapZones) {
-                                if (!tz.occupied && tz.contains(x, y) && gold >= TRAP_COST) {
+                            TrapType trapType;
+                            switch(selectedType) {
+                                case TRAP1: trapType = TrapType.ATTACK; break;
+                                case TRAP2: trapType = TrapType.SLOW; break;
+                                case TRAP3: trapType = TrapType.EXPLOSION; break;
+                                default: trapType = TrapType.ATTACK; break;
+                            }
+
+                            for (int trapIdx = 0; trapIdx < trapZones.size; trapIdx++) {
+                                Trap tz = trapZones.get(trapIdx);
+                                float[] trapVert = trapVerts.get(trapIdx);
+
+                                if (!tz.occupied &&
+                                    Intersector.isPointInPolygon(trapVert, 0, trapVert.length, x, y) &&
+                                    gold >= TRAP_COST) {
+
                                     gold -= TRAP_COST;
-                                    tz.occupied = true;
-                                    selectedType = null;   // reset pilihan
-                                    return true;           // sukses deploy
+
+                                    // ===== REPLACE OLD TRAP WITH NEW TYPED TRAP =====
+                                    trapZones.set(trapIdx, new Trap(trapVert, 0.2f, trapType));
+                                    trapZones.get(trapIdx).occupied = true;
+
+                                    selectedType = null;
+                                    System.out.println(trapType + " trap deployed!");
+                                    return true;
                                 }
-                            };
+                            }
+                            break;
                     }
                     selectedType = null;
                 }
@@ -469,7 +489,7 @@ public class GameScreen implements Screen {
         // Gabungkan nama Tower + Trap
         String[] all = new String[]{
             NAV_TOWERS[0], NAV_TOWERS[1], NAV_TOWERS[2],
-            NAV_TRAPS[0], NAV_TRAPS[1], NAV_TRAPS[2], NAV_TRAPS[3]
+            NAV_TRAPS[0], NAV_TRAPS[1], NAV_TRAPS[2]
         };
 
         // Hitung total width
@@ -492,8 +512,10 @@ public class GameScreen implements Screen {
                 navTowerW[i] = widths[i];
             } else {
                 int ti = i - NAV_TOWERS.length;
-                navTrapX[ti] = x;
-                navTrapW[ti] = widths[i];
+                if (ti < NAV_TRAPS.length) { // ← Safety check
+                    navTrapX[ti] = x;
+                    navTrapW[ti] = widths[i];
+                }
             }
             x += widths[i] + spacing;
         }
@@ -533,12 +555,13 @@ public class GameScreen implements Screen {
             }
         }
 
-        // 3) Cek trap activation dengan visual effect
+        // ===== 3) SIMPLIFIED: Let trap handle its own collision detection =====
         for (Trap trap : trapZones) {
-            if (trap.triggerTrap(enemies)) {
-                // BONUS: Bisa tambah particle effect atau screen shake di sini
-                System.out.println("TRAP TRIGGERED!");
-                // addParticleEffect(trap.getCenterX(), trap.getCenterY());
+            if (trap.occupied && !trap.isUsed()) {
+                // Trap akan handle collision sendiri dengan method triggerTrap()
+                if (trap.triggerTrap(enemies)) {
+                    System.out.println("🎯 TRAP ACTIVATED! Type: " + trap.getType());
+                }
             }
         }
 
@@ -613,7 +636,26 @@ public class GameScreen implements Screen {
     private void spawnEnemy() {
         float enemyH = ImageLoader.dutchtex.getHeight() * Enemy.SCALE;
         float ey     = GROUND_Y + enemyH/3f;
-        enemies.add(new Enemy(ImageLoader.dutchtex, 1280, ey));
+        Enemy newEnemy = new Enemy(ImageLoader.dutchtex, 1280, ey);
+        enemies.add(newEnemy);
+
+        // ===== DEBUG: Log enemy spawn position =====
+        System.out.println("🆕 ENEMY SPAWNED:");
+        System.out.println("  Position: (" + newEnemy.getX() + ", " + ey + ")");
+        System.out.println("  Bounds: " + newEnemy.getBounds());
+        System.out.println("  Total enemies: " + enemies.size);
+
+        // ===== DEBUG: Log all trap positions for comparison =====
+        System.out.println("📍 TRAP POSITIONS:");
+        for (int i = 0; i < trapZones.size; i++) {
+            Trap trap = trapZones.get(i);
+            if (trap.occupied) {
+                System.out.println("  Trap " + i + " (" + trap.getType() + "): " + trap.bounds);
+            } else {
+                System.out.println("  Trap " + i + ": NOT OCCUPIED");
+            }
+        }
+        System.out.println("==========================================");
     }
 
     @Override
@@ -689,7 +731,7 @@ public class GameScreen implements Screen {
                 );
             } else if (idx < NAV_TOWERS.length + NAV_TRAPS.length) {
                 // highlight hanya Trap yang dipilih
-                int trapIdx = idx - NAV_TOWERS.length;  // TRAP1→0, TRAP2→1, dst.
+                int trapIdx = idx - NAV_TOWERS.length;
                 shapes.rect(
                     navTrapX[trapIdx],
                     vy - NAVBAR_HEIGHT,
@@ -766,7 +808,7 @@ public class GameScreen implements Screen {
         // — Tower1–3 & Trap1–4 di tengah
         String[] centerItems = {
             "Tower1","Tower2","Tower3",
-            "Trap1","Trap2","Trap3","Trap4"
+            "TrapAtk","TrapSlow","TrapBomb"
         };
         int n = centerItems.length;
         float spacing = 40f;
@@ -1002,7 +1044,7 @@ public class GameScreen implements Screen {
     // selection enum
     private enum NavItem {
         T1, T2, T3,
-        TRAP1, TRAP2, TRAP3, TRAP4,
+        TRAP1, TRAP2, TRAP3,
         REMOVE
     }
 

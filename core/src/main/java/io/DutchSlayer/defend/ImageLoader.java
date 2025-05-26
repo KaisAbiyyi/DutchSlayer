@@ -20,6 +20,10 @@ public class ImageLoader {
     public static Texture maintowertex;
     public static Texture tower1Tex, tower2Tex, tower3Tex;
     public static Texture aoeProjTex, fastProjTex, slowProjTex;
+    public static Texture trapAttackTex;
+    public static Texture trapSlowTex;
+    public static Texture trapBombTex;
+
 
     /** Panggil sekali di create() sebelum digunakan */
     public static void load() {
@@ -41,6 +45,9 @@ public class ImageLoader {
         fastProjTex= loadOrNull("Defend/ProjectileSpeed.png");
         slowProjTex= loadOrNull("Defend/ProjectileDefensif.png");
 
+        trapAttackTex = loadOrNull("Defend/TrapAttack.png");
+        trapSlowTex   = loadOrNull("Defend/TrapSlow.png");
+        trapBombTex   = loadOrNull("Defend/TrapBomb.png");
     }
 
     private static Texture loadOrNull(String path) {
@@ -71,5 +78,9 @@ public class ImageLoader {
         if (aoeProjTex != null) aoeProjTex.dispose();
         if (fastProjTex != null) fastProjTex.dispose();
         if (slowProjTex != null) slowProjTex.dispose();
+
+        if (trapAttackTex != null) trapAttackTex.dispose();
+        if (trapSlowTex != null) trapSlowTex.dispose();
+        if (trapBombTex != null) trapBombTex.dispose();
     }
 }
