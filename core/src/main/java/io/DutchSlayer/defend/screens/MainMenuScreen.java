@@ -3,112 +3,127 @@ package io.DutchSlayer.defend.screens;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.viewport.FitViewport;
-import com.badlogic.gdx.utils.viewport.Viewport;
 
 import io.DutchSlayer.Main;
-import io.DutchSlayer.defend.untils.GameMode;
+import io.DutchSlayer.defend.untils.Constant;
 
 public class MainMenuScreen implements Screen {
 
     private final Main game;
     private final Stage stage;
-    private final Viewport viewport;
-    private final OrthographicCamera camera;
+    private final FitViewport viewport; // Ubah jadi FitViewport
     private final Skin skin;
+    private final Texture background;
+
+    private final Texture titleTexture;
+    private final Texture startTexture;
+    private final Texture aboutTexture;
+    private final Texture settingsTexture;
 
     public MainMenuScreen(Main game) {
-        this.game = game;
-        this.camera = new OrthographicCamera();
-        this.viewport = new FitViewport(800, 480, camera); // Ganti sesuai constant kamu
-        this.stage = new Stage(viewport);
+        this.game      = game;
+        this.viewport  = new FitViewport(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT);
+        this.stage     = new Stage(viewport);
+        this.skin      = new Skin(Gdx.files.internal("uiskin/uiskin.json"));
+        this.background= new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
+
+        // Load textures
+        this.titleTexture    = new Texture(Gdx.files.internal("button/DutchSlayer.png"));
+        this.startTexture    = new Texture(Gdx.files.internal("button/StartButton.png"));
+        this.settingsTexture = new Texture(Gdx.files.internal("button/SettingsButton.png"));
+        this.aboutTexture    = new Texture(Gdx.files.internal("button/AboutButton.png"));
+
         Gdx.input.setInputProcessor(stage);
-
-        this.skin = new Skin(Gdx.files.internal("uiskin/uiskin.json")); // pastikan file ini ada
-
         createUI();
     }
 
     private void createUI() {
-        Table table = new Table();
-        table.setFillParent(true);
-        stage.addActor(table);
+        Table rootTable = new Table();
+        rootTable.setFillParent(true);
+        rootTable.top().left();
+        stage.addActor(rootTable);
 
-        TextButton startButton = new TextButton("Start Game", skin);
-        TextButton aboutButton = new TextButton("About Us", skin);
-        TextButton fullscreenButton = new TextButton("Toggle Fullscreen", skin);
+        // Title
+        Image titleImg = new Image(titleTexture);
+        rootTable.add(titleImg).width(800).height(450).padTop(-60).padBottom(-140).center().row();
 
-        startButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                // Cek apakah mode sudah dipilih
-                if (Main.currentMode == GameMode.NONE) {
-                    game.setScreen(new ModeSelectionScreen(game));
-//                } else {
-//                    game.setScreen(new StageSelectionScreen(game));
-                }
+
+        // Button Table
+        Table buttonTable = new Table();
+        buttonTable.defaults().padBottom(20);
+
+        ImageButton startBtn = new ImageButton(new TextureRegionDrawable(startTexture));
+        startBtn.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent e, float x, float y) {
+                game.setScreen(new ModeSelectionScreen(game));
             }
         });
+        buttonTable.add(startBtn).size(500, 120).row();
 
-        aboutButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                // Belum ada, kamu bisa buat AboutScreen jika mau
-                System.out.println("About clicked");
+        ImageButton settingsBtn = new ImageButton(new TextureRegionDrawable(settingsTexture));
+        settingsBtn.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent e, float x, float y) {
+                game.setScreen(new SettingsScreen(game));
             }
         });
+        buttonTable.add(settingsBtn).size(500, 120).row();
 
-        fullscreenButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                if (Gdx.graphics.isFullscreen()) {
-                    Gdx.graphics.setWindowedMode(800, 480); // ganti dengan ukuran asli
-                } else {
-                    Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());
-                }
+        ImageButton aboutBtn = new ImageButton(new TextureRegionDrawable(aboutTexture));
+        aboutBtn.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent e, float x, float y) {
+                game.setScreen(new AboutScreen(game));
             }
         });
+        buttonTable.add(aboutBtn).size(500, 120);
 
-        table.add(startButton).pad(10).row();
-        table.add(aboutButton).pad(10).row();
-        table.add(fullscreenButton).pad(10).row();
+        rootTable.add(buttonTable).expand().center().padBottom(10);
     }
 
-    @Override
-    public void show() {}
+    @Override public void show() {
+        Gdx.input.setInputProcessor(stage);
+        viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
+    }
 
     @Override
     public void render(float delta) {
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.15f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        game.batch.setProjectionMatrix(viewport.getCamera().combined);
+        game.batch.begin();
+        game.batch.draw(background, 0, 0, viewport.getWorldWidth(), viewport.getWorldHeight());
+        game.batch.end();
+
         stage.act(delta);
         stage.draw();
     }
 
-    @Override
-    public void resize(int width, int height) {
+    @Override public void resize(int width, int height) {
         viewport.update(width, height, true);
     }
 
-    @Override
-    public void pause() {}
-
-    @Override
-    public void resume() {}
-
-    @Override
-    public void hide() {}
+    @Override public void pause() {}
+    @Override public void resume() {}
+    @Override public void hide() {}
 
     @Override
     public void dispose() {
         stage.dispose();
         skin.dispose();
+        background.dispose();
+        titleTexture.dispose();
+        startTexture.dispose();
+        settingsTexture.dispose();
+        aboutTexture.dispose();
     }
 }

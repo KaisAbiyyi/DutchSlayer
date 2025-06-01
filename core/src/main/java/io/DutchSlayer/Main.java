@@ -2,28 +2,41 @@ package io.DutchSlayer;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import io.DutchSlayer.defend.screens.TowerDefenseScreen;
-import io.DutchSlayer.defend.screens.MainMenuScreen; // Menggunakan MainMenuScreen dari package defend
+import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.Gdx;
+
+import io.DutchSlayer.defend.screens.MainMenuScreen;
 import io.DutchSlayer.defend.untils.GameMode;
 
 public class Main extends Game {
     public static GameMode currentMode = GameMode.NONE;
     public SpriteBatch batch;
+    public Music bgMusic;
 
     @Override
     public void create() {
         batch = new SpriteBatch();
-        this.setScreen(new MainMenuScreen(this)); // Memanggil MainMenuScreen dari defend package
+
+        // Load dan play musik sekali saja di awal
+        bgMusic = Gdx.audio.newMusic(Gdx.files.internal("music/MainSound.mp3"));
+        bgMusic.setLooping(true);
+        bgMusic.play();
+
+        this.setScreen(new MainMenuScreen(this));
     }
 
     @Override
     public void render() {
-        super.render(); // Render screen aktif
+        super.render();
     }
 
     @Override
     public void dispose() {
-        super.dispose();
+        if (bgMusic != null) {
+            bgMusic.stop();
+            bgMusic.dispose();
+        }
         batch.dispose();
+        super.dispose();
     }
 }
