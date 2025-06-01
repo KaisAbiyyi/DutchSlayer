@@ -16,7 +16,12 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import io.DutchSlayer.Main;
 
+/**
+ * GameScreen adalah main controller untuk tower defense game
+ * Menghandle rendering, input, game logic, UI, dan wave management
+ */
 public class GameScreen implements Screen {
+    /* ===== CORE COMPONENTS ===== */
     private final Main game;
     private final OrthographicCamera camera;
     private final ShapeRenderer shapes;
@@ -24,10 +29,14 @@ public class GameScreen implements Screen {
     private final GlyphLayout layout = new GlyphLayout();
 
     // game entities
+    // game entities - ADD THESE:
+    private final Array<EnemyProjectile> enemyProjectiles = new Array<>();
+    private final Array<BombAsset> bombs = new Array<>();
     private final Array<Tower> towers = new Array<>();
     private final Array<Enemy> enemies = new Array<>();
     private final Array<Projectile> projectiles = new Array<>();
     private final Array<Trap>  trapZones   = new Array<>();
+
     private final Array<float[]> trapVerts = new Array<>();  // simpan verts polygon tiap zona
     private static final int TRAP_COST = 10;
 
@@ -54,7 +63,17 @@ public class GameScreen implements Screen {
     private static final float ZONE_OFFSET_Y = 20f;    // jarak zona di bawah tower kecil
 
     private int gold = 80;               // 1) mulai dengan 80 gold
-    private static final int TOWER_COST = 40;
+
+    // Tower costs - berbeda untuk setiap jenis
+    private static final int TOWER1_COST = 50;  // AOE Tower - mahal karena AOE damage
+    private static final int TOWER2_COST = 30;  // Fast Tower - murah tapi damage kecil
+    private static final int TOWER3_COST = 40;  // Slow Tower - sedang, utility based
+
+    // Trap costs - berbeda untuk setiap jenis
+    private static final int TRAP_ATTACK_COST = 15;    // Attack trap - damage + slow
+    private static final int TRAP_SLOW_COST = 20;      // Slow trap - utility tinggi
+    private static final int TRAP_EXPLOSION_COST = 25; // Explosion trap - paling mahal, AOE
+
     private static final float INCOME_INTERVAL = 2f;
     private static final int INCOME_AMOUNT   = 5;
     private float goldTimer = 0f;         // untuk pendapatan pasif
@@ -89,6 +108,42 @@ public class GameScreen implements Screen {
     private Rectangle pausePanel;
     private Rectangle btnContinue, btnQuit;
 
+    // Base upgrade costs
+    private static final int BASE_ATTACK_UPGRADE_COST = 20;
+    private static final int BASE_DEFENSE_UPGRADE_COST = 15;
+    private static final int BASE_SPEED_UPGRADE_COST = 25;
+
+    // Cost multiplier setiap upgrade (exponential growth)
+    private static final float UPGRADE_COST_MULTIPLIER = 1.5f;
+
+    // Wave spawn probabilities
+    private static final float BASIC_SPAWN_CHANCE = 0.4f;    // 40%
+    private static final float SHOOTER_SPAWN_CHANCE = 0.2f;  // 20%
+    private static final float BOMBER_SPAWN_CHANCE = 0.15f;  // 15%
+    private static final float SHIELD_SPAWN_CHANCE = 0.2f;   // 20%
+    private static final float BOSS_SPAWN_CHANCE = 0.05f;    // 5%
+
+    private boolean bossSpawned = false; // Prevent multiple boss spawns per wave
+
+    private boolean isRemoveButtonHovered = false;
+    private float mouseX = 0f, mouseY = 0f;
+    private boolean isPauseButtonHovered = false;
+
+    private boolean isGameWon = false;          // status kemenangan
+    private Rectangle btnNext, btnMenuWin;      // buttons untuk win screen
+    private Rectangle btnRetryLose, btnMenuLose; // buttons untuk lose screen
+    // Ukuran UI dan button
+    private static final float UI_WIDTH = 800f;
+    private static final float UI_HEIGHT = 600f;
+    private static final float BUTTON_WIDTH = 300f;
+    private static final float BUTTON_HEIGHT = 100f;
+
+    private boolean isWaveTransition = false;
+    private float waveTransitionTimer = 0f;
+    private static final float WAVE_TRANSITION_DELAY = 3f; // 3 detik delay antar wave
+    private boolean waveCompleteBonusGiven = false;
+
+
     public GameScreen(final Main game) {
         this.game = game;
         camera = new OrthographicCamera();
@@ -96,6 +151,7 @@ public class GameScreen implements Screen {
         gold = 80;
 
         ImageLoader.load();
+        AudioManager.initialize();
         shapes = new ShapeRenderer();
         font = new BitmapFont();
 
@@ -160,36 +216,82 @@ public class GameScreen implements Screen {
         }
 
         // calculate navbar hit areas
-        recalcNavPositions();
+//        recalcNavPositions();
+
+        calculateNavButtonPositions();
 
         // after recalcNavPositions() in your constructor:
         float vw = camera.viewportWidth;
         float yNav = camera.viewportHeight - NAVBAR_HEIGHT/2 + 10f;
 
         // figure out where “Pause” was drawn
-        layout.setText(font, "Pause");
-        float pauseW = layout.width;
-        float pauseX = vw - 20f - pauseW;   // matches your render()
-        float pauseH = layout.height;
-
-        // store the button rectangle
-        btnPause = new Rectangle(pauseX, yNav - pauseH, pauseW, pauseH);
+        float pauseSize = 60f; // ukuran button pause (sama dengan remove)
+        float pauseX = vw - 20f - pauseSize;
+        float pauseY = yNav - pauseSize/2 - 8f; // sama seperti remove untuk alignment
+        btnPause = new Rectangle(pauseX, pauseY, pauseSize, pauseSize);
 
         // layout.setText(font, "Remove");  // hitung width Remove
-        layout.setText(font, "Remove");
-        float removeW = layout.width;
-// spasi 20px ke kiri dari Pause
-        float removeX = (vw - 20f - pauseW) - 20f - removeW;
-        float removeY = yNav - layout.height;
-        btnRemove = new Rectangle(removeX, removeY, removeW, layout.height);
+        float removeSize = 60f;
+        float removeX = pauseX - 20f - removeSize; // 20px spacing dari Pause
+        float removeY = yNav - removeSize/2 - 8f;
+        btnRemove = new Rectangle(removeX, removeY, removeSize, removeSize);
 
 //        // input handling for selection and deployment
         Gdx.input.setInputProcessor(new InputAdapter() {
+            @Override
+            public boolean mouseMoved(int screenX, int screenY) {
+                // Convert screen coordinates ke world coordinates
+                Vector3 v = new Vector3(screenX, screenY, 0);
+                camera.unproject(v);
+                mouseX = v.x;
+                mouseY = v.y;
+
+                // Cek apakah mouse hover di atas remove button
+                isRemoveButtonHovered = btnRemove.contains(mouseX, mouseY);
+                isPauseButtonHovered = btnPause.contains(mouseX, mouseY);
+
+                return false;
+            }
+
             @Override
             public boolean touchDown(int screenX, int screenY, int pointer, int button) {
                 Vector3 v = new Vector3(screenX, screenY, 0);
                 camera.unproject(v);
                 float x = v.x, y = v.y;
+
+                // ===== WIN SCREEN HANDLING =====
+                if (isGameWon && !isPaused) {
+                    if (btnMenuWin != null && btnMenuWin.contains(x, y)) {
+                        // Kembali ke main menu
+                        System.out.println("Going to Main Menu...");
+                        // TODO: implement main menu transition
+                        return true;
+                    }
+                    if (btnNext != null && btnNext.contains(x, y)) {
+                        // Lanjut ke level/wave berikutnya
+                        System.out.println("Going to next level...");
+                        // TODO: implement next level logic
+                        return true;
+                    }
+                    return true; // consume all clicks in win screen
+                }
+
+                // ===== LOSE SCREEN HANDLING =====
+                if (isGameOver && !isGameWon && !isPaused) {
+                    if (btnMenuLose != null && btnMenuLose.contains(x, y)) {
+                        // Kembali ke main menu
+                        System.out.println("Going to Main Menu...");
+                        // TODO: implement main menu transition
+                        return true;
+                    }
+                    if (btnRetryLose != null && btnRetryLose.contains(x, y)) {
+                        // Restart game
+                        System.out.println("Restarting game...");
+                        restartGame();
+                        return true;
+                    }
+                    return true; // consume all clicks in lose screen
+                }
 
                 if (!isPaused) {
                     // if we clicked the navbar Pause label, enter pause
@@ -249,23 +351,35 @@ public class GameScreen implements Screen {
 
                     if (panelRect.contains(x, y)) {
                         if (btnAttack.contains(x,y)) {
-                            if (selectedTowerUI.canUpgrade()) {
+                            int cost = getAttackUpgradeCost(selectedTowerUI);
+                            if (selectedTowerUI.canUpgrade() && gold >= cost) {
+                                gold -= cost; // ← Deduct gold
                                 selectedTowerUI.upgradeAttack();
-                                System.out.println("Attack upgraded!");
+                                System.out.println("Attack upgraded! Cost: " + cost + ", Gold left: " + gold);
+                            } else if (gold < cost) {
+                                System.out.println("❌ Not enough gold for Attack upgrade! Need: " + cost + ", Have: " + gold);
                             }
                             return true;
                         }
                         if (btnDefense.contains(x,y)) {
-                            if (selectedTowerUI.canUpgrade()) {
+                            int cost = getDefenseUpgradeCost(selectedTowerUI);
+                            if (selectedTowerUI.canUpgrade() && gold >= cost) {
+                                gold -= cost; // ← Deduct gold
                                 selectedTowerUI.upgradeDefense();
-                                System.out.println("Defense upgraded!");
+                                System.out.println("Defense upgraded! Cost: " + cost + ", Gold left: " + gold);
+                            } else if (gold < cost) {
+                                System.out.println("❌ Not enough gold for Defense upgrade! Need: " + cost + ", Have: " + gold);
                             }
                             return true;
                         }
                         if (btnSpeed.contains(x,y)) {
-                            if (selectedTowerUI.canUpgrade()) {
+                            int cost = getSpeedUpgradeCost(selectedTowerUI);
+                            if (selectedTowerUI.canUpgrade() && gold >= cost) {
+                                gold -= cost; // ← Deduct gold
                                 selectedTowerUI.upgradeSpeed();
-                                System.out.println("Speed upgraded!");
+                                System.out.println("Speed upgraded! Cost: " + cost + ", Gold left: " + gold);
+                            } else if (gold < cost) {
+                                System.out.println("❌ Not enough gold for Speed upgrade! Need: " + cost + ", Have: " + gold);
                             }
                             return true;
                         }
@@ -281,36 +395,41 @@ public class GameScreen implements Screen {
                     for (int i = towers.size - 1; i >= 0; i--) {
                         Tower t = towers.get(i);
                         if (t.getBounds().contains(x, y)) {
-                            try {
-                                // Coba ambil zone dengan index
-                                if (i < deployedTowerZones.size) {
-                                    Zone occupiedZone = deployedTowerZones.get(i);
-                                    towers.removeIndex(i);
-                                    deployedTowerZones.removeIndex(i);
-                                    occupiedZone.occupied = false;
-                                } else {
-                                    // Fallback: hapus tower saja, reset semua zone
-                                    towers.removeIndex(i);
-                                    resetAllEmptyZones();  // Method helper
-                                }
-                            } catch (IndexOutOfBoundsException e) {
-                                // Emergency fallback
-                                System.out.println("IndexOutOfBounds caught, using fallback");
-                                towers.removeIndex(i);
-                                resetAllEmptyZones();
+                            // Tentukan refund berdasarkan tower type
+                            int refund = 0;
+                            // Cek tower type dari texture atau buat field type di Tower class
+                            switch(t.type) { // Assuming tower has type field
+                                case AOE:  refund = TOWER1_COST / 2; break;
+                                case FAST: refund = TOWER2_COST / 2; break;
+                                case SLOW: refund = TOWER3_COST / 2; break;
                             }
 
+                            gold += refund;
+                            towers.removeIndex(i);
+                            // ... zone management logic ...
+
+                            System.out.println("Tower removed! Refund: " + refund + ", Gold: " + gold);
                             selectedType = null;
                             return true;
                         }
                     }
-                    // coba hapus trap
+                    // Saat remove trap:
                     for (int i = trapZones.size - 1; i >= 0; i--) {
                         Trap tz = trapZones.get(i);
-                        // pakai trapVerts untuk cek hit
                         if (Intersector.isPointInPolygon(trapVerts.get(i), 0, trapVerts.get(i).length, x, y)
                             && tz.occupied) {
+
+                            // Tentukan refund berdasarkan trap type
+                            int refund = 0;
+                            switch(tz.getType()) {
+                                case ATTACK:    refund = TRAP_ATTACK_COST / 2; break;
+                                case SLOW:      refund = TRAP_SLOW_COST / 2; break;
+                                case EXPLOSION: refund = TRAP_EXPLOSION_COST / 2; break;
+                            }
+
+                            gold += refund;
                             tz.occupied = false;
+                            System.out.println("Trap removed! Refund: " + refund + ", Gold: " + gold);
                             selectedType = null;
                             return true;
                         }
@@ -358,93 +477,129 @@ public class GameScreen implements Screen {
                     switch(selectedType) {
                         case T1: {
                             // Hitung kembali center zona seperti sebelumnya
+                            int cost = getTowerCost(selectedType);
                             for (int zoneIdx = 0; zoneIdx < zones.size; zoneIdx++) {
                                 Zone z = zones.get(zoneIdx);
-                                if (!z.occupied && z.contains(x,y) && gold >= TOWER_COST) {
-                                    gold -= TOWER_COST;
-                                    float cx = (z.verts[0] + z.verts[2] + z.verts[4] + z.verts[6]) / 4f;
-                                    float cy = (z.verts[1] + z.verts[3] + z.verts[5] + z.verts[7]) / 2.3f;
-                                    // Tambahkan AOE‐tower
-                                    towers.add(new Tower(
-                                        ImageLoader.tower1Tex,    // texture AOE
-                                        ImageLoader.aoeProjTex,   // projectile AOE
-                                        cx, cy,
-                                        0.3f,                     // skala
-                                        true,
-                                        false,
-                                        TowerType.AOE,
-                                        5, // initial HP
-                                        0.1f
-                                    ));
-                                    deployedTowerZones.add(z);
-                                    z.occupied = true;
-                                    selectedType = null;
+                                if (!z.occupied && z.contains(x,y)) {
+                                    if (gold >= cost) {
+                                        gold -= cost;
+                                        float cx = (z.verts[0] + z.verts[2] + z.verts[4] + z.verts[6]) / 4f;
+                                        float cy = (z.verts[1] + z.verts[3] + z.verts[5] + z.verts[7]) / 2.3f;
+                                        // Tambahkan AOE‐tower
+                                        towers.add(new Tower(
+                                            ImageLoader.tower1Tex,    // texture AOE
+                                            ImageLoader.aoeProjTex,   // projectile AOE
+                                            cx, cy,
+                                            0.3f,                     // skala
+                                            true,
+                                            false,
+                                            TowerType.AOE,
+                                            5, // initial HP
+                                            0.1f
+                                        ));
+                                        deployedTowerZones.add(z);
+                                        z.occupied = true;
+                                        selectedType = null;
+                                        AudioManager.playTowerDeploy();
+                                        return true;
+                                    } else {
+                                        System.out.println("❌ Not enough gold! Need " + cost + ", have " + gold);
+                                    }
                                     return true;
                                 }
                             }
                             break;
                         }
                         case T2: {
+                            int cost = getTowerCost(selectedType);
                             for (int zoneIdx = 0; zoneIdx < zones.size; zoneIdx++) {
                                 Zone z = zones.get(zoneIdx);
-                                if (!z.occupied && z.contains(x,y) && gold >= TOWER_COST) {
-                                    gold -= TOWER_COST;
-                                    float cx = (z.verts[0] + z.verts[2] + z.verts[4] + z.verts[6]) / 4f;
-                                    float cy = (z.verts[1] + z.verts[3] + z.verts[5] + z.verts[7]) / 2.5f;
-                                    // Tambahkan fast‐attack tower
-                                    towers.add(new Tower(
-                                        ImageLoader.tower2Tex,
-                                        ImageLoader.fastProjTex,
-                                        cx, cy,
-                                        0.3f,
-                                        true,
-                                        false,
-                                        TowerType.FAST,
-                                        3,
-                                        0.015f
-                                    ));
-                                    deployedTowerZones.add(z);
-                                    z.occupied = true;
-                                    selectedType = null;
-                                    return true;
+                                if (!z.occupied && z.contains(x,y)) {
+                                    if (gold >= cost) {
+                                        gold -= cost;
+                                        float cx = (z.verts[0] + z.verts[2] + z.verts[4] + z.verts[6]) / 4f;
+                                        float cy = (z.verts[1] + z.verts[3] + z.verts[5] + z.verts[7]) / 2.5f;
+                                        // Tambahkan fast‐attack tower
+                                        towers.add(new Tower(
+                                            ImageLoader.tower2Tex,
+                                            ImageLoader.fastProjTex,
+                                            cx, cy,
+                                            0.3f,
+                                            true,
+                                            false,
+                                            TowerType.FAST,
+                                            3,
+                                            0.015f
+                                        ));
+                                        deployedTowerZones.add(z);
+                                        z.occupied = true;
+                                        selectedType = null;
+                                        AudioManager.playTowerDeploy();
+                                        return true;
+                                    } else {
+                                        System.out.println("❌ Not enough gold! Need " + cost + ", have " + gold);
+                                    }
+                                    return true; // Consume click event
                                 }
                             }
                             break;
                         }
                         case T3: {
+                            int cost = getTowerCost(selectedType);
                             for (int zoneIdx = 0; zoneIdx < zones.size; zoneIdx++) {
                                 Zone z = zones.get(zoneIdx);
-                                if (!z.occupied && z.contains(x,y) && gold >= TOWER_COST) {
-                                    gold -= TOWER_COST;
-                                    float cx = (z.verts[0] + z.verts[2] + z.verts[4] + z.verts[6]) / 4f;
-                                    float cy = (z.verts[1] + z.verts[3] + z.verts[5] + z.verts[7]) / 2.3f;
-                                    // Tambahkan slow‐effect tower
-                                    towers.add(new Tower(
-                                        ImageLoader.tower3Tex,
-                                        ImageLoader.slowProjTex,
-                                        cx, cy,
-                                        0.2f,
-                                        true,
-                                        false,
-                                        TowerType.SLOW,
-                                        10, 0.5f
-                                    ));
-                                    deployedTowerZones.add(z);
-                                    z.occupied = true;
-                                    selectedType = null;
-                                    return true;
+                                if (!z.occupied && z.contains(x,y)) {
+                                    if (gold >= cost) {
+                                        gold -= cost;
+                                        float cx = (z.verts[0] + z.verts[2] + z.verts[4] + z.verts[6]) / 4f;
+                                        float cy = (z.verts[1] + z.verts[3] + z.verts[5] + z.verts[7]) / 2.3f;
+                                        // Tambahkan slow‐effect tower
+                                        towers.add(new Tower(
+                                            ImageLoader.tower3Tex,
+                                            ImageLoader.slowProjTex,
+                                            cx, cy,
+                                            0.2f,
+                                            true,
+                                            false,
+                                            TowerType.SLOW,
+                                            10, 0.5f
+                                        ));
+                                        deployedTowerZones.add(z);
+                                        z.occupied = true;
+                                        selectedType = null;
+                                        AudioManager.playTowerDeploy();
+                                        return true;
+                                    } else {
+                                        System.out.println("❌ Not enough gold! Need " + cost + ", have " + gold);
+                                    }
+                                    return true; // Consume click event
                                 }
                             }
                             break;
                         }
                         case TRAP1: case TRAP2: case TRAP3:
                             // deploy trap…
+                            int cost = getTrapCost(selectedType);
                             TrapType trapType;
+                            String trapName;
+
                             switch(selectedType) {
-                                case TRAP1: trapType = TrapType.ATTACK; break;
-                                case TRAP2: trapType = TrapType.SLOW; break;
-                                case TRAP3: trapType = TrapType.EXPLOSION; break;
-                                default: trapType = TrapType.ATTACK; break;
+                                case TRAP1:
+                                    trapType = TrapType.ATTACK;
+                                    trapName = "Attack";
+                                    break;
+                                case TRAP2:
+                                    trapType = TrapType.SLOW;
+                                    trapName = "Slow";
+                                    break;
+                                case TRAP3:
+                                    trapType = TrapType.EXPLOSION;
+                                    trapName = "Explosion";
+                                    break;
+                                default:
+                                    trapType = TrapType.ATTACK;
+                                    trapName = "Attack";
+                                    break;
                             }
 
                             for (int trapIdx = 0; trapIdx < trapZones.size; trapIdx++) {
@@ -453,15 +608,16 @@ public class GameScreen implements Screen {
 
                                 if (!tz.occupied &&
                                     Intersector.isPointInPolygon(trapVert, 0, trapVert.length, x, y) &&
-                                    gold >= TRAP_COST) {
+                                    gold >= cost) {
 
-                                    gold -= TRAP_COST;
+                                    gold -= cost;
 
                                     // ===== REPLACE OLD TRAP WITH NEW TYPED TRAP =====
                                     trapZones.set(trapIdx, new Trap(trapVert, 0.2f, trapType));
                                     trapZones.get(trapIdx).occupied = true;
 
                                     selectedType = null;
+                                    AudioManager.playTrapDeploy();
                                     System.out.println(trapType + " trap deployed!");
                                     return true;
                                 }
@@ -480,46 +636,74 @@ public class GameScreen implements Screen {
         });
     }
 
-
-    // calculate center navbar label positions for hit detection
-    private void recalcNavPositions() {
+    // Tambahkan method baru di GameScreen.java:
+    private void calculateNavButtonPositions() {
         float vw = camera.viewportWidth;
-        float spacing = 40f;
+        float yNav = camera.viewportHeight - NAVBAR_HEIGHT/2 + 10f;
 
-        // Gabungkan nama Tower + Trap
-        String[] all = new String[]{
-            NAV_TOWERS[0], NAV_TOWERS[1], NAV_TOWERS[2],
-            NAV_TRAPS[0], NAV_TRAPS[1], NAV_TRAPS[2]
-        };
+        // Size untuk setiap button UI
+        float buttonSize = 80f;  // ukuran square button
+        float spacing = 18f;     // jarak antar button
 
-        // Hitung total width
-        float total = 0f;
-        float[] widths = new float[all.length];
-        for (int i = 0; i < all.length; i++) {
-            layout.setText(font, all[i]);
-            widths[i] = layout.width;
-            total    += widths[i];
+        // Total width untuk 6 buttons + spacing
+        float totalWidth = (buttonSize * 6) + (spacing * 5);
+
+        // Starting X untuk center semua buttons
+        float startX = (vw - totalWidth) / 2f;
+        float buttonY = yNav - buttonSize/2 - 5f; // center vertikal
+
+        // Hitung posisi setiap button (3 towers + 3 traps)
+        for (int i = 0; i < 3; i++) {
+            navTowerX[i] = startX + i * (buttonSize + spacing);
+            navTowerW[i] = buttonSize; // width jadi size button
         }
-        total += spacing * (all.length - 1);
 
-        // Starting X agar teks ter‐center
-        float x = (vw - total) / 2f;
-
-        // Simpan posisi hit‐area berdasarkan index
-        for (int i = 0; i < all.length; i++) {
-            if (i < NAV_TOWERS.length) {
-                navTowerX[i] = x;
-                navTowerW[i] = widths[i];
-            } else {
-                int ti = i - NAV_TOWERS.length;
-                if (ti < NAV_TRAPS.length) { // ← Safety check
-                    navTrapX[ti] = x;
-                    navTrapW[ti] = widths[i];
-                }
-            }
-            x += widths[i] + spacing;
+        for (int i = 0; i < 3; i++) {
+            navTrapX[i] = startX + (3 + i) * (buttonSize + spacing);
+            navTrapW[i] = buttonSize; // width jadi size button
         }
     }
+
+//
+//    // calculate center navbar label positions for hit detection
+//    private void recalcNavPositions() {
+//        float vw = camera.viewportWidth;
+//        float spacing = 40f;
+//
+//        // Gabungkan nama Tower + Trap
+//        String[] all = new String[]{
+//            NAV_TOWERS[0], NAV_TOWERS[1], NAV_TOWERS[2],
+//            NAV_TRAPS[0], NAV_TRAPS[1], NAV_TRAPS[2]
+//        };
+//
+//        // Hitung total width
+//        float total = 0f;
+//        float[] widths = new float[all.length];
+//        for (int i = 0; i < all.length; i++) {
+//            layout.setText(font, all[i]);
+//            widths[i] = layout.width;
+//            total    += widths[i];
+//        }
+//        total += spacing * (all.length - 1);
+//
+//        // Starting X agar teks ter‐center
+//        float x = (vw - total) / 2f;
+//
+//        // Simpan posisi hit‐area berdasarkan index
+//        for (int i = 0; i < all.length; i++) {
+//            if (i < NAV_TOWERS.length) {
+//                navTowerX[i] = x;
+//                navTowerW[i] = widths[i];
+//            } else {
+//                int ti = i - NAV_TOWERS.length;
+//                if (ti < NAV_TRAPS.length) { // ← Safety check
+//                    navTrapX[ti] = x;
+//                    navTrapW[ti] = widths[i];
+//                }
+//            }
+//            x += widths[i] + spacing;
+//        }
+//    }
 
     private void update(float delta) {
         if (isPaused || isGameOver) return;
@@ -538,39 +722,202 @@ public class GameScreen implements Screen {
             for (int j = towers.size - 1; j >= 0; j--) {
                 Tower t = towers.get(j);
                 if (e.getBounds().overlaps(t.getBounds())) {
-                    if (e.canAttack()) {
-                        t.takeDamage(1);
-                        e.knockback();  // ← Knockback enemy
+                    // ===== SPECIAL HANDLING UNTUK BOMBER =====
+                    if (e.getType() == EnemyType.BOMBER) {
+                        System.out.println("💣 BOMBER COLLISION WITH TOWER!");
+                        System.out.println("  Bomber position: (" + e.getX() + ", " + e.getBounds().y + ")");
+                        System.out.println("  Tower position: (" + t.x + ", " + t.y + ")");
+
+                        // Create bomb at collision position but target GROUND_Y
+                        float bombX = e.getX(); // Horizontal position of collision
+                        float bombY = GROUND_Y; // Always fall to ground level (150f)
+
+                        BombAsset bomb = new BombAsset(
+                            ImageLoader.bombAssetTex != null ? ImageLoader.bombAssetTex : ImageLoader.trapTex,
+                            bombX, bombY
+                        );
+
+                        if (bomb != null) {
+                            bombs.add(bomb);
+                            System.out.println("💣 Bomb planted at tower location!");
+                        }
+
+                        // Remove bomber immediately (bomber menghilang)
+                        enemies.removeIndex(i);
+                        System.out.println("💣 Bomber disappeared after planting bomb!");
+
+                        // Don't check other towers for this enemy
+                        break;
+                    }
+                    // ===== NORMAL ENEMY COLLISION =====
+                    else if (e.canAttack()) {
+                        int damage = (e.getType() == EnemyType.SHIELD) ? 0 : 1; // Shield doesn't attack
+
+                        if (damage > 0) {
+                            t.takeDamage(damage);
+                            System.out.println("⚔️ Enemy attacked tower! Tower HP: " + t.getHealth());
+                        }
+                        e.knockback();
 
                         if (t.isDestroyed()) {
                             towers.removeIndex(j);
-                            if (t.isMain) isGameOver = true;
+                            if (t.isMain) {
+                                isGameOver = true;
+                                isGameWon = false;  // pastikan bukan kemenangan
+                                setupLoseUI();      // setup button positions
+                                System.out.println("💀 MAIN TOWER DESTROYED! GAME OVER!");
+                            }
                         }
                     }
                     break;
                 }
             }
-            if (e.getX() < -e.getWidth()/2) {
+            // Remove enemies that went off-screen (except bombers, already handled above)
+            if (i < enemies.size && e.getX() < -e.getWidth()/2) {
                 enemies.removeIndex(i);
             }
         }
 
-        // ===== 3) SIMPLIFIED: Let trap handle its own collision detection =====
-        for (Trap trap : trapZones) {
-            if (trap.occupied && !trap.isUsed()) {
-                // Trap akan handle collision sendiri dengan method triggerTrap()
-                if (trap.triggerTrap(enemies)) {
-                    System.out.println("🎯 TRAP ACTIVATED! Type: " + trap.getType());
+        // 3) Shield protection mechanism
+        for (int i = 0; i < enemies.size; i++) {
+            Enemy e = enemies.get(i);
+            if (e.getType() == EnemyType.BASIC) {
+                e.seekProtection(enemies);
+            }
+        }
+
+        // 4) Update enemy projectiles
+        for (int i = enemyProjectiles.size - 1; i >= 0; i--) {
+            EnemyProjectile ep = enemyProjectiles.get(i);
+            ep.update(delta);
+
+            // Check collision with towers
+            boolean hit = false;
+            for (int j = towers.size - 1; j >= 0; j--) {
+                Tower t = towers.get(j);
+                if (ep.getBounds().overlaps(t.getBounds())) {
+                    t.takeDamage(ep.getDamage());
+                    hit = true;
+
+                    if (t.isDestroyed()) {
+                        towers.removeIndex(j);
+                        if (t.isMain) isGameOver = true;
+                    }
+                    break;
+                }
+            }
+
+            // Remove if hit or off-screen
+            if (hit || ep.getX() < -50f) {
+                enemyProjectiles.removeIndex(i);
+            }
+        }
+
+        // 5) Update bombs
+        for (int i = bombs.size - 1; i >= 0; i--) {
+            BombAsset bomb = bombs.get(i);
+            bomb.update(delta);
+
+            if (bomb.shouldExplode()) {
+                bomb.explode(towers);
+            }
+
+            // Remove exploded bombs after delay
+            if (bomb.hasExploded()) {
+                bombs.removeIndex(i);
+            }
+        }
+
+        // 6) Trap collision (same as before)
+        for (int i = enemies.size - 1; i >= 0; i--) {
+            Enemy e = enemies.get(i);
+
+            // Check collision with each trap (SAME LOGIC AS TOWER)
+            for (int trapIdx = 0; trapIdx < trapZones.size; trapIdx++) {
+                Trap trap = trapZones.get(trapIdx);
+
+                // Only check occupied traps that aren't used
+                if (!trap.occupied || trap.isUsed()) continue;
+
+                // ===== DIRECT BOUNDS COLLISION (SAME AS TOWER) =====
+                if (e.getBounds().overlaps(trap.bounds)) {
+                    System.out.println("🎯 DIRECT TRAP COLLISION DETECTED!");
+                    System.out.println("  Enemy bounds: " + e.getBounds());
+                    System.out.println("  Trap bounds: " + trap.bounds);
+
+                    // Apply trap effect directly (no method delegation)
+                    switch (trap.getType()) {
+                        case ATTACK:
+                            System.out.println("⚔️ ATTACK TRAP TRIGGERED ⚔️");
+                            e.takeDamage(1);
+                            e.slow(2f);  // 2 second slow
+                            System.out.println("Enemy took 1 damage and slowed for 2s");
+                            break;
+
+                        case SLOW:
+                            System.out.println("🐌 SLOW TRAP TRIGGERED 🐌");
+                            e.slowHeavy(5f, 0.1f);  // Heavy slow
+                            System.out.println("Enemy heavily slowed for 5s (90% speed reduction)");
+                            break;
+
+                        case EXPLOSION:
+                            System.out.println("💣 EXPLOSION TRAP TRIGGERED 💣");
+
+                            // ===== FIXED: Process AOE BEFORE trap consumption =====
+                            float trapX = trap.getCenterX();
+                            float trapY = trap.getCenterY();
+                            float explosionRadius = 250f;
+                            int explosionDamage = 2;
+
+                            System.out.println("💥 EXPLOSION at (" + trapX + ", " + trapY + ") radius: " + explosionRadius);
+                            System.out.println("💥 Total enemies to check: " + enemies.size);
+
+                            int hitCount = 0;
+                            // AOE damage to all enemies within radius
+                            for (int enemyIdx = enemies.size - 1; enemyIdx >= 0; enemyIdx--) {
+                                Enemy target = enemies.get(enemyIdx);
+                                if (target.isDestroyed()) continue;
+
+                                // PERBAIKAN: Gunakan center point enemy yang benar
+                                float targetX = target.getX(); // Sudah center dari Enemy class
+                                float targetY = target.getBounds().y + target.getBounds().height / 2;
+
+                                float distance = (float) Math.sqrt(
+                                    Math.pow(trapX - targetX, 2) + Math.pow(trapY - targetY, 2)
+                                );
+
+                                System.out.println("🎯 Checking enemy " + enemyIdx + " at (" + targetX + ", " + targetY + ") - Distance: " + distance);
+
+                                if (distance <= explosionRadius) {
+                                    int oldHp = target.getHealth();
+                                    target.takeDamage(explosionDamage);
+                                    int newHp = target.getHealth();
+                                    hitCount++;
+                                    System.out.println("💥 EXPLOSION HIT! Enemy " + enemyIdx + " HP: " + oldHp + " → " + newHp + " (damage: " + explosionDamage + ")");
+                                } else {
+                                    System.out.println("❌ Enemy " + enemyIdx + " too far (distance: " + distance + " > radius: " + explosionRadius + ")");
+                                }
+                            }
+
+                            System.out.println("💥 EXPLOSION COMPLETE! Hit " + hitCount + " enemies total!");
+                            break;
+                    }
+
+                    // Mark trap as used (single-use)
+                    trap.occupied = false;
+                    System.out.println("💥 Trap consumed!");
+
+                    break; // Only trigger one trap per enemy per frame
                 }
             }
         }
 
-        // 4) Tower menembak (sama seperti sebelumnya)
+        // 7) Tower shooting (same as before)
         for (Tower t : towers) {
             t.update(delta, enemies, projectiles);
         }
 
-        // 5) Update projectiles
+        // 8) Update projectiles (same as before)
         for (int i = projectiles.size - 1; i >= 0; i--) {
             Projectile p = projectiles.get(i);
             p.update(delta);
@@ -592,7 +939,7 @@ public class GameScreen implements Screen {
             }
         }
 
-        // 6) Cleanup dead enemies
+        // 9) Cleanup dead enemies
         for (int j = enemies.size - 1; j >= 0; j--) {
             Enemy e = enemies.get(j);
             if (e.isDestroyed()) {
@@ -601,7 +948,7 @@ public class GameScreen implements Screen {
             }
         }
 
-        // 7) Wave spawning (sama seperti sebelumnya)
+        // 10) Wave spawning (updated for boss handling)
         if (spawnCount < enemiesThisWave) {
             spawnTimer += delta;
             if (spawnTimer > 2f) {
@@ -611,20 +958,46 @@ public class GameScreen implements Screen {
             }
         }
 
-        // kalau sudah spawn semua dan semua musuh mati → next wave
+        // Wave completion check
         if (spawnCount >= enemiesThisWave && enemies.size == 0) {
-            if (currentWave < MAX_WAVE) {
-                currentWave++;
-                // misal tiap wave nambah 5 musuh lagi
-                enemiesThisWave += 5;
-                spawnCount = 0;
-            } else {
-                // semua wave selesai → you win, atau loop kembali?
-                isGameOver = true;  // misal game selesai
+            if (!isWaveTransition && !waveCompleteBonusGiven) {
+                // Berikan bonus gold untuk menyelesaikan wave
+                int waveBonus = 50 + (currentWave * 10); // Bonus increases per wave
+                gold += waveBonus;
+                waveCompleteBonusGiven = true;
+
+                System.out.println("🎉 Wave " + currentWave + " Complete! Bonus: +" + waveBonus + " gold");
+
+                if (currentWave < MAX_WAVE) {
+                    isWaveTransition = true;
+                    waveTransitionTimer = 0f;
+                } else {
+                    isGameWon = true;
+                    setupWinUI();
+                    System.out.println("🎉 PLAYER WON! All waves completed!");
+                }
+            }
+
+            // Handle wave transition timer
+            if (isWaveTransition) {
+                waveTransitionTimer += delta;
+
+                if (waveTransitionTimer >= WAVE_TRANSITION_DELAY) {
+                    // Start next wave
+                    currentWave++;
+                    enemiesThisWave += 5; // Increase difficulty
+                    spawnCount = 0;
+                    bossSpawned = false;
+                    isWaveTransition = false;
+                    waveTransitionTimer = 0f;
+                    waveCompleteBonusGiven = false;
+
+                    System.out.println("🚀 Starting Wave " + currentWave + " with " + enemiesThisWave + " enemies!");
+                }
             }
         }
 
-        // 8) Gold income
+        // 11) Gold income (same as before)
         goldTimer += delta;
         if (goldTimer >= INCOME_INTERVAL) {
             gold += INCOME_AMOUNT;
@@ -632,11 +1005,359 @@ public class GameScreen implements Screen {
         }
     }
 
+    // Tambahkan method untuk setup Win UI
+    private void setupWinUI() {
+        float centerX = camera.viewportWidth / 2f;
+        float centerY = camera.viewportHeight / 2f;
+
+        // Position buttons di bawah UI background
+        float buttonY = centerY - UI_HEIGHT/2f + 150f; // 150px dari bawah UI
+        float buttonSpacing = 50f;
+
+        // Left button (MAIN MENU)
+        float leftButtonX = centerX - BUTTON_WIDTH - buttonSpacing/2f;
+        btnMenuWin = new Rectangle(leftButtonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT);
+
+        // Right button (NEXT)
+        float rightButtonX = centerX + buttonSpacing/2f;
+        btnNext = new Rectangle(rightButtonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT);
+    }
+
+    // Tambahkan method untuk setup Lose UI
+    private void setupLoseUI() {
+        float centerX = camera.viewportWidth / 2f;
+        float centerY = camera.viewportHeight / 2f;
+
+        // Position buttons di bawah UI background
+        float buttonY = centerY - UI_HEIGHT/2f + 150f;
+        float buttonSpacing = 50f;
+
+        // Left button (MAIN MENU)
+        float leftButtonX = centerX - BUTTON_WIDTH - buttonSpacing/2f;
+        btnMenuLose = new Rectangle(leftButtonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT);
+
+        // Right button (RETRY)
+        float rightButtonX = centerX + buttonSpacing/2f;
+        btnRetryLose = new Rectangle(rightButtonX, buttonY, BUTTON_WIDTH, BUTTON_HEIGHT);
+    }
+
+    // Tambahkan method untuk restart game
+    private void restartGame() {
+        // Reset semua game state
+        isGameOver = false;
+        isGameWon = false;
+        isPaused = false;
+
+        // Reset wave system
+        currentWave = 1;
+        spawnCount = 0;
+        enemiesThisWave = 5;
+        bossSpawned = false;
+
+        // Reset gold
+        gold = 80;
+        goldTimer = 0f;
+        spawnTimer = 0f;
+
+        // Clear all entities
+        enemies.clear();
+        projectiles.clear();
+        enemyProjectiles.clear();
+        bombs.clear();
+
+        // Reset towers (keep main tower, remove deployed towers)
+        towers.clear();
+        float towerMainH = ImageLoader.maintowertex.getHeight() * 0.6f;
+        float tyMain = GROUND_Y + towerMainH/5f;
+        towers.add(new Tower(
+            ImageLoader.maintowertex,
+            ImageLoader.projTex,
+            100, tyMain,
+            0.3f,
+            true,
+            true,
+            TowerType.BASIC,
+            10, 0.1f
+        ));
+
+        // Reset zones
+        for (Zone z : zones) {
+            z.occupied = false;
+        }
+        deployedTowerZones.clear();
+
+        // Reset traps
+        for (int i = 0; i < trapZones.size; i++) {
+            Trap trap = trapZones.get(i);
+            trap.occupied = false;
+        }
+
+        // Reset UI selection
+        selectedType = null;
+        selectedTowerUI = null;
+
+        System.out.println("🔄 Game restarted!");
+    }
+
+    // Tambahkan method baru untuk menggambar wave progress bar
+    private void drawWaveProgressBar() {
+        float vw = camera.viewportWidth;
+        float vh = camera.viewportHeight;
+
+        // === UBAH POSISI KE KIRI BAWAH ===
+        // Dimensi progress bar
+        float barWidth = 250f;  // Sedikit lebih kecil agar muat di pojok
+        float barHeight = 18f;  // Sedikit lebih tipis
+
+        // POSISI BARU: Kiri bawah (di atas wave label yang sudah ada)
+        float barX = 20f;       // 20px dari kiri (sama dengan wave label)
+        float barY = 60f;       // 60px dari bawah (di atas wave label dan enemy stats)
+
+        // Hitung progress (berapa enemy yang sudah di-spawn vs total wave)
+        float spawnProgress = (float) spawnCount / (float) enemiesThisWave;
+
+        // Hitung progress enemy yang sudah mati/selesai
+        int enemiesKilled = spawnCount - enemies.size;
+        float killProgress = (float) enemiesKilled / (float) enemiesThisWave;
+
+        // === BACKGROUND BAR ===
+        shapes.setProjectionMatrix(camera.combined);
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(0.3f, 0.3f, 0.3f, 0.8f); // Dark gray background
+        shapes.rect(barX, barY, barWidth, barHeight);
+        shapes.end();
+
+        // === SPAWN PROGRESS (Blue) ===
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(0.2f, 0.6f, 1f, 0.8f); // Blue - enemies spawned
+        shapes.rect(barX, barY, barWidth * spawnProgress, barHeight);
+        shapes.end();
+
+        // === KILL PROGRESS (Green) ===
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(0.2f, 1f, 0.2f, 0.8f); // Green - enemies killed
+        shapes.rect(barX, barY, barWidth * killProgress, barHeight);
+        shapes.end();
+
+        // === BORDER ===
+        shapes.begin(ShapeRenderer.ShapeType.Line);
+        shapes.setColor(Color.WHITE);
+        shapes.rect(barX, barY, barWidth, barHeight);
+        shapes.end();
+
+        // === TEXT LABELS ===
+        game.batch.setProjectionMatrix(camera.combined);
+        game.batch.begin();
+
+        // Wave title DI ATAS progress bar
+        String waveTitle = "Wave " + currentWave + " / " + MAX_WAVE;
+        layout.setText(font, waveTitle);
+        float titleX = barX; // Align kiri dengan progress bar
+        float titleY = barY + barHeight + 20f; // 20px di atas progress bar
+        font.setColor(Color.WHITE);
+        font.draw(game.batch, waveTitle, titleX, titleY);
+
+        // Progress text DI DALAM progress bar (overlay)
+        String progressText = enemiesKilled + "/" + enemiesThisWave;
+        layout.setText(font, progressText);
+        float progressX = barX + (barWidth - layout.width) / 2f; // Center di progress bar
+        float progressY = barY + (barHeight + layout.height) / 2f; // Center vertikal
+        font.setColor(Color.WHITE);
+        font.draw(game.batch, progressText, progressX, progressY);
+
+        // Remaining enemies text DI KANAN progress bar
+        if (enemies.size > 0) {
+            String remainingText = "Active: " + enemies.size;
+            layout.setText(font, remainingText);
+            float remainingX = barX + barWidth + 10f; // 10px ke kanan dari progress bar
+            float remainingY = barY + (barHeight + layout.height) / 2f; // Center vertikal
+            font.setColor(Color.YELLOW);
+            font.draw(game.batch, remainingText, remainingX, remainingY);
+        }
+
+        // Next wave indicator DI BAWAH progress bar
+        if (spawnCount >= enemiesThisWave && enemies.size == 0 && currentWave < MAX_WAVE) {
+            String nextWaveText = "Preparing Wave " + (currentWave + 1) + "...";
+            layout.setText(font, nextWaveText);
+            float nextX = barX; // Align kiri dengan progress bar
+            float nextY = barY - 8f; // 8px di bawah progress bar
+            font.setColor(Color.CYAN);
+            font.draw(game.batch, nextWaveText, nextX, nextY);
+        }
+
+        font.setColor(Color.WHITE); // Reset color
+        game.batch.end();
+    }
+
+    // Method untuk menggambar wave countdown (opsional)
+    private void drawWaveCountdown() {
+        if (isWaveTransition) {
+            // PINDAHKAN COUNTDOWN KE TENGAH KANAN (tidak di tengah layar)
+            float centerX = camera.viewportWidth - 200f;  // Kanan layar
+            float centerY = camera.viewportHeight / 2f;   // Tengah vertikal
+
+            // Calculate remaining time
+            float remainingTime = WAVE_TRANSITION_DELAY - waveTransitionTimer;
+            int seconds = (int) Math.ceil(remainingTime);
+
+            String countdownText = "Wave " + (currentWave + 1) + " in " + seconds + "s";
+            layout.setText(font, countdownText);
+
+            // Background dengan ukuran yang lebih kecil
+            float bgWidth = 150f;
+            float bgHeight = 80f;
+            float bgX = centerX - bgWidth/2f;
+            float bgY = centerY - bgHeight/2f;
+
+            shapes.setProjectionMatrix(camera.combined);
+            shapes.begin(ShapeRenderer.ShapeType.Filled);
+            shapes.setColor(0f, 0f, 0f, 0.8f); // Dark background
+            shapes.rect(bgX, bgY, bgWidth, bgHeight);
+            shapes.end();
+
+            shapes.begin(ShapeRenderer.ShapeType.Line);
+            shapes.setColor(Color.CYAN);
+            shapes.rect(bgX, bgY, bgWidth, bgHeight);
+            shapes.end();
+
+            // Countdown text
+            game.batch.setProjectionMatrix(camera.combined);
+            game.batch.begin();
+            font.setColor(Color.CYAN);
+
+            // Main countdown
+            font.draw(game.batch, countdownText,
+                centerX - layout.width/2f,
+                centerY + layout.height/2f);
+
+            // Bonus info
+            String bonusText = "Bonus: +" + (50 + (currentWave * 10));
+            layout.setText(font, bonusText);
+            font.setColor(Color.YELLOW);
+            font.draw(game.batch, bonusText,
+                centerX - layout.width/2f,
+                centerY - 15f);
+
+            font.setColor(Color.WHITE);
+            game.batch.end();
+        }
+    }
+
+    // Method untuk menggambar mini progress indicators per enemy type
+    private void drawEnemyTypeProgress() {
+        // PINDAHKAN POSISI ENEMY TYPE PROGRESS KE KANAN BAWAH
+        float startX = camera.viewportWidth - 150f; // Kanan layar
+        float startY = 120f; // Dari bawah, di atas navbar
+        float iconSize = 20f; // Lebih kecil
+        float spacing = 25f;  // Lebih rapat
+
+        // Count enemies by type that are spawned vs killed
+        int[] spawned = new int[5]; // BASIC, SHOOTER, BOMBER, SHIELD, BOSS
+        int[] active = new int[5];
+
+        // Count active enemies
+        for (Enemy e : enemies) {
+            switch(e.getType()) {
+                case BASIC: active[0]++; break;
+                case SHOOTER: active[1]++; break;
+                case BOMBER: active[2]++; break;
+                case SHIELD: active[3]++; break;
+                case BOSS: active[4]++; break;
+            }
+        }
+
+        // Estimate total spawned
+        spawned[0] = (int)(enemiesThisWave * 0.4f); // 40% basic
+        spawned[1] = (int)(enemiesThisWave * 0.2f); // 20% shooter
+        spawned[2] = (int)(enemiesThisWave * 0.15f); // 15% bomber
+        spawned[3] = (int)(enemiesThisWave * 0.2f); // 20% shield
+        spawned[4] = bossSpawned ? 1 : 0; // Boss
+
+        String[] typeIcons = {"⚔️", "🏹", "💣", "🛡️", "👑"};
+        Color[] typeColors = {Color.WHITE, Color.GREEN, Color.ORANGE, Color.CYAN, Color.PURPLE};
+
+        game.batch.setProjectionMatrix(camera.combined);
+        game.batch.begin();
+
+        for (int i = 0; i < 5; i++) {
+            if (spawned[i] > 0) {
+                float x = startX;
+                float y = startY - i * spacing;
+
+                // Icon
+                font.setColor(typeColors[i]);
+                font.draw(game.batch, typeIcons[i], x, y);
+
+                // Progress text
+                String progressText = active[i] + "/" + spawned[i];
+                font.setColor(Color.LIGHT_GRAY);
+                font.draw(game.batch, progressText, x + iconSize, y);
+            }
+        }
+
+        font.setColor(Color.WHITE);
+        game.batch.end();
+    }
+
+    // Tambahkan method untuk wave transition effects
+    private void drawWaveTransition() {
+        if (spawnCount >= enemiesThisWave && enemies.size == 0) {
+            float centerX = camera.viewportWidth / 2f;
+            float centerY = camera.viewportHeight / 2f;
+
+            if (currentWave < MAX_WAVE) {
+                // "Wave Complete" effect
+                shapes.setProjectionMatrix(camera.combined);
+                shapes.begin(ShapeRenderer.ShapeType.Filled);
+                shapes.setColor(0f, 1f, 0f, 0.3f); // Green overlay
+                shapes.rect(0, 0, camera.viewportWidth, camera.viewportHeight);
+                shapes.end();
+
+                game.batch.setProjectionMatrix(camera.combined);
+                game.batch.begin();
+
+                String completeText = "Wave " + currentWave + " Complete!";
+                layout.setText(font, completeText);
+                font.setColor(Color.GREEN);
+                font.draw(game.batch, completeText,
+                    centerX - layout.width/2f,
+                    centerY + 30f);
+
+                String rewardText = "+50 Gold Bonus!";
+                layout.setText(font, rewardText);
+                font.setColor(Color.YELLOW);
+                font.draw(game.batch, rewardText,
+                    centerX - layout.width/2f,
+                    centerY);
+
+                game.batch.end();
+            }
+        }
+    }
+
+    // ===== HELPER METHOD FOR GOLD REWARDS =====
+    private int getGoldReward(EnemyType enemyType) {
+        switch(enemyType) {
+            case BASIC: return 10;
+            case SHOOTER: return 15;
+            case BOMBER: return 12;
+            case SHIELD: return 20; // High HP = higher reward
+            case BOSS: return 50;   // Boss = big reward
+            default: return 10;
+        }
+    }
+
     // refactor spawn code jadi method supaya reusable
     private void spawnEnemy() {
-        float enemyH = ImageLoader.dutchtex.getHeight() * Enemy.SCALE;
-        float ey     = GROUND_Y + enemyH/3f;
-        Enemy newEnemy = new Enemy(ImageLoader.dutchtex, 1280, ey);
+        float enemyH = ImageLoader.dutchtex.getHeight() * Enemy.scale;
+        float ey     = GROUND_Y + 40f;
+
+        // Determine enemy type based on wave and probability
+        EnemyType enemyType = determineEnemyType();
+
+        Enemy newEnemy = new Enemy(enemyType, 1280, ey);
+        // ===== CRITICAL FIX: Set references SEBELUM add ke array =====
+        newEnemy.setReferences(towers, enemyProjectiles, bombs);
         enemies.add(newEnemy);
 
         // ===== DEBUG: Log enemy spawn position =====
@@ -656,6 +1377,123 @@ public class GameScreen implements Screen {
             }
         }
         System.out.println("==========================================");
+    }
+
+    private EnemyType determineEnemyType() {
+        // Boss has special spawn conditions
+        if (currentWave >= 2 && !bossSpawned && Math.random() < BOSS_SPAWN_CHANCE) {
+            bossSpawned = true;
+            return EnemyType.BOSS;
+        }
+
+        // Normal probability-based spawning
+        float rand = (float) Math.random();
+
+        if (rand < BASIC_SPAWN_CHANCE) {
+            return EnemyType.BASIC;
+        } else if (rand < BASIC_SPAWN_CHANCE + SHOOTER_SPAWN_CHANCE) {
+            return EnemyType.SHOOTER;
+        } else if (rand < BASIC_SPAWN_CHANCE + SHOOTER_SPAWN_CHANCE + BOMBER_SPAWN_CHANCE) {
+            return EnemyType.BOMBER;
+        } else if (rand < BASIC_SPAWN_CHANCE + SHOOTER_SPAWN_CHANCE + BOMBER_SPAWN_CHANCE + SHIELD_SPAWN_CHANCE) {
+            return EnemyType.SHIELD;
+        } else {
+            return EnemyType.BASIC; // Fallback
+        }
+    }
+
+    // Tambahkan method baru di GameScreen.java:
+    private void drawNavbarButtons() {
+        float vw = camera.viewportWidth;
+        float yNav = camera.viewportHeight - NAVBAR_HEIGHT/2 + 10f;
+        float buttonSize = 80f;
+        float buttonY = yNav - buttonSize/2 - 5f;
+
+        // Array textures dan costs
+        Texture[] towerTextures = {
+                ImageLoader.UITowerAOE,      // Akan menggunakan UITowerAOE untuk sementara
+                ImageLoader.UITowerSpeed,     // ← GANTI dengan UITowerSpeed nanti
+                ImageLoader.UITowerDefensif       // ← GANTI dengan UITowerDefensif nanti
+        };
+
+        Texture[] trapTextures = {
+                ImageLoader.UITrapAttack,      // ← GANTI dengan UITrapAttack nanti
+                ImageLoader.UITrapSlow,      // ← GANTI dengan UITrapSlow nanti
+                ImageLoader.UITrapBomb       // ← GANTI dengan UITrapBomb nanti
+        };
+
+        int[] towerCosts = {TOWER1_COST, TOWER2_COST, TOWER3_COST};
+        int[] trapCosts = {TRAP_ATTACK_COST, TRAP_SLOW_COST, TRAP_EXPLOSION_COST};
+
+        // Draw tower buttons
+        for (int i = 0; i < 3; i++) {
+            float x = navTowerX[i];
+
+            // Highlight jika selected
+            if (selectedType != null && selectedType.ordinal() == i) {
+                game.batch.setColor(1f, 1f, 0.8f, 1f); // Kuning muda
+            } else {
+                game.batch.setColor(Color.WHITE);
+            }
+
+            // Draw button image
+            if (towerTextures[i] != null) {
+                game.batch.draw(towerTextures[i], x, buttonY, buttonSize, buttonSize);
+            } else {
+                // Fallback rectangle
+                game.batch.end();
+                shapes.setProjectionMatrix(camera.combined);
+                shapes.begin(ShapeRenderer.ShapeType.Filled);
+                shapes.setColor(Color.GRAY);
+                shapes.rect(x, buttonY, buttonSize, buttonSize);
+                shapes.end();
+                game.batch.begin();
+            }
+
+            // Draw cost text di bawah button
+            game.batch.setColor(Color.WHITE);
+            String costText = "$" + towerCosts[i];
+            layout.setText(font, costText);
+            float textX = x + (buttonSize - layout.width)/2f;
+            float textY = buttonY - 5f;
+            font.draw(game.batch, costText, textX, textY);
+        }
+
+        // Draw trap buttons
+        for (int i = 0; i < 3; i++) {
+            float x = navTrapX[i];
+
+            // Highlight jika selected
+            if (selectedType != null && selectedType.ordinal() == (3 + i)) {
+                game.batch.setColor(1f, 1f, 0.8f, 1f); // Kuning muda
+            } else {
+                game.batch.setColor(Color.WHITE);
+            }
+
+            // Draw button image
+            if (trapTextures[i] != null) {
+                game.batch.draw(trapTextures[i], x, buttonY, buttonSize, buttonSize);
+            } else {
+                // Fallback rectangle
+                game.batch.end();
+                shapes.setProjectionMatrix(camera.combined);
+                shapes.begin(ShapeRenderer.ShapeType.Filled);
+                shapes.setColor(Color.ORANGE);
+                shapes.rect(x, buttonY, buttonSize, buttonSize);
+                shapes.end();
+                game.batch.begin();
+            }
+
+            // Draw cost text
+            game.batch.setColor(Color.WHITE);
+            String costText = "$" + trapCosts[i];
+            layout.setText(font, costText);
+            float textX = x + (buttonSize - layout.width)/2f;
+            float textY = buttonY - 5f;
+            font.draw(game.batch, costText, textX, textY);
+        }
+
+        game.batch.setColor(Color.WHITE); // Reset color
     }
 
     @Override
@@ -716,43 +1554,6 @@ public class GameScreen implements Screen {
         shapes.rect(0, vy - NAVBAR_HEIGHT, vw, NAVBAR_HEIGHT);
         shapes.end();
 
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
-        shapes.setColor(new Color(0, 0, 0, 0.5f));  // semi-transparan
-
-        if (selectedType != null) {
-            int idx = selectedType.ordinal();
-            if (idx < NAV_TOWERS.length) {
-                // highlight Tower1..Tower3
-                shapes.rect(
-                    navTowerX[idx],
-                    vy - NAVBAR_HEIGHT,
-                    navTowerW[idx],
-                    NAVBAR_HEIGHT
-                );
-            } else if (idx < NAV_TOWERS.length + NAV_TRAPS.length) {
-                // highlight hanya Trap yang dipilih
-                int trapIdx = idx - NAV_TOWERS.length;
-                shapes.rect(
-                    navTrapX[trapIdx],
-                    vy - NAVBAR_HEIGHT,
-                    navTrapW[trapIdx],
-                    NAVBAR_HEIGHT
-                );
-            } else if (selectedType == NavItem.REMOVE) {
-                shapes.setColor(1f, 1f, 0f, 0.3f);  // misal kuning semi
-                shapes.rect(
-                    btnRemove.x,
-                    btnRemove.y,
-                    btnRemove.width,
-                    btnRemove.height
-                );
-
-            }
-        }
-
-        shapes.end();
-
-
         // draw deploy zones
         shapes.begin(ShapeRenderer.ShapeType.Line);
         shapes.setColor(Color.LIGHT_GRAY);
@@ -772,64 +1573,129 @@ public class GameScreen implements Screen {
         shapes.end();
 
         // 3) Jika game over, tampilkan pesan dan stop
-        if (isGameOver) {
+        if (isGameOver || isGameWon) {
+            // Draw background darkening
+            shapes.setProjectionMatrix(camera.combined);
+            shapes.begin(ShapeRenderer.ShapeType.Filled);
+            shapes.setColor(0f, 0f, 0f, 0.7f); // dark overlay
+            shapes.rect(0, 0, camera.viewportWidth, camera.viewportHeight);
+            shapes.end();
+
+            // Draw Win/Lose UI
             game.batch.setProjectionMatrix(camera.combined);
             game.batch.begin();
-            font.draw(game.batch, "GAME OVER", vw/2f - 50, vy/2f);
+
+            float centerX = camera.viewportWidth / 2f;
+            float centerY = camera.viewportHeight / 2f;
+            float uiX = centerX - UI_WIDTH / 2f;
+            float uiY = centerY - UI_HEIGHT / 2f;
+
+            if (isGameWon) {
+                // Draw Win UI
+                if (ImageLoader.WinUI != null) {
+                    game.batch.draw(ImageLoader.WinUI, uiX, uiY, UI_WIDTH, UI_HEIGHT);
+                } else {
+                    // Fallback text jika image tidak ada
+                    font.draw(game.batch, "YOU WIN!", centerX - 50, centerY);
+                }
+
+                // Draw Win buttons
+                if (ImageLoader.BtnMenu != null && btnMenuWin != null) {
+                    game.batch.draw(ImageLoader.BtnMenu, btnMenuWin.x, btnMenuWin.y,
+                        btnMenuWin.width, btnMenuWin.height);
+                }
+                if (ImageLoader.BtnNext != null && btnNext != null) {
+                    game.batch.draw(ImageLoader.BtnNext, btnNext.x, btnNext.y,
+                        btnNext.width, btnNext.height);
+                }
+
+            } else {
+                // Draw Lose UI
+                if (ImageLoader.LoseUI != null) {
+                    game.batch.draw(ImageLoader.LoseUI, uiX, uiY, UI_WIDTH, UI_HEIGHT);
+                } else {
+                    // Fallback text jika image tidak ada
+                    font.draw(game.batch, "GAME OVER", centerX - 50, centerY);
+                }
+
+                // Draw Lose buttons
+                if (ImageLoader.BtnMenu != null && btnMenuLose != null) {
+                    game.batch.draw(ImageLoader.BtnMenu, btnMenuLose.x, btnMenuLose.y,
+                        btnMenuLose.width, btnMenuLose.height);
+                }
+                if (ImageLoader.BtnRetry != null && btnRetryLose != null) {
+                    game.batch.draw(ImageLoader.BtnRetry, btnRetryLose.x, btnRetryLose.y,
+                        btnRetryLose.width, btnRetryLose.height);
+                }
+            }
+
             game.batch.end();
-            return;
+            return; // Stop rendering game elements
         }
 
         // 4) Gambar elemen navbar: Gold | [Tower,Trap] tengah | Remove & Pause kanan
         game.batch.setProjectionMatrix(camera.combined);
         game.batch.begin();
 
-        // — Gold di kiri
-        font.draw(game.batch, "Gold: " + gold, 20f, yNav);
+        drawGoldUI();
 
         // — Remove & Pause di kanan
-        String removeTxt = "Remove";
-        String pauseTxt  = "Pause";
-        layout.setText(font, pauseTxt);
-        float pauseW = layout.width;
-        layout.setText(font, removeTxt);
-        float removeW = layout.width;
-
         float rightMargin = 20f;
-        // gambar Pause paling kanan
-        font.draw(game.batch,
-            pauseTxt,
-            vw - rightMargin - pauseW, yNav);
-        // gambar Remove di kiri Pause, spasi 20px
-        font.draw(game.batch,
-            removeTxt,
-            vw - rightMargin - pauseW - 20f - removeW, yNav);
+        float pauseSize = 80f;
+        float removeSize = 60f;
 
-        // — Tower1–3 & Trap1–4 di tengah
-        String[] centerItems = {
-            "Tower1","Tower2","Tower3",
-            "TrapAtk","TrapSlow","TrapBomb"
-        };
-        int n = centerItems.length;
-        float spacing = 40f;
+        // Hitung posisi kedua button dulu
+        float pauseX = vw - rightMargin - pauseSize;
+        float pauseY = yNav - pauseSize/2 - 8f;
+        float removeX = pauseX - 20f - removeSize; // Sekarang pauseX sudah tersedia
+        float removeY = yNav - removeSize/2 - 8f;
 
-        // hitung total width teks + spacing
-        float totalW = 0f;
-        float[] widths = new float[n];
-        for (int i = 0; i < n; i++) {
-            layout.setText(font, centerItems[i]);
-            widths[i] = layout.width;
-            totalW += widths[i];
+        // ===== GAMBAR PAUSE BUTTON SEBAGAI IMAGE =====
+        if (ImageLoader.PauseBtntex != null) {
+            // Color tinting untuk Pause button
+            if (isPauseButtonHovered) {
+                game.batch.setColor(0.8f, 0.8f, 1f, 1f); // Biru muda saat hover
+            } else {
+                game.batch.setColor(Color.WHITE); // Normal
+            }
+
+            game.batch.draw(ImageLoader.PauseBtntex, pauseX, pauseY, pauseSize, pauseSize);
+            game.batch.setColor(Color.WHITE); // Reset color
+        } else {
+            // Fallback jika image tidak ada
+            game.batch.end();
+            shapes.setProjectionMatrix(camera.combined);
+            shapes.begin(ShapeRenderer.ShapeType.Filled);
+            shapes.setColor(Color.BLUE);
+            shapes.rect(btnPause.x, btnPause.y, btnPause.width, btnPause.height);
+            shapes.end();
+            game.batch.begin();
         }
-        totalW += spacing * (n - 1);
 
-        // mulai di (viewport - totalW)/2
-        float startX = (vw - totalW) / 2f;
-        float x = startX;
-        for (int i = 0; i < n; i++) {
-            font.draw(game.batch, centerItems[i], x, yNav);
-            x += widths[i] + spacing;
+        // ===== GAMBAR REMOVE BUTTON (update position) =====
+        if (ImageLoader.removeBtnTex != null) {
+            if (selectedType == NavItem.REMOVE) {
+                game.batch.setColor(1f, 0.2f, 0.2f, 1f);
+            } else if (isRemoveButtonHovered) {
+                game.batch.setColor(1f, 0.7f, 0.7f, 1f);
+            } else {
+                game.batch.setColor(Color.WHITE);
+            }
+
+            game.batch.draw(ImageLoader.removeBtnTex, removeX, removeY, removeSize, removeSize);
+            game.batch.setColor(Color.WHITE);
+        } else {
+            // Fallback untuk Remove
+            game.batch.end();
+            shapes.setProjectionMatrix(camera.combined);
+            shapes.begin(ShapeRenderer.ShapeType.Filled);
+            shapes.setColor(Color.BROWN);
+            shapes.rect(btnRemove.x, btnRemove.y, btnRemove.width, btnRemove.height);
+            shapes.end();
+            game.batch.begin();
         }
+
+        drawNavbarButtons();
 
         game.batch.end();
 
@@ -843,12 +1709,14 @@ public class GameScreen implements Screen {
 // …— gold, pause/remove, navbar, dsb. …
 
 // gambar Label Wave di paling bawah kiri
-        layout.setText(font, "Wave: " + currentWave);
-        float waveX = 20f;
-        float waveY = layout.height + 10f;  // 10px dari bawah
-        font.draw(game.batch, "Wave: " + currentWave, waveX, waveY);
-
         game.batch.end();
+
+// === TAMBAHKAN WAVE PROGRESS BAR DI SINI ===
+        if (!isPaused && !isGameOver && !isGameWon) {
+            drawWaveProgressBar();
+//            drawEnemyTypeProgress(); // Opsional: mini progress per enemy type
+//            drawWaveTransition();    // Opsional: wave transition effects
+        }
 
         // 5) Gambar world sprites
         game.batch.begin();
@@ -863,10 +1731,53 @@ public class GameScreen implements Screen {
             float textX = e.getBounds().x + e.getBounds().width/2f - layout.width/2f;
             float textY = e.getBounds().y + e.getBounds().height + 15f; // 15px di atas kepala
 
+            // Color-code HP text based on health percentage
+            float healthPercent = (float)e.getHealth() / e.getMaxHealth();
+            if (healthPercent > 0.6f) {
+                font.setColor(Color.GREEN);
+            } else if (healthPercent > 0.3f) {
+                font.setColor(Color.YELLOW);
+            } else {
+                font.setColor(Color.RED);
+            }
+
             // 3) gambar label HP
             font.draw(game.batch, hpText, textX, textY);
+
+            // 3) Draw enemy type indicator
+            String typeText = getEnemyTypeDisplay(e.getType());
+            layout.setText(font, typeText);
+            float typeX = e.getBounds().x + e.getBounds().width/2f - layout.width/2f;
+            float typeY = textY + 15f;
+
+            // Color-code type text
+            font.setColor(getEnemyTypeColor(e.getType()));
+            font.draw(game.batch, typeText, typeX, typeY);
+
+            // 4) Draw state indicator for special enemies
+            if (e.getType() == EnemyType.SHOOTER || e.getType() == EnemyType.BOMBER || e.getType() == EnemyType.BOSS) {
+                String stateText = getStateDisplay(e);
+                if (!stateText.isEmpty()) {
+                    layout.setText(font, stateText);
+                    float stateX = e.getBounds().x + e.getBounds().width/2f - layout.width/2f;
+                    float stateY = typeY + 15f;
+                    font.setColor(Color.CYAN);
+                    font.draw(game.batch, stateText, stateX, stateY);
+                }
+            }
         }
         for (Projectile p : projectiles) p.drawBatch(game.batch);
+
+        // Draw enemy projectiles
+        for (EnemyProjectile ep : enemyProjectiles) {
+            ep.drawBatch(game.batch);
+        }
+
+        // Draw bombs
+        for (BombAsset bomb : bombs) {
+            bomb.drawBatch(game.batch);
+        }
+
         game.batch.end();
 
         // inside render(), after your normal world drawing:
@@ -958,7 +1869,36 @@ public class GameScreen implements Screen {
         for (Tower t : towers)         t.drawShape(shapes);
         for (Enemy e : enemies)        e.drawShape(shapes);
         for (Projectile p : projectiles) p.drawShape(shapes);
+        // Draw enemy projectiles
+        for (EnemyProjectile ep : enemyProjectiles) {
+            ep.drawShape(shapes);
+        }
         shapes.end();
+
+//        // Display enemy statistics
+//        game.batch.begin();
+//
+//// Count enemies by type
+//        int basicCount = 0, shooterCount = 0, bomberCount = 0, shieldCount = 0, bossCount = 0;
+//        for (Enemy e : enemies) {
+//            switch(e.getType()) {
+//                case BASIC: basicCount++; break;
+//                case SHOOTER: shooterCount++; break;
+//                case BOMBER: bomberCount++; break;
+//                case SHIELD: shieldCount++; break;
+//                case BOSS: bossCount++; break;
+//            }
+//        }
+//
+//// Display enemy counts
+//        String enemyStats = String.format("Enemies: ⚔️%d 🏹%d 💣%d 🛡️%d 👑%d",
+//            basicCount, shooterCount, bomberCount, shieldCount, bossCount);
+//        layout.setText(font, enemyStats);
+//        float statsX = 20f;
+//        float statsY = layout.height + 35f; // Below wave display
+//        font.draw(game.batch, enemyStats, statsX, statsY);
+//
+//        game.batch.end();
 
         // 7) Gambar panel UI di kanan tower yang dipilih
         if (selectedTowerUI != null) {
@@ -996,12 +1936,29 @@ public class GameScreen implements Screen {
             float btnH    = 24f;
             float btnW    = panelW - margin*2;
 
+            // Get upgrade costs
+            int attackCost = getAttackUpgradeCost(selectedTowerUI);
+            int defenseCost = getDefenseUpgradeCost(selectedTowerUI);
+            int speedCost = getSpeedUpgradeCost(selectedTowerUI);
+
             // stat labels and values
-            String[] labels = {"Attack", "Defend", "Atk Speed"};
+            String[] labels = {
+                "Attack ($" + attackCost + ")",
+                "Defense ($" + defenseCost + ")",
+                "Speed ($" + speedCost + ")"
+            };
+
             int[] values = {
                 selectedTowerUI.getAttackLevel(),
                 selectedTowerUI.getDefenseLevel(),
                 selectedTowerUI.getSpeedLevel()
+            };
+
+            // Check affordability untuk color coding
+            boolean[] canAfford = {
+                gold >= attackCost && selectedTowerUI.canUpgrade(),
+                gold >= defenseCost && selectedTowerUI.canUpgrade(),
+                gold >= speedCost && selectedTowerUI.canUpgrade()
             };
 
             // vertical starting point just below the header
@@ -1010,35 +1967,131 @@ public class GameScreen implements Screen {
             for (int i = 0; i < 3; i++) {
                 float y = startY - (i+1)*(btnH + margin);
 
-                // draw filled bar
+                // ===== COLOR-CODED UPGRADE BARS =====
                 shapes.begin(ShapeRenderer.ShapeType.Filled);
-                shapes.setColor(Color.DARK_GRAY);
+
+                // Background color berdasarkan affordability
+                if (canAfford[i]) {
+                    shapes.setColor(0.2f, 0.4f, 0.2f, 1f); // Dark green - affordable
+                } else {
+                    shapes.setColor(0.4f, 0.2f, 0.2f, 1f); // Dark red - not affordable
+                };
+                // ✅ DRAW THE RECTANGLE
                 shapes.rect(px + margin, y - btnH, btnW, btnH);
                 shapes.end();
 
-                // draw bar outline
+                // Bar outline
                 shapes.begin(ShapeRenderer.ShapeType.Line);
-                shapes.setColor(Color.WHITE);
+                if (canAfford[i]) {
+                    shapes.setColor(Color.GREEN);  // Green border - affordable
+                } else {
+                    shapes.setColor(Color.RED);    // Red border - not affordable
+                }
                 shapes.rect(px + margin, y - btnH, btnW, btnH);
                 shapes.end();
 
-                // left label
+                // Text dengan color coding
                 game.batch.setProjectionMatrix(camera.combined);
                 game.batch.begin();
+
+                // Left label dengan cost
+                if (canAfford[i]) {
+                    font.setColor(Color.WHITE);
+                } else {
+                    font.setColor(Color.LIGHT_GRAY);
+                }
+
                 font.draw(game.batch, labels[i], px + margin + 4, y - btnH/2 + 6);
 
-                // right “X/10”
-                String valTxt = String.valueOf(values[i]);  // ← Hapus "/10"
+                // Right level value
+                String valTxt = String.valueOf(values[i]);
                 layout.setText(font, valTxt);
                 font.draw(game.batch,
                     valTxt,
                     px + margin + btnW - layout.width - 4,
                     y - btnH/2 + 6);
+
+                // Reset font color
+                font.setColor(Color.WHITE);
                 game.batch.end();
             }
         }
+    }
 
+    private void drawGoldUI() {
+        float vw = camera.viewportWidth;
+        float vy = camera.viewportHeight;
+        float yNav = vy - NAVBAR_HEIGHT/2 + 10f;
 
+        // Posisi dan ukuran gold icon
+        float goldIconSize = 80f;
+        float goldX = 20f;
+        float goldY = yNav - 50f; // sedikit lebih tinggi
+
+        // Draw gold icon
+        if (ImageLoader.goldIconTex != null) {
+            game.batch.draw(ImageLoader.goldIconTex, goldX, goldY, goldIconSize, goldIconSize);
+        } else {
+            // Fallback circle
+            game.batch.end();
+            shapes.setProjectionMatrix(camera.combined);
+            shapes.begin(ShapeRenderer.ShapeType.Filled);
+            shapes.setColor(Color.GOLD);
+            shapes.circle(goldX + goldIconSize/2, goldY + goldIconSize/2, goldIconSize/2);
+            shapes.end();
+            game.batch.begin();
+        }
+
+        // Draw gold text di bawah icon
+        String goldText = String.valueOf(gold);
+        layout.setText(font, goldText);
+        float textX = goldX + (goldIconSize - layout.width) / 2f;
+        float textY = goldY + 20f; // 8px di bawah icon
+
+        font.setColor(Color.YELLOW);
+        font.draw(game.batch, goldText, textX, textY);
+        font.setColor(Color.WHITE);
+    }
+
+    // ===== HELPER METHODS FOR DISPLAY =====
+    private String getEnemyTypeDisplay(EnemyType type) {
+        switch(type) {
+            case BASIC: return "⚔️";    // Sword icon
+            case SHOOTER: return "🏹";  // Bow icon
+            case BOMBER: return "💣";   // Bomb icon
+            case SHIELD: return "🛡️";   // Shield icon
+            case BOSS: return "👑";     // Crown icon
+            default: return "❓";
+        }
+    }
+
+    private Color getEnemyTypeColor(EnemyType type) {
+        switch(type) {
+            case BASIC: return Color.WHITE;
+            case SHOOTER: return Color.GREEN;
+            case BOMBER: return Color.ORANGE;
+            case SHIELD: return Color.CYAN;
+            case BOSS: return Color.PURPLE;
+            default: return Color.WHITE;
+        }
+    }
+
+    private String getStateDisplay(Enemy enemy) {
+        switch(enemy.getType()) {
+            case SHOOTER:
+                // ===== FIXED: Gunakan name() bukan toString() =====
+                return enemy.getState().name().equals("ATTACKING") ? "🎯 Shooting" : "";
+            case BOMBER:
+                String stateName = enemy.getState().name();
+                if (stateName.equals("BOMBING")) return "💣 Planting";
+                if (stateName.equals("RETREATING")) return "🏃 Fleeing";
+                return "";
+            case BOSS:
+                if (enemy.hasReachedTarget()) return "🔥 Attacking";
+                return "📍 Moving";
+            default:
+                return "";
+        }
     }
 
     // selection enum
@@ -1073,6 +2126,66 @@ public class GameScreen implements Screen {
                 z.occupied = false;
             }
         }
+    }
+
+    // ===== 2) BUAT METHOD HELPER UNTUK GET COST =====
+    private int getTowerCost(NavItem towerType) {
+        switch(towerType) {
+            case T1: return TOWER1_COST;  // AOE Tower
+            case T2: return TOWER2_COST;  // Fast Tower
+            case T3: return TOWER3_COST;  // Slow Tower
+            default: return 40; // fallback
+        }
+    }
+
+    private int getTrapCost(NavItem trapType) {
+        switch(trapType) {
+            case TRAP1: return TRAP_ATTACK_COST;    // Attack Trap
+            case TRAP2: return TRAP_SLOW_COST;      // Slow Trap
+            case TRAP3: return TRAP_EXPLOSION_COST; // Explosion Trap
+            default: return 10; // fallback
+        }
+    }
+
+    // ===== 2) METHOD UNTUK MENGHITUNG UPGRADE COST =====
+    private int getAttackUpgradeCost(Tower tower) {
+        // Formula: baseCost * (multiplier ^ currentLevel)
+        return (int)(BASE_ATTACK_UPGRADE_COST * Math.pow(UPGRADE_COST_MULTIPLIER, tower.getAttackLevel()));
+    }
+
+    private int getDefenseUpgradeCost(Tower tower) {
+        return (int)(BASE_DEFENSE_UPGRADE_COST * Math.pow(UPGRADE_COST_MULTIPLIER, tower.getDefenseLevel()));
+    }
+
+    private int getSpeedUpgradeCost(Tower tower) {
+        return (int)(BASE_SPEED_UPGRADE_COST * Math.pow(UPGRADE_COST_MULTIPLIER, tower.getSpeedLevel()));
+    }
+
+    private void showUpgradeCostPreview(Tower tower) {
+        int totalCost = 0;
+
+        System.out.println("=== UPGRADE COST PREVIEW ===");
+        System.out.println("Tower Type: " + tower.type);
+        System.out.println("Current Gold: " + gold);
+        System.out.println();
+
+        System.out.println("Attack (Level " + tower.getAttackLevel() + "):");
+        System.out.println("  Next upgrade: $" + getAttackUpgradeCost(tower));
+
+        System.out.println("Defense (Level " + tower.getDefenseLevel() + "):");
+        System.out.println("  Next upgrade: $" + getDefenseUpgradeCost(tower));
+
+        System.out.println("Speed (Level " + tower.getSpeedLevel() + "):");
+        System.out.println("  Next upgrade: $" + getSpeedUpgradeCost(tower));
+
+        totalCost = getAttackUpgradeCost(tower) +
+            getDefenseUpgradeCost(tower) +
+            getSpeedUpgradeCost(tower);
+
+        System.out.println();
+        System.out.println("Total for all 3 upgrades: $" + totalCost);
+        System.out.println("Upgrades remaining: " + tower.getRemainingUpgrades());
+        System.out.println("==============================");
     }
 
 

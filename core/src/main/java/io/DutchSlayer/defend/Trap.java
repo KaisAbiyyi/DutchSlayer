@@ -2,27 +2,32 @@ package io.DutchSlayer.defend;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 
 public class Trap {
-    public final Rectangle bounds;
-    public boolean occupied = false;
-    private final float centerX, centerY;
-    private final float scale;
-    private final float w, h;
-    private float[] verts;
+    /* ===== GEOMETRY & COLLISION ===== */
+    public final Rectangle bounds;          // Area collision trap
+    public boolean occupied = false;        // Apakah trap sudah dipasang
+    private final float centerX, centerY;   // Center point untuk calculations
+    private float[] verts;                  // Vertex array untuk polygon shape
 
-    // ===== NEW: TRAP TYPE SYSTEM =====
-    private TrapType type;
-    private Texture tex;
+    /* ===== VISUAL COMPONENTS ===== */
+    private final float scale;              // Scale factor untuk sprite
+    private final float w, h;               // Ukuran sprite setelah scaling
+    private Texture tex;                    // Texture trap berdasarkan type
 
-    // Trap effect properties
-    private float cooldown = 0f;
-    private static final float TRAP_COOLDOWN = 0.5f;
-    private boolean isUsed = false;
-    private static final boolean SINGLE_USE = true;
+    // ===== TRAP TYPE SYSTEM =====
+    private TrapType type;                  // Jenis trap (ATTACK/SLOW/EXPLOSION)
+
+    /* ===== TRAP MECHANICS ===== */
+    private float cooldown = 0f;            // Cooldown setelah aktivasi
+    private boolean isUsed = false;         // Sudah digunakan (single-use system)
+
+    /* ===== CONSTANTS ===== */
+    private static final float TRAP_COOLDOWN = 0.5f;    // Cooldown duration
+    private static final boolean SINGLE_USE = true;     // Trap hilang setelah sekali pakai
+    private static final float COLLISION_RADIUS = 80f;  // Generous collision radius
 
     // ===== TRAP STATS PER TYPE =====
     // Attack Trap: Damage + Light Slow
@@ -31,39 +36,46 @@ public class Trap {
 
     // Slow Trap: Heavy Slow (almost freeze)
     private static final float SLOW_DURATION = 5f;
-    private static final float SLOW_STRENGTH = 0.1f; // 90% speed reduction
+    private static final float SLOW_STRENGTH = 0.1f;    // 90% speed reduction
 
     // Explosion Trap: AOE Damage
     private static final int EXPLOSION_DAMAGE = 2;
     private static final float EXPLOSION_RADIUS = 80f;
 
 
-    // terima verts only untuk hit‐zone, plus scale untuk gambar
+    /**
+     * Constructor untuk membuat trap dengan type tertentu
+     * @param verts Vertex array untuk hit-zone polygon
+     * @param scale Scale factor untuk sprite
+     * @param type Jenis trap (ATTACK/SLOW/EXPLOSION)
+     */
     public Trap(float[] verts, float scale, TrapType type) {
-        this.verts = verts.clone();
+        this.verts = verts.clone();     // Copy array untuk safety
         this.type = type;
         this.scale = scale;
 
-        // hit‐zone calculation
+        // ===== CALCULATE COLLISION BOUNDS FROM VERTICES =====
         float minX = Float.MAX_VALUE;
         float minY = Float.MAX_VALUE;
         float maxX = Float.MIN_VALUE;
         float maxY = Float.MIN_VALUE;
 
+        // Loop vertices untuk find bounding box
         for (int i = 0; i < verts.length; i += 2) {
-            minX = Math.min(minX, verts[i]);
+            minX = Math.min(minX, verts[i]);        // X coordinates
             maxX = Math.max(maxX, verts[i]);
-            minY = Math.min(minY, verts[i+1]);
+            minY = Math.min(minY, verts[i+1]);      // Y coordinates
             maxY = Math.max(maxY, verts[i+1]);
         }
-        // ===== EXPANDED: Make collision area larger than visual =====
-        bounds = new Rectangle(minX, minY, maxX-minX, maxY-minY);
 
-        // simpan center untuk draw
+        // Create collision bounds (expanded untuk easier collision)
+        this.bounds = new Rectangle(minX, minY, maxX-minX, maxY-minY);
+
+        // Calculate center point untuk distance calculations
         this.centerX = minX + (maxX-minX)/2f;
         this.centerY = minY + (maxY-minY)/2f;
 
-        // ===== SET TEXTURE BASED ON TYPE =====
+        // ===== SET TEXTURE BASED ON TRAP TYPE =====
         switch(type) {
             case ATTACK:
                 this.tex = ImageLoader.trapAttackTex;
@@ -79,11 +91,12 @@ public class Trap {
                 break;
         }
 
-        // Fallback jika texture null
+        // Ultimate fallback jika texture null
         if (tex == null) {
-            tex = ImageLoader.trapTex; // Ultimate fallback
+            tex = ImageLoader.trapTex;
         }
 
+        // Calculate sprite dimensions
         this.w       = tex.getWidth()  * scale;
         this.h       = tex.getHeight() * scale;
 
@@ -94,70 +107,70 @@ public class Trap {
         System.out.println("Bounds: " + bounds);
     }
 
-    // Old constructor for compatibility
+    /**
+     * Old constructor untuk backward compatibility (default ke ATTACK type)
+     */
     public Trap(float[] verts, float scale) {
-        this(verts, scale, TrapType.ATTACK); // Default to ATTACK type
+        this(verts, scale, TrapType.ATTACK);
     }
 
+    /**
+     * Check apakah point x,y ada dalam trap bounds
+     */
     public boolean contains(float x, float y) {
         return bounds.contains(x, y);
     }
 
-    // Method baru: Update trap (handle cooldown)
+    /**
+     * Update trap logic setiap frame (handle cooldown)
+     */
     public void update(float delta) {
         if (cooldown > 0) {
             cooldown -= delta;
         }
     }
 
-    // Method baru: Aktivasi trap ketika enemy masuk
+    /**
+     * Trigger trap ketika enemy masuk area
+     * Returns true jika trap berhasil diaktivasi
+     */
     public boolean triggerTrap(Array<Enemy> enemies) {
+        // Skip jika trap tidak occupied, masih cooldown, atau sudah digunakan
         if (!occupied || cooldown > 0 || (SINGLE_USE && isUsed)) {
             return false;
         }
 
         boolean trapActivated = false;
 
-        // ===== IMPROVED: Better collision detection =====
+        // ===== CHECK COLLISION DENGAN SEMUA ENEMIES =====
         for (Enemy enemy : enemies) {
             if (enemy.isDestroyed()) continue; // Skip dead enemies
 
-            // Check if enemy center point is inside trap bounds
+            // Get enemy center point
             float enemyX = enemy.getBounds().x + enemy.getBounds().width/2;
             float enemyY = enemy.getBounds().y + enemy.getBounds().height/2;
 
-            // ===== SIMPLIFIED: Distance-based collision =====
+            // ===== DISTANCE-BASED COLLISION DETECTION =====
             float distance = (float) Math.sqrt(
                 Math.pow(centerX - enemyX, 2) + Math.pow(centerY - enemyY, 2)
             );
 
-            // ===== VERY GENEROUS: 80px collision radius =====
-            boolean collision = distance < 80f;
-
-            // ===== DEBUG: Always log when enemy is nearby =====
-            if (distance < 120f) {
-                System.out.println("🔍 DISTANCE COLLISION CHECK:");
-                System.out.println("  Enemy center: (" + enemyX + ", " + enemyY + ")");
-                System.out.println("  Trap center: (" + centerX + ", " + centerY + ")");
-                System.out.println("  Distance: " + distance + " (threshold: 80px)");
-                System.out.println("  Collision: " + collision);
-                System.out.println("  Bounds collision: " + bounds.contains(enemyX, enemyY));
-            }
-
-            if (collision) {
+            // Check collision dengan generous radius
+            if (distance < COLLISION_RADIUS) {
                 System.out.println("🎯 " + type + " TRAP TRIGGERED BY DISTANCE!");
                 activateTrapEffect(enemy, enemies);
                 trapActivated = true;
-                break;
+                break;  // Hanya trigger untuk 1 enemy per frame
             }
         }
 
+        // ===== HANDLE POST-ACTIVATION =====
         if (trapActivated) {
-            cooldown = TRAP_COOLDOWN;  // Set cooldown setelah aktivasi
+            cooldown = TRAP_COOLDOWN;   // Set cooldown
 
             if (SINGLE_USE) {
-                isUsed = true;  // Mark sebagai sudah digunakan
-                occupied = false;  // ← PENTING: Set occupied = false agar trap "hilang"
+                isUsed = true;          // Mark sebagai used
+                occupied = false;       // Hilangkan trap dari game
                 System.out.println("Trap consumed (single-use)!");
             }
         }
@@ -165,6 +178,9 @@ public class Trap {
         return trapActivated;
     }
 
+    /**
+     * Apply trap effect berdasarkan type
+     */
     private void activateTrapEffect(Enemy triggerEnemy, Array<Enemy> allEnemies) {
         switch(type) {
             case ATTACK:
@@ -187,6 +203,9 @@ public class Trap {
         }
     }
 
+    /**
+     * Handle AOE explosion damage
+     */
     private void explodeAOE(Array<Enemy> enemies) {
         int hitCount = 0;
         float explodeX = centerX;
@@ -195,19 +214,19 @@ public class Trap {
         System.out.println("EXPLOSION at (" + explodeX + ", " + explodeY + ") with radius " + EXPLOSION_RADIUS);
         System.out.println("Total enemies in game: " + enemies.size);
 
-
         for (Enemy e : enemies) {
             if (e.isDestroyed()) continue;
 
+            // Get enemy center
             float enemyX = e.getBounds().x + e.getBounds().width/2;
             float enemyY = e.getBounds().y + e.getBounds().height/2;
 
+            // Calculate distance
             float distance = (float) Math.sqrt(
                 Math.pow(explodeX - enemyX, 2) + Math.pow(explodeY - enemyY, 2)
             );
 
-            System.out.println("🎯 Checking enemy at (" + enemyX + ", " + enemyY + ") - Distance: " + distance);
-
+            // Apply AOE damage jika dalam radius
             if (distance <= EXPLOSION_RADIUS) {
                 int oldHp = e.getHealth();
                 e.takeDamage(EXPLOSION_DAMAGE);
@@ -222,30 +241,13 @@ public class Trap {
         System.out.println("Explosion hit " + hitCount + " enemies total!");
     }
 
-    // Getter untuk cooldown (untuk visual effects)
-    public boolean isOnCooldown() {
-        return cooldown > 0;
-    }
-
-    public boolean isUsed() {
-        return SINGLE_USE && isUsed;
-    }
-
-    public TrapType getType() {
-        return type;
-    }
-
-    public float getCenterX() {
-        return centerX;
-    }
-
-    public float getCenterY() {
-        return centerY;
-    }
-
+    /**
+     * Render trap dengan visual effects
+     */
     public void drawBatch(SpriteBatch batch) {
+        // Hanya draw jika occupied dan belum used (untuk single-use)
         if (occupied && !(SINGLE_USE && isUsed)) {
-            // BONUS: Visual effect berdasarkan cooldown
+            // ===== VISUAL EFFECT BERDASARKAN STATE =====
             if (isOnCooldown()) {
                 // Trap on cooldown - warna agak redup
                 batch.setColor(0.5f, 0.5f, 0.5f, 0.8f);
@@ -254,25 +256,24 @@ public class Trap {
                 batch.setColor(1f, 1f, 1f, 1f);
             }
 
-            // PERBAIKAN: Posisi X dan Y menggunakan formula tower
+            // Calculate sprite position
             float spriteX = centerX - w/2f;
-            float spriteY = getTowerAlignedY();  // ← Method khusus untuk alignment
+            float spriteY = getTowerAlignedY();  // Special alignment method
 
             batch.draw(tex, spriteX, spriteY, w, h);
 
-            // Reset color
+            // Reset color untuk sprites berikutnya
             batch.setColor(1f, 1f, 1f, 1f);
         }
     }
 
+    /**
+     * Calculate Y position yang aligned dengan tower deployment
+     * Formula sama dengan tower deployment di GameScreen
+     */
     private float getTowerAlignedY() {
-        // Formula yang PERSIS SAMA dengan tower deployment di GameScreen:
-        // float cy = (z.verts[1] + z.verts[3] + z.verts[5] + z.verts[7]) / 2.3f;
-
         // verts format: [x0,y0, x1,y1, x2,y2, x3,y3]
-        // Indices:       [0,1,  2,3,   4,5,   6,7]
-        // Kita ambil semua Y coordinates: verts[1], verts[3], verts[5], verts[7]
-
+        // Ambil semua Y coordinates: verts[1], verts[3], verts[5], verts[7]
         float y0 = verts[1];  // Y coordinate vertex 0
         float y1 = verts[3];  // Y coordinate vertex 1
         float y2 = verts[5];  // Y coordinate vertex 2
@@ -282,5 +283,22 @@ public class Trap {
         float alignedY = (y0 + y1 + y2 + y3) / 4.4f;
 
         return alignedY;
+    }
+
+    /* ===== GETTERS ===== */
+    public boolean isOnCooldown() {
+        return cooldown > 0;
+    }
+    public boolean isUsed() {
+        return SINGLE_USE && isUsed;
+    }
+    public TrapType getType() {
+        return type;
+    }
+    public float getCenterX() {
+        return centerX;
+    }
+    public float getCenterY() {
+        return centerY;
     }
 }

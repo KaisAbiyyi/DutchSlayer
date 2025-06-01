@@ -4,10 +4,25 @@ package io.DutchSlayer.defend;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.utils.Array;
 
+/**
+ * AoeProjectile adalah projectile yang memberikan damage area (AOE - Area of Effect)
+ * Ketika mengenai target, semua enemy dalam radius tertentu akan terkena damage
+ */
 public class AoeProjectile extends Projectile {
-    private final int damage;
-    private final float radius;
+    private final int damage;       // Damage yang diberikan per enemy
+    private final float radius;     // Radius area damag
 
+    /**
+     * Constructor untuk AOE Projectile
+     * @param tex Texture projectile
+     * @param startX Posisi awal X
+     * @param startY Posisi awal Y
+     * @param targetX Target posisi X
+     * @param targetY Target posisi Y
+     * @param radius Jangkauan area damage
+     * @param scale Skala sprite
+     * @param damage Damage per enemy
+     */
     public AoeProjectile(Texture tex,
                          float startX, float startY,
                          float targetX, float targetY,
@@ -17,23 +32,29 @@ public class AoeProjectile extends Projectile {
         this.radius = radius;
     }
 
+    /**
+     * Override method dari parent class
+     * Memberikan AOE damage pada semua enemy dalam radius
+     */
     @Override
     public void onHit(Array<Enemy> enemies) {
-        float projX = getX();
+        float projX = getX();   // Posisi projectile saat hit
         float projY = getY();
         int hitCount = 0;
 
-        // PERBAIKAN: Cek distance untuk AOE damage
+        // Loop semua enemy untuk cek distance
         for (Enemy e : enemies) {
+            // Hitung posisi center enemy
             float enemyX = e.getBounds().x + e.getBounds().width/2;
             float enemyY = e.getBounds().y + e.getBounds().height/2;
 
+            // Hitung jarak menggunakan Pythagorean theorem
             float distance = (float) Math.sqrt(
                 Math.pow(projX - enemyX, 2) + Math.pow(projY - enemyY, 2)
             );
-
             System.out.println("Checking enemy at (" + enemyX + ", " + enemyY + "), distance: " + distance);
 
+            // Jika dalam radius, berikan damage
             if (distance <= radius) {
                 e.takeDamage(damage);
                 hitCount++;
@@ -43,6 +64,5 @@ public class AoeProjectile extends Projectile {
             }
         }
         System.out.println("AOE explosion hit " + hitCount + " enemies!");
-        System.out.println("================================");
     }
 }
