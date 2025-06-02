@@ -29,6 +29,8 @@ public class MainMenuScreen implements Screen {
     private final Texture startTexture;
     private final Texture aboutTexture;
     private final Texture settingsTexture;
+    private final Texture exitTexture; // Tambahan
+
 
     public MainMenuScreen(Main game) {
         this.game      = game;
@@ -42,6 +44,8 @@ public class MainMenuScreen implements Screen {
         this.startTexture    = new Texture(Gdx.files.internal("button/StartButton.png"));
         this.settingsTexture = new Texture(Gdx.files.internal("button/SettingsButton.png"));
         this.aboutTexture    = new Texture(Gdx.files.internal("button/AboutButton.png"));
+        this.exitTexture     = new Texture(Gdx.files.internal("button/Exit.png"));
+
 
         Gdx.input.setInputProcessor(stage);
         createUI();
@@ -55,8 +59,7 @@ public class MainMenuScreen implements Screen {
 
         // Title
         Image titleImg = new Image(titleTexture);
-        rootTable.add(titleImg).width(800).height(450).padTop(-60).padBottom(-140).center().row();
-
+        rootTable.add(titleImg).width(800).height(450).padTop(-140).padBottom(-140).center().row();
 
         // Button Table
         Table buttonTable = new Table();
@@ -84,10 +87,20 @@ public class MainMenuScreen implements Screen {
                 game.setScreen(new AboutScreen(game));
             }
         });
-        buttonTable.add(aboutBtn).size(500, 120);
+        buttonTable.add(aboutBtn).size(500, 120).row();
+
+        // Tambahan: Exit Button
+        ImageButton exitBtn = new ImageButton(new TextureRegionDrawable(exitTexture));
+        exitBtn.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent e, float x, float y) {
+                Gdx.app.exit(); // Keluar dari game
+            }
+        });
+        buttonTable.add(exitBtn).size(500, 120);
 
         rootTable.add(buttonTable).expand().center().padBottom(10);
     }
+
 
     @Override public void show() {
         Gdx.input.setInputProcessor(stage);
@@ -125,5 +138,7 @@ public class MainMenuScreen implements Screen {
         startTexture.dispose();
         settingsTexture.dispose();
         aboutTexture.dispose();
+        exitTexture.dispose(); // Tambahan
+
     }
 }
