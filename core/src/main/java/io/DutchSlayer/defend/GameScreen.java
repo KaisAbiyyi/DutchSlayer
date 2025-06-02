@@ -627,10 +627,6 @@ public class GameScreen implements Screen {
                     selectedType = null;
                 }
 
-
-
-
-
                 return false;
             }
         });
@@ -663,47 +659,6 @@ public class GameScreen implements Screen {
             navTrapW[i] = buttonSize; // width jadi size button
         }
     }
-
-//
-//    // calculate center navbar label positions for hit detection
-//    private void recalcNavPositions() {
-//        float vw = camera.viewportWidth;
-//        float spacing = 40f;
-//
-//        // Gabungkan nama Tower + Trap
-//        String[] all = new String[]{
-//            NAV_TOWERS[0], NAV_TOWERS[1], NAV_TOWERS[2],
-//            NAV_TRAPS[0], NAV_TRAPS[1], NAV_TRAPS[2]
-//        };
-//
-//        // Hitung total width
-//        float total = 0f;
-//        float[] widths = new float[all.length];
-//        for (int i = 0; i < all.length; i++) {
-//            layout.setText(font, all[i]);
-//            widths[i] = layout.width;
-//            total    += widths[i];
-//        }
-//        total += spacing * (all.length - 1);
-//
-//        // Starting X agar teks ter‐center
-//        float x = (vw - total) / 2f;
-//
-//        // Simpan posisi hit‐area berdasarkan index
-//        for (int i = 0; i < all.length; i++) {
-//            if (i < NAV_TOWERS.length) {
-//                navTowerX[i] = x;
-//                navTowerW[i] = widths[i];
-//            } else {
-//                int ti = i - NAV_TOWERS.length;
-//                if (ti < NAV_TRAPS.length) { // ← Safety check
-//                    navTrapX[ti] = x;
-//                    navTrapW[ti] = widths[i];
-//                }
-//            }
-//            x += widths[i] + spacing;
-//        }
-//    }
 
     private void update(float delta) {
         if (isPaused || isGameOver) return;
