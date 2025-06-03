@@ -93,10 +93,15 @@ public class TowerDefenseScreen implements Screen {
     // tower yang sedang dipilih untuk tampilkan panel
     private Tower selectedTowerUI;
 
-    // konfigurasi panel
-    private static final float PANEL_W      = 120f;
-    private static final float PANEL_H      = 100f;
-    private static final float PANEL_MARGIN = 10f;
+    // Tower deployment cooldown system
+    private final float[] towerCooldowns = new float[3];        // Cooldown timer untuk setiap jenis tower
+    private final float[] towerMaxCooldowns = {3f, 2f, 4f};    // Max cooldown: AOE=3s, Fast=2s, Slow=4s
+    private final boolean[] towerCooldownActive = new boolean[3]; // Apakah sedang cooldown
+
+    // Trap deployment cooldown system
+    private final float[] trapCooldowns = new float[3];         // Cooldown timer untuk setiap jenis trap
+    private final float[] trapMaxCooldowns = {2f, 3f, 5f};     // Max cooldown: Attack=2s, Slow=3s, Explosion=5s
+    private final boolean[] trapCooldownActive = new boolean[3]; // Apakah sedang cooldown
 
     // bounds tombol (akan di‐recalculated tiap render berdasar posisi panel)
     private Rectangle btnAttack, btnDefense , btnSpeed;
@@ -149,9 +154,13 @@ public class TowerDefenseScreen implements Screen {
     private static final float WAVE_TRANSITION_DELAY = 3f; // 3 detik delay antar wave
     private boolean waveCompleteBonusGiven = false;
 
+    private final int currentStage;
+    private static final int FINAL_STAGE = 4;
+
 
     public TowerDefenseScreen(final Main game, int stage) {
         this.game = game;
+        this.currentStage = stage;
         camera = new OrthographicCamera();
         camera.setToOrtho(false, 1280, 720);
 
@@ -271,13 +280,20 @@ public class TowerDefenseScreen implements Screen {
                     if (btnMenuWin != null && btnMenuWin.contains(x, y)) {
                         // Kembali ke main menu
                         System.out.println("Going to Main Menu...");
+                        game.setScreen(new StageSelectionScreen(game, true));
                         // TODO: implement main menu transition
                         return true;
                     }
                     if (btnNext != null && btnNext.contains(x, y)) {
-                        // Lanjut ke level/wave berikutnya
-                        System.out.println("Going to next level...");
-                        // TODO: implement next level logic
+                        // Lanjut ke stage berikutnya (if not final stage)
+                        if (currentStage < FINAL_STAGE) {
+                            System.out.println("Going to Stage " + (currentStage + 1) + "...");
+                            game.setScreen(new TowerDefenseScreen(game, currentStage + 1));
+                        } else {
+                            // If final stage completed, go back to stage selection
+                            System.out.println("All stages completed! Returning to Stage Selection...");
+                            game.setScreen(new StageSelectionScreen(game, true));
+                        }
                         return true;
                     }
                     return true; // consume all clicks in win screen
@@ -483,7 +499,13 @@ public class TowerDefenseScreen implements Screen {
                 if (selectedType != null) {
                     switch(selectedType) {
                         case T1: {
+                            int towerIndex = 0; // Tower AOE
                             // Hitung kembali center zona seperti sebelumnya
+                            if (!canDeployTower(towerIndex)) {
+                                System.out.println("🔴 Tower AOE masih cooldown! Sisa: " + String.format("%.1f", towerCooldowns[towerIndex]) + "s");
+                                return true;
+                            }
+
                             int cost = getTowerCost(selectedType);
                             for (int zoneIdx = 0; zoneIdx < zones.size; zoneIdx++) {
                                 Zone z = zones.get(zoneIdx);
@@ -507,6 +529,7 @@ public class TowerDefenseScreen implements Screen {
                                         deployedTowerZones.add(z);
                                         z.occupied = true;
                                         selectedType = null;
+                                        startTowerCooldown(towerIndex);
                                         AudioManager.playTowerDeploy();
                                         return true;
                                     } else {
@@ -518,7 +541,13 @@ public class TowerDefenseScreen implements Screen {
                             break;
                         }
                         case T2: {
+                            int towerIndex = 1; // Tower Fast
                             int cost = getTowerCost(selectedType);
+
+                            if (!canDeployTower(towerIndex)) {
+                                System.out.println("🔴 Tower Fast masih cooldown! Sisa: " + String.format("%.1f", towerCooldowns[towerIndex]) + "s");
+                                return true;
+                            }
                             for (int zoneIdx = 0; zoneIdx < zones.size; zoneIdx++) {
                                 Zone z = zones.get(zoneIdx);
                                 if (!z.occupied && z.contains(x,y)) {
@@ -541,6 +570,7 @@ public class TowerDefenseScreen implements Screen {
                                         deployedTowerZones.add(z);
                                         z.occupied = true;
                                         selectedType = null;
+                                        startTowerCooldown(towerIndex);
                                         AudioManager.playTowerDeploy();
                                         return true;
                                     } else {
@@ -552,7 +582,14 @@ public class TowerDefenseScreen implements Screen {
                             break;
                         }
                         case T3: {
+                            int towerIndex = 2; // Tower Slow
                             int cost = getTowerCost(selectedType);
+
+                            if (!canDeployTower(towerIndex)) {
+                                System.out.println("🔴 Tower Slow masih cooldown! Sisa: " + String.format("%.1f", towerCooldowns[towerIndex]) + "s");
+                                return true;
+                            }
+
                             for (int zoneIdx = 0; zoneIdx < zones.size; zoneIdx++) {
                                 Zone z = zones.get(zoneIdx);
                                 if (!z.occupied && z.contains(x,y)) {
@@ -574,6 +611,7 @@ public class TowerDefenseScreen implements Screen {
                                         deployedTowerZones.add(z);
                                         z.occupied = true;
                                         selectedType = null;
+                                        startTowerCooldown(towerIndex);
                                         AudioManager.playTowerDeploy();
                                         return true;
                                     } else {
@@ -639,6 +677,46 @@ public class TowerDefenseScreen implements Screen {
         });
     }
 
+    private void initializeStageSettings(int stage) {
+        System.out.println("🎮 Initializing Stage " + stage + " settings...");
+
+        switch(stage) {
+            case 1:
+                // Stage 1: Easy - Basic enemies only
+                gold = 100; // More starting gold for beginners
+                enemiesThisWave = 4; // Fewer enemies
+                System.out.println("📊 Stage 1: Beginner mode - Basic enemies only");
+                break;
+
+            case 2:
+                // Stage 2: Medium - Basic + some advanced
+                gold = 80;
+                enemiesThisWave = 5;
+                System.out.println("📊 Stage 2: Medium difficulty");
+                break;
+
+            case 3:
+                // Stage 3: Hard - All enemy types except boss
+                gold = 60; // Less starting gold for challenge
+                enemiesThisWave = 6;
+                System.out.println("📊 Stage 3: Hard difficulty - No boss");
+                break;
+
+            case 4:
+                // Stage 4: Final Boss Stage
+                gold = 50; // Minimal starting gold for maximum challenge
+                enemiesThisWave = 8; // Most enemies
+                System.out.println("👑 Stage 4: FINAL BOSS STAGE!");
+                break;
+
+            default:
+                // Fallback
+                gold = 80;
+                enemiesThisWave = 5;
+                break;
+        }
+    }
+
     // Tambahkan method baru di GameScreen.java:
     private void calculateNavButtonPositions() {
         float vw = camera.viewportWidth;
@@ -670,6 +748,8 @@ public class TowerDefenseScreen implements Screen {
     private void update(float delta) {
         if (isPaused || isGameOver) return;
 
+        updateCooldowns(delta);
+
         // 1) Update traps (handle cooldown)
         for (Trap trap : trapZones) {
             trap.update(delta);
@@ -691,8 +771,8 @@ public class TowerDefenseScreen implements Screen {
                         System.out.println("  Tower position: (" + t.x + ", " + t.y + ")");
 
                         // Bomb akan "di-drop" di lokasi tower dan akan terlempar ke atas dulu seperti PickupItem
-                        float dropX = t.x + (float)(Math.random() - 0.5) * 80f; // ±40px random dari tower
-                        float dropY = GROUND_Y; // Ground level
+                        float dropX = e.getX(); // Use bomber's X position
+                        float dropY = e.getBounds().y + e.getBounds().height/2;
 
                         BombAsset bomb = new BombAsset(
                             ImageLoader.bombAssetTex != null ? ImageLoader.bombAssetTex : ImageLoader.trapTex,
@@ -939,7 +1019,11 @@ public class TowerDefenseScreen implements Screen {
                 } else {
                     isGameWon = true;
                     setupWinUI();
-                    System.out.println("🎉 PLAYER WON! All waves completed!");
+                    if (currentStage == FINAL_STAGE) {
+                        System.out.println("🏆 CONGRATULATIONS! YOU COMPLETED THE FINAL STAGE! 🏆");
+                    } else {
+                        System.out.println("🎉 Stage " + currentStage + " completed! Ready for Stage " + (currentStage + 1));
+                    }
                 }
             }
 
@@ -970,13 +1054,63 @@ public class TowerDefenseScreen implements Screen {
         }
     }
 
+    // ===== TAMBAHKAN METHOD INI DI update() =====
+    private void updateCooldowns(float delta) {
+        // Update tower cooldowns
+        for (int i = 0; i < 3; i++) {
+            if (towerCooldownActive[i]) {
+                towerCooldowns[i] -= delta;
+                if (towerCooldowns[i] <= 0f) {
+                    towerCooldownActive[i] = false;
+                    towerCooldowns[i] = 0f;
+                    System.out.println("🟢 Tower " + (i+1) + " cooldown finished!");
+                }
+            }
+        }
+
+        // Update trap cooldowns
+        for (int i = 0; i < 3; i++) {
+            if (trapCooldownActive[i]) {
+                trapCooldowns[i] -= delta;
+                if (trapCooldowns[i] <= 0f) {
+                    trapCooldownActive[i] = false;
+                    trapCooldowns[i] = 0f;
+                    System.out.println("🟢 Trap " + (i+1) + " cooldown finished!");
+                }
+            }
+        }
+    }
+
+    // ===== METHOD UNTUK START COOLDOWN =====
+    private void startTowerCooldown(int towerIndex) {
+        towerCooldowns[towerIndex] = towerMaxCooldowns[towerIndex];
+        towerCooldownActive[towerIndex] = true;
+        System.out.println("🔴 Tower " + (towerIndex+1) + " cooldown started: " + towerMaxCooldowns[towerIndex] + "s");
+    }
+
+    private void startTrapCooldown(int trapIndex) {
+        trapCooldowns[trapIndex] = trapMaxCooldowns[trapIndex];
+        trapCooldownActive[trapIndex] = true;
+        System.out.println("🔴 Trap " + (trapIndex+1) + " cooldown started: " + trapMaxCooldowns[trapIndex] + "s");
+    }
+
+    // ===== METHOD UNTUK CEK APAKAH BISA DEPLOY =====
+    private boolean canDeployTower(int towerIndex) {
+        return !towerCooldownActive[towerIndex];
+    }
+
+    private boolean canDeployTrap(int trapIndex) {
+        return !trapCooldownActive[trapIndex];
+    }
+
+
     // Tambahkan method untuk setup Win UI
     private void setupWinUI() {
         float centerX = camera.viewportWidth / 2f;
         float centerY = camera.viewportHeight / 2f;
 
         // Position buttons di bawah UI background
-        float buttonY = centerY - UI_HEIGHT/2f + 150f; // 150px dari bawah UI
+        float buttonY = centerY - UI_HEIGHT/2f + 50f; // 150px dari bawah UI
         float buttonSpacing = 50f;
 
         // Left button (MAIN MENU)
@@ -1071,12 +1205,12 @@ public class TowerDefenseScreen implements Screen {
 
         // === UBAH POSISI KE KIRI BAWAH ===
         // Dimensi progress bar
-        float barWidth = 250f;  // Sedikit lebih kecil agar muat di pojok
-        float barHeight = 18f;  // Sedikit lebih tipis
+        float barWidth = 200f;  // Sedikit lebih kecil agar muat di pojok
+        float barHeight = 15f;  // Sedikit lebih tipis
 
         // POSISI BARU: Kiri bawah (di atas wave label yang sudah ada)
-        float barX = 20f;       // 20px dari kiri (sama dengan wave label)
-        float barY = 60f;       // 60px dari bawah (di atas wave label dan enemy stats)
+        float barX = vw - barWidth - 20f;       // 20px dari kiri (sama dengan wave label)
+        float barY = 20f;       // 60px dari bawah (di atas wave label dan enemy stats)
 
         // Hitung progress (berapa enemy yang sudah di-spawn vs total wave)
         float spawnProgress = (float) spawnCount / (float) enemiesThisWave;
@@ -1130,15 +1264,15 @@ public class TowerDefenseScreen implements Screen {
         font.setColor(Color.WHITE);
         font.draw(game.batch, progressText, progressX, progressY);
 
-        // Remaining enemies text DI KANAN progress bar
-        if (enemies.size > 0) {
-            String remainingText = "Active: " + enemies.size;
-            layout.setText(font, remainingText);
-            float remainingX = barX + barWidth + 10f; // 10px ke kanan dari progress bar
-            float remainingY = barY + (barHeight + layout.height) / 2f; // Center vertikal
-            font.setColor(Color.YELLOW);
-            font.draw(game.batch, remainingText, remainingX, remainingY);
-        }
+//        // Remaining enemies text DI KANAN progress bar
+//        if (enemies.size > 0) {
+//            String remainingText = "Active: " + enemies.size;
+//            layout.setText(font, remainingText);
+//            float remainingX = barX + barWidth + 10f; // 10px ke kanan dari progress bar
+//            float remainingY = barY + (barHeight + layout.height) / 2f; // Center vertikal
+//            font.setColor(Color.YELLOW);
+//            font.draw(game.batch, remainingText, remainingX, remainingY);
+//        }
 
         // Next wave indicator DI BAWAH progress bar
         if (spawnCount >= enemiesThisWave && enemies.size == 0 && currentWave < MAX_WAVE) {
@@ -1345,25 +1479,60 @@ public class TowerDefenseScreen implements Screen {
     }
 
     private EnemyType determineEnemyType() {
-        // Boss has special spawn conditions
-        if (currentWave >= 2 && !bossSpawned && Math.random() < BOSS_SPAWN_CHANCE) {
-            bossSpawned = true;
-            return BOSS;
-        }
+        switch(currentStage) {
+            case 1:
+                // Stage 1: Only BASIC and SHIELD enemies (beginner friendly)
+                return Math.random() < 0.7f ? EnemyType.BASIC : EnemyType.SHIELD;
 
-        // Normal probability-based spawning
-        float rand = (float) Math.random();
+            case 2:
+                // Stage 2: BASIC, SHIELD, and SHOOTER (no bombers or boss)
+                float rand2 = (float) Math.random();
+                if (rand2 < 0.5f) return EnemyType.BASIC;
+                else if (rand2 < 0.8f) return EnemyType.SHIELD;
+                else return EnemyType.SHOOTER;
 
-        if (rand < BASIC_SPAWN_CHANCE) {
-            return EnemyType.BASIC;
-        } else if (rand < BASIC_SPAWN_CHANCE + SHOOTER_SPAWN_CHANCE) {
-            return SHOOTER;
-        } else if (rand < BASIC_SPAWN_CHANCE + SHOOTER_SPAWN_CHANCE + BOMBER_SPAWN_CHANCE) {
-            return BOMBER;
-        } else if (rand < BASIC_SPAWN_CHANCE + SHOOTER_SPAWN_CHANCE + BOMBER_SPAWN_CHANCE + SHIELD_SPAWN_CHANCE) {
-            return EnemyType.SHIELD;
-        } else {
-            return EnemyType.BASIC; // Fallback
+            case 3:
+                // Stage 3: All enemies EXCEPT boss
+                float rand3 = (float) Math.random();
+                if (rand3 < 0.3f) return EnemyType.BASIC;
+                else if (rand3 < 0.5f) return EnemyType.SHOOTER;
+                else if (rand3 < 0.7f) return EnemyType.BOMBER;
+                else return EnemyType.SHIELD;
+
+            case 4:
+                // ===== STAGE 4: FINAL BOSS STAGE =====
+                // Boss only spawns in Stage 4, Wave 3
+                if (currentWave == 3 && !bossSpawned) {
+                    // Option 1: Spawn boss as the LAST enemy (most dramatic)
+                    if (spawnCount >= enemiesThisWave - 1) {
+                        bossSpawned = true;
+                        System.out.println("👑 FINAL BOSS SPAWNED AS LAST ENEMY! 👑");
+                        return EnemyType.BOSS;
+                    }
+
+                    // Option 2: High probability early in the wave (80% chance)
+                    if (Math.random() < 0.8f) {
+                        bossSpawned = true;
+                        System.out.println("👑 FINAL BOSS SPAWNED IN STAGE 4, WAVE 3! 👑");
+                        return EnemyType.BOSS;
+                    }
+                }
+
+                // Other waves in Stage 4: all enemy types except boss
+                float rand4 = (float) Math.random();
+                if (rand4 < BASIC_SPAWN_CHANCE) {
+                    return EnemyType.BASIC;
+                } else if (rand4 < BASIC_SPAWN_CHANCE + SHOOTER_SPAWN_CHANCE) {
+                    return EnemyType.SHOOTER;
+                } else if (rand4 < BASIC_SPAWN_CHANCE + SHOOTER_SPAWN_CHANCE + BOMBER_SPAWN_CHANCE) {
+                    return EnemyType.BOMBER;
+                } else {
+                    return EnemyType.SHIELD;
+                }
+
+            default:
+                // Fallback to normal spawning
+                return EnemyType.BASIC;
         }
     }
 
@@ -1393,12 +1562,19 @@ public class TowerDefenseScreen implements Screen {
         // Draw tower buttons
         for (int i = 0; i < 3; i++) {
             float x = navTowerX[i];
+            boolean isOnCooldown = towerCooldownActive[i];
+            boolean canAfford = gold >= towerCosts[i];
+            boolean isSelected = selectedType != null && selectedType.ordinal() == i;
 
-            // Highlight jika selected
-            if (selectedType != null && selectedType.ordinal() == i) {
-                game.batch.setColor(1f, 1f, 0.8f, 1f); // Kuning muda
+            // ===== BUTTON COLOR LOGIC =====
+            if (isOnCooldown) {
+                game.batch.setColor(0.7f, 0.7f, 0.7f, 0.9f); // Lighter gray saat cooldown
+            } else if (isSelected) {
+                game.batch.setColor(1f, 1f, 0.8f, 1f); // Kuning saat selected
+            } else if (!canAfford) {
+                game.batch.setColor(1f, 0.7f, 0.7f, 1f); // Merah muda saat tidak mampu
             } else {
-                game.batch.setColor(Color.WHITE);
+                game.batch.setColor(Color.WHITE); // Normal
             }
 
             // Draw button image
@@ -1415,22 +1591,40 @@ public class TowerDefenseScreen implements Screen {
                 game.batch.begin();
             }
 
-            // Draw cost text di bawah button
-            game.batch.setColor(Color.WHITE);
-            String costText = "$" + towerCosts[i];
-            layout.setText(font, costText);
-            float textX = x + (buttonSize - layout.width)/2f;
-            float textY = buttonY - 5f;
-            font.draw(game.batch, costText, textX, textY);
+            if (isOnCooldown) {
+                game.batch.end();
+                // Calculate cooldown progress (0.0 = full cooldown, 1.0 = ready)
+                float cooldownProgress = 1f - (towerCooldowns[i] / towerMaxCooldowns[i]);
+
+                // Dark overlay dari atas ke bawah (seperti PvZ)
+                float overlayHeight = buttonSize * (1f - cooldownProgress);
+
+                Gdx.gl.glEnable(GL20.GL_BLEND);
+                Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
+                shapes.setProjectionMatrix(camera.combined);
+                shapes.begin(ShapeRenderer.ShapeType.Filled);
+                shapes.setColor(0f, 0f, 0f, 0.5f); // Dark overlay
+                shapes.rect(x, buttonY + buttonSize - overlayHeight, buttonSize, overlayHeight);
+                shapes.end();
+                game.batch.begin();
+            }
         }
 
-        // Draw trap buttons
+        // Draw trap buttons dengan cooldown overlay (sama seperti tower)
         for (int i = 0; i < 3; i++) {
             float x = navTrapX[i];
+            boolean isOnCooldown = trapCooldownActive[i];
+            boolean canAfford = gold >= trapCosts[i];
+            boolean isSelected = selectedType != null && selectedType.ordinal() == (3 + i);
 
-            // Highlight jika selected
-            if (selectedType != null && selectedType.ordinal() == (3 + i)) {
-                game.batch.setColor(1f, 1f, 0.8f, 1f); // Kuning muda
+            // Button color logic
+            if (isOnCooldown) {
+                game.batch.setColor(0.5f, 0.5f, 0.5f, 0.7f);
+            } else if (isSelected) {
+                game.batch.setColor(1f, 1f, 0.8f, 1f);
+            } else if (!canAfford) {
+                game.batch.setColor(1f, 0.7f, 0.7f, 1f);
             } else {
                 game.batch.setColor(Color.WHITE);
             }
@@ -1439,7 +1633,6 @@ public class TowerDefenseScreen implements Screen {
             if (trapTextures[i] != null) {
                 game.batch.draw(trapTextures[i], x, buttonY, buttonSize, buttonSize);
             } else {
-                // Fallback rectangle
                 game.batch.end();
                 shapes.setProjectionMatrix(camera.combined);
                 shapes.begin(ShapeRenderer.ShapeType.Filled);
@@ -1449,16 +1642,23 @@ public class TowerDefenseScreen implements Screen {
                 game.batch.begin();
             }
 
-            // Draw cost text
-            game.batch.setColor(Color.WHITE);
-            String costText = "$" + trapCosts[i];
-            layout.setText(font, costText);
-            float textX = x + (buttonSize - layout.width)/2f;
-            float textY = buttonY - 5f;
-            font.draw(game.batch, costText, textX, textY);
+            // Cooldown overlay untuk trap
+            if (isOnCooldown) {
+                float cooldownProgress = 1f - (trapCooldowns[i] / trapMaxCooldowns[i]);
+                float overlayHeight = buttonSize * (1f - cooldownProgress);
+
+                game.batch.end();
+                shapes.setProjectionMatrix(camera.combined);
+                shapes.begin(ShapeRenderer.ShapeType.Filled);
+                shapes.setColor(0f, 0f, 0f, 0.5f);
+                shapes.rect(x, buttonY + buttonSize - overlayHeight, buttonSize, overlayHeight);
+                shapes.end();
+                game.batch.begin();
+            }
         }
 
         game.batch.setColor(Color.WHITE); // Reset color
+        font.setColor(Color.WHITE); // Reset font color
     }
 
     @Override
@@ -1467,6 +1667,9 @@ public class TowerDefenseScreen implements Screen {
 
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
         float vw = camera.viewportWidth;
         float vy = camera.viewportHeight;         // 720
@@ -1592,6 +1795,11 @@ public class TowerDefenseScreen implements Screen {
                     game.batch.draw(ImageLoader.BtnRetry, btnRetryLose.x, btnRetryLose.y,
                         btnRetryLose.width, btnRetryLose.height);
                 }
+
+                if (btnMenuLose == null || btnRetryLose == null) {
+                    System.out.println("⚠️ Buttons are null, forcing setup...");
+                    setupLoseUI();
+                }
             }
 
             game.batch.end();
@@ -1679,6 +1887,7 @@ public class TowerDefenseScreen implements Screen {
 // === TAMBAHKAN WAVE PROGRESS BAR DI SINI ===
         if (!isPaused && !isGameOver && !isGameWon) {
             drawWaveProgressBar();
+            drawStageInfo();
 //            drawEnemyTypeProgress(); // Opsional: mini progress per enemy type
 //            drawWaveTransition();    // Opsional: wave transition effects
         }
@@ -1802,6 +2011,8 @@ public class TowerDefenseScreen implements Screen {
 
         // inside render(), after your normal world drawing:
         if (isPaused) {
+            Gdx.gl.glEnable(GL20.GL_BLEND); // Tes: Aktifkan lagi di sini
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
             // 1) darken the game behind
             shapes.setProjectionMatrix(camera.combined);
             shapes.begin(ShapeRenderer.ShapeType.Filled);
@@ -2209,12 +2420,39 @@ public class TowerDefenseScreen implements Screen {
         System.out.println("==============================");
     }
 
+    private void drawStageInfo() {
+        game.batch.setProjectionMatrix(camera.combined);
+        game.batch.begin();
+
+        // Display stage info at top center
+        String stageText = "STAGE " + currentStage;
+        if (currentStage == FINAL_STAGE) {
+            stageText += " - FINAL BOSS STAGE";
+        }
+
+        layout.setText(font, stageText);
+        float stageX = (camera.viewportWidth - layout.width) / 2f;
+        float stageY = camera.viewportHeight - 20f;
+
+        // Special color for final stage
+        if (currentStage == FINAL_STAGE) {
+            font.setColor(Color.GOLD);
+        } else {
+            font.setColor(Color.WHITE);
+        }
+
+        font.draw(game.batch, stageText, stageX, stageY);
+        font.setColor(Color.WHITE); // Reset
+
+        game.batch.end();
+    }
+
 
     // implementasi Screen kosong
     @Override public void resize(int w, int h) {}
     @Override public void show()       {
+// Mengaktifkan blending secara global untuk OpenGL
 
-        // ===== START TOWER DEFENSE MUSIC =====
         System.out.println("🎵 TowerDefenseScreen: Starting tower defense music...");
         AudioManager.playTowerDefenseMusic();
     }

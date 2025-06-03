@@ -27,10 +27,18 @@ public class AoeProjectile extends Projectile {
     public AoeProjectile(Texture tex,
                          float startX, float startY,
                          float targetX, float targetY,
-                          float radius, float scale, int damage) {
+                          float radius, float scale, int damage, float customSpeed) {
         super(tex, startX, startY, targetX, targetY, scale);
         this.damage = damage;
         this.radius = radius;
+    }
+
+    // Constructor lama (backward compatibility)
+    public AoeProjectile(Texture tex,
+                         float startX, float startY,
+                         float targetX, float targetY,
+                         float radius, float scale, int damage) {
+        this(tex, startX, startY, targetX, targetY, radius, scale, damage, 400f);
     }
 
     /**

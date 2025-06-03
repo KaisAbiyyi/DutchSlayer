@@ -143,24 +143,24 @@ public class Tower {
         switch(type) {
             case BASIC:
                 projs.add(new Projectile(
-                    projTex, x, y, target.getX(), ty, projScale, damage
+                    projTex, x, y, target.getX(), ty, projScale,500f, damage
                 ));
                 break;
             case AOE:
                 projs.add(new AoeProjectile(
                     projTex, x, y, target.getX(), ty,
-                     400f, projScale, damage
+                     400f, projScale, damage, 350f
                 ));
                 break;
             case FAST:
                 projs.add(new Projectile(
-                    projTex, x, y, target.getX(), ty, projScale, 1000f, damage
+                    projTex, x, y, target.getX(), ty, projScale, 1200f, damage
                 ));
                 break;
             case SLOW:
                 projs.add(new SlowProjectile(
                     projTex, x, y, target.getX(), ty,
-                    slowDuration, projScale
+                    slowDuration, projScale, 400f
                 ));
                 break;
         }

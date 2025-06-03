@@ -124,6 +124,7 @@ public class StageSelectionScreen implements Screen {
                     (100 - 85) / 2f + crownOffsetX,
                     9 + crownOffsetY
                 );
+                crown.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.disabled);
                 btnContainer.addActor(crown);
             }
 

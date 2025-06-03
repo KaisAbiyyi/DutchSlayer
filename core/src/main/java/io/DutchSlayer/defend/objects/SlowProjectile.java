@@ -19,10 +19,19 @@ public class SlowProjectile extends Projectile {
     public SlowProjectile(Texture tex,
                           float startX, float startY,
                           float targetX, float targetY,
-                          float slowDuration, float scale, int damage) {
-        super(tex, startX, startY, targetX, targetY, scale);
+                          float slowDuration, float scale, int damage, float customSpeed) {
+        super(tex, startX, startY, targetX, targetY, scale, customSpeed, damage);
         this.slowDuration = slowDuration;
         this.damage = damage;
+    }
+
+    // Constructor dengan speed (tanpa damage)
+    public SlowProjectile(Texture tex,
+                          float startX, float startY,
+                          float targetX, float targetY,
+                          float slowDuration, float scale,
+                          float customSpeed) {  // ← PARAMETER BARU
+        this(tex, startX, startY, targetX, targetY, slowDuration, scale, 0, customSpeed);
     }
 
     /**
