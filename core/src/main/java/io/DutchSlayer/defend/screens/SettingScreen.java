@@ -13,6 +13,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import io.DutchSlayer.Main;
+import io.DutchSlayer.defend.untils.AudioManager;
 import io.DutchSlayer.defend.untils.Constant;
 
 class SettingsScreen implements Screen {
@@ -69,24 +70,66 @@ class SettingsScreen implements Screen {
         contentTable.defaults().padBottom(10);
 
         // 1) Volume image (pengganti label)
-        Image volumeImage = new Image(volumeTexture);
-        contentTable.add(volumeImage)
+        Image masterVolumeImage  = new Image(volumeTexture);
+        contentTable.add(masterVolumeImage )
             .size(150, 100)
             .padTop(-600)
             .row();
 
         // 2) Slider di bawah gambar Volume
-        Slider volumeSlider = new Slider(0f, 1f, 0.01f, false, skin);
-        volumeSlider.setValue(game.bgMusic.getVolume());
-        volumeSlider.addListener(new ChangeListener() {
+        Slider masterVolumeSlider = new Slider(0f, 1f, 0.01f, false, skin);
+        masterVolumeSlider.setValue(AudioManager.getMasterVolume());
+        masterVolumeSlider.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                game.bgMusic.setVolume(volumeSlider.getValue());
+                AudioManager.setMasterVolume(masterVolumeSlider.getValue());
+                // Also update legacy bgMusic if it exists
+                if (game.bgMusic != null) {
+                    game.bgMusic.setVolume(masterVolumeSlider.getValue());
+                }
             }
         });
-        contentTable.add(volumeSlider)
-            .width(350)
-            .padTop(-550)
+        contentTable.add(masterVolumeSlider)
+            .width(300)
+            .padTop(-580)
+            .row();
+
+        // ===== MUSIC VOLUME =====
+        Label musicLabel = new Label("Music Volume", skin);
+        contentTable.add(musicLabel)
+            .padTop(-520)
+            .row();
+
+        Slider musicVolumeSlider = new Slider(0f, 1f, 0.01f, false, skin);
+        musicVolumeSlider.setValue(AudioManager.getMusicVolume());
+        musicVolumeSlider.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                AudioManager.setMusicVolume(musicVolumeSlider.getValue());
+            }
+        });
+        contentTable.add(musicVolumeSlider)
+            .width(300)
+            .padTop(-500)
+            .row();
+
+        // ===== SFX VOLUME =====
+        Label sfxLabel = new Label("SFX Volume", skin);
+        contentTable.add(sfxLabel)
+            .padTop(-460)
+            .row();
+
+        Slider sfxVolumeSlider = new Slider(0f, 1f, 0.01f, false, skin);
+        sfxVolumeSlider.setValue(AudioManager.getSfxVolume());
+        sfxVolumeSlider.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                AudioManager.setSfxVolume(sfxVolumeSlider.getValue());
+            }
+        });
+        contentTable.add(sfxVolumeSlider)
+            .width(300)
+            .padTop(-440)
             .row();
 
         // 3) Baru Toggle button di bawah Slider
@@ -115,6 +158,11 @@ class SettingsScreen implements Screen {
     @Override
     public void show() {
         Gdx.input.setInputProcessor(stage);
+
+        if (!AudioManager.isMusicPlaying()) {
+            System.out.println("🎵 SettingsScreen: Resuming main menu music...");
+            AudioManager.playMainMenuMusic();
+        }
     }
 
     @Override

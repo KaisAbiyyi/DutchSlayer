@@ -15,6 +15,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
 import io.DutchSlayer.Main;
+import io.DutchSlayer.defend.untils.AudioManager;
 import io.DutchSlayer.defend.untils.Constant;
 
 public class MainMenuScreen implements Screen {
@@ -105,6 +106,7 @@ public class MainMenuScreen implements Screen {
     @Override public void show() {
         Gdx.input.setInputProcessor(stage);
         viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
+        AudioManager.playMainMenuMusic();
     }
 
     @Override
@@ -127,7 +129,9 @@ public class MainMenuScreen implements Screen {
 
     @Override public void pause() {}
     @Override public void resume() {}
-    @Override public void hide() {}
+    @Override public void hide() {
+        AudioManager.stopMusic();
+    }
 
     @Override
     public void dispose() {
