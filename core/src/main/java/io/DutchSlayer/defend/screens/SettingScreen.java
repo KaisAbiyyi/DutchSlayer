@@ -5,10 +5,14 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.InputEvent;
+// import com.badlogic.gdx.scenes.scene2d.InputEvent; // InputEvent tidak digunakan
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.*;
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.Slider;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.viewport.FitViewport;
@@ -27,7 +31,6 @@ class SettingsScreen implements Screen {
     private final Texture titleTexture;
     private final Texture toggleTexture;
     private final Texture backButtonTexture;
-    private final Texture volumeTexture; // Tambahan
 
     public SettingsScreen(Main game) {
         this.game = game;
@@ -35,108 +38,135 @@ class SettingsScreen implements Screen {
         this.stage = new Stage(viewport);
         this.skin = new Skin(Gdx.files.internal("uiskin/uiskin.json"));
 
-        this.background = new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
-        this.titleTexture = new Texture(Gdx.files.internal("button/SettingScreen.png"));
-        this.toggleTexture = new Texture(Gdx.files.internal("button/ToogleButton.png"));
+        // Muat semua texture yang dibutuhkan
+        this.background        = new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
+        this.titleTexture      = new Texture(Gdx.files.internal("button/SettingScreen.png"));
+        this.toggleTexture     = new Texture(Gdx.files.internal("button/ToogleButton.png")); // Pastikan nama file sesuai (misal, ToggleButton.png)
         this.backButtonTexture = new Texture(Gdx.files.internal("button/backbutton.png"));
-        this.volumeTexture = new Texture(Gdx.files.internal("button/volume.png")); // Load texture
+
         createUI();
     }
 
     private void createUI() {
+        // Root table untuk menampung semua elemen, fillParent agar mengisi penuh viewport
         Table rootTable = new Table();
         rootTable.setFillParent(true);
-        rootTable.top();
+        rootTable.top();  // Sejajarkan konten rootTable ke atas
         stage.addActor(rootTable);
 
-        // Baris untuk tombol back
-        Table topBar = new Table();
+        // ================================================================
+        // Baris 1: Tombol Back di pojok kiri atas
+        // ================================================================
+        Table topBarTable = new Table(); // Buat tabel baru untuk tombol back
         ImageButton backButton = new ImageButton(new TextureRegionDrawable(backButtonTexture));
-        backButton.addListener(new ClickListener() {
+        backButton.addListener(new ChangeListener() {
             @Override
-            public void clicked(InputEvent e, float x, float y) {
+            public void changed(ChangeListener.ChangeEvent event, Actor actor) {
+                // Ketika tombol ditekan, kembali ke MainMenuScreen
                 game.setScreen(new MainMenuScreen(game));
             }
         });
-        topBar.add(backButton).size(100, 100).pad(10).left();
-        rootTable.add(topBar).expandX().left().row();
+        topBarTable.add(backButton) // Tambahkan tombol ke topBarTable
+            .size(100, 100)
+            .pad(10)    // Padding di sekitar tombol
+            .left();    // Sejajarkan tombol ke kiri dalam sel topBarTable
 
-        // Title
+        rootTable.add(topBarTable) // Tambahkan topBarTable ke rootTable
+            .expandX() // Izinkan topBarTable untuk memperluas secara horizontal
+            .left();   // Sejajarkan topBarTable ke kiri pada baris rootTable
+        rootTable.row(); // Pindah ke baris berikutnya di rootTable
+
+        // ================================================================
+        // Baris 2: Judul "Setting" (ditengahkan)
+        // ================================================================
         Image titleImg = new Image(titleTexture);
-        rootTable.add(titleImg).size(800, 450).padTop(-180).center().row();
+        rootTable.add(titleImg)
+            .width(800)
+            .height(450)
+            .padTop(-200)
+            .padBottom(-150)// MODIFIKASI: Beri padding positif agar ada jarak dari tombol back.
+            .center();
+        rootTable.row();
 
-        // Content Table (Volume dulu, lalu Toggle)
+        // ================================================================
+        // Baris 3 dst: Kontainer untuk Slider & Toggle
+        // ================================================================
         Table contentTable = new Table();
-        contentTable.defaults().padBottom(10);
+        // Atur default padding untuk sel di dalam contentTable agar ada jarak antar elemen
+        contentTable.defaults().padTop(15).padBottom(15).padLeft(10).padRight(10);
 
-        // 1) Volume image (pengganti label)
-        Image masterVolumeImage  = new Image(volumeTexture);
-        contentTable.add(masterVolumeImage )
-            .size(150, 100)
-            .padTop(-600)
-            .row();
+        // ---- 1) Master Volume: Label + Slider ----
+        Label masterLabel = new Label("Master Volume", skin);
+        masterLabel.setFontScale(0.8f);
+        contentTable.add(masterLabel)
+            .left()
+            .padLeft(0);
 
-        // 2) Slider di bawah gambar Volume
-        Slider masterVolumeSlider = new Slider(0f, 1f, 0.01f, false, skin);
-        masterVolumeSlider.setValue(AudioManager.getMasterVolume());
-        masterVolumeSlider.addListener(new ChangeListener() {
+        Slider masterSlider = new Slider(0f, 1f, 0.01f, false, skin);
+        masterSlider.setValue(AudioManager.getMasterVolume());
+        masterSlider.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                AudioManager.setMasterVolume(masterVolumeSlider.getValue());
-                // Also update legacy bgMusic if it exists
-                if (game.bgMusic != null) {
-                    game.bgMusic.setVolume(masterVolumeSlider.getValue());
-                }
+                AudioManager.setMasterVolume(masterSlider.getValue());
             }
         });
-        contentTable.add(masterVolumeSlider)
-            .width(300)
-            .padTop(-580)
-            .row();
+        contentTable.add(masterSlider)
+            .colspan(2)
+            .width(400)
+            .left();
+        contentTable.row();
 
-        // ===== MUSIC VOLUME =====
+        // ---- 2) Music Volume: Label + Slider ----
         Label musicLabel = new Label("Music Volume", skin);
+        musicLabel.setFontScale(0.8f);
         contentTable.add(musicLabel)
-            .padTop(-520)
-            .row();
+            .left()
+            .padLeft(0);
 
-        Slider musicVolumeSlider = new Slider(0f, 1f, 0.01f, false, skin);
-        musicVolumeSlider.setValue(AudioManager.getMusicVolume());
-        musicVolumeSlider.addListener(new ChangeListener() {
+        Slider musicSlider = new Slider(0f, 1f, 0.01f, false, skin);
+        musicSlider.setValue(AudioManager.getMusicVolume());
+        musicSlider.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                AudioManager.setMusicVolume(musicVolumeSlider.getValue());
+                AudioManager.setMusicVolume(musicSlider.getValue());
             }
         });
-        contentTable.add(musicVolumeSlider)
-            .width(300)
-            .padTop(-500)
-            .row();
+        contentTable.add(musicSlider)
+            .colspan(2)
+            .width(400)
+            .left();
+        contentTable.row();
 
-        // ===== SFX VOLUME =====
+        // ---- 3) SFX Volume: Label + Slider ----
         Label sfxLabel = new Label("SFX Volume", skin);
+        sfxLabel.setFontScale(0.8f);
         contentTable.add(sfxLabel)
-            .padTop(-460)
-            .row();
+            .left()
+            .padLeft(0);
 
-        Slider sfxVolumeSlider = new Slider(0f, 1f, 0.01f, false, skin);
-        sfxVolumeSlider.setValue(AudioManager.getSfxVolume());
-        sfxVolumeSlider.addListener(new ChangeListener() {
+        Slider sfxSlider = new Slider(0f, 1f, 0.01f, false, skin);
+        sfxSlider.setValue(AudioManager.getSfxVolume());
+        sfxSlider.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                AudioManager.setSfxVolume(sfxVolumeSlider.getValue());
+                AudioManager.setSfxVolume(sfxSlider.getValue());
             }
         });
-        contentTable.add(sfxVolumeSlider)
-            .width(300)
-            .padTop(-440)
-            .row();
+        contentTable.add(sfxSlider)
+            .colspan(2)
+            .width(400)
+            .left();
+        contentTable.row();
 
-        // 3) Baru Toggle button di bawah Slider
+        // ---- Spacer vertikal sebelum tombol Toggle ----
+        // contentTable.add().height(20).colspan(3); // Spacer ini mungkin tidak lagi diperlukan dengan default padding
+        // contentTable.row();
+
+        // ---- 4) Tombol Toggle Fullscreen (ditengahkan di baris) ----
         ImageButton toggleBtn = new ImageButton(new TextureRegionDrawable(toggleTexture));
-        toggleBtn.addListener(new ClickListener() {
+        toggleBtn.addListener(new ChangeListener() {
             @Override
-            public void clicked(InputEvent e, float x, float y) {
+            public void changed(ChangeEvent event, Actor actor) {
                 if (Gdx.graphics.isFullscreen()) {
                     Gdx.graphics.setWindowedMode(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT);
                 } else {
@@ -145,22 +175,24 @@ class SettingsScreen implements Screen {
             }
         });
         contentTable.add(toggleBtn)
-            .size(300, 100)
-            .padTop(-350) // sesuaikan agar jaraknya pas
-            .padBottom(20)
-            .row();
+            .size(500, 120)
+            .colspan(3)
+            .center();
+        contentTable.row();
 
         // Tambahkan contentTable ke rootTable
-        rootTable.add(contentTable).expand().center().padTop(80);
-    }
+        rootTable.add(contentTable)
+            .padTop(30) // MODIFIKASI: Beri padding positif agar ada jarak dari judul.
+            .center();
+        rootTable.row();
 
+    }
 
     @Override
     public void show() {
         Gdx.input.setInputProcessor(stage);
-
+        // Jika musik belum berjalan (karena berpindah dari screen lain), putar kembali musik MainMenu
         if (!AudioManager.isMusicPlaying()) {
-            System.out.println("🎵 SettingsScreen: Resuming main menu music...");
             AudioManager.playMainMenuMusic();
         }
     }
@@ -170,28 +202,33 @@ class SettingsScreen implements Screen {
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.15f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        // Gambar background
         game.batch.setProjectionMatrix(viewport.getCamera().combined);
         game.batch.begin();
         game.batch.draw(background, 0, 0, viewport.getWorldWidth(), viewport.getWorldHeight());
         game.batch.end();
 
+        // Gambar semua elemen Scene2D
         stage.act(delta);
         stage.draw();
     }
 
-    @Override public void resize(int w, int h) { viewport.update(w, h, true); }
-    @Override public void pause() {}
-    @Override public void resume() {}
-    @Override public void hide() {}
+    @Override
+    public void resize(int width, int height) {
+        viewport.update(width, height, true);
+    }
+
+    @Override public void pause()  { }
+    @Override public void resume() { }
+    @Override public void hide()   { }
 
     @Override
     public void dispose() {
-        stage.dispose();
-        skin.dispose();
-        background.dispose();
-        titleTexture.dispose();
-        toggleTexture.dispose();
-        backButtonTexture.dispose();
-        volumeTexture.dispose(); // Tambahan
+        if (stage != null) stage.dispose();
+        if (skin != null) skin.dispose();
+        if (background != null) background.dispose();
+        if (titleTexture != null) titleTexture.dispose();
+        if (toggleTexture != null) toggleTexture.dispose();
+        if (backButtonTexture != null) backButtonTexture.dispose();
     }
 }

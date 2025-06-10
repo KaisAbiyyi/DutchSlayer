@@ -6,17 +6,16 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
 import io.DutchSlayer.Main;
+import io.DutchSlayer.defend.untils.AudioManager;
 import io.DutchSlayer.defend.untils.Constant;
 import io.DutchSlayer.defend.untils.GameMode;
+import io.DutchSlayer.defend.screens.StageSelectionScreen;
 
 public class ModeSelectionScreen implements Screen {
 
@@ -37,11 +36,11 @@ public class ModeSelectionScreen implements Screen {
         this.stage = new Stage(viewport);
         this.skin = new Skin(Gdx.files.internal("uiskin/uiskin.json"));
 
-        this.background = new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
-        this.titleTexture = new Texture(Gdx.files.internal("button/ModeSelection.png"));
-        this.defenseTexture = new Texture(Gdx.files.internal("button/DefenseButton.png"));
-        this.platformerTexture = new Texture(Gdx.files.internal("button/PlatformerButton.png"));
-        this.backButtonTexture = new Texture(Gdx.files.internal("button/backbutton.png"));
+        this.background       = new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
+        this.titleTexture     = new Texture(Gdx.files.internal("button/ModeSelection.png"));
+        this.defenseTexture   = new Texture(Gdx.files.internal("button/DefenseButton.png"));
+        this.platformerTexture= new Texture(Gdx.files.internal("button/PlatformerButton.png"));
+        this.backButtonTexture= new Texture(Gdx.files.internal("button/backbutton.png"));
 
         Gdx.input.setInputProcessor(stage);
         createUI();
@@ -53,7 +52,7 @@ public class ModeSelectionScreen implements Screen {
         rootTable.top().left();
         stage.addActor(rootTable);
 
-        // Back Button (pojok kiri atas)
+        // 1) Tombol Back
         Table topBar = new Table();
         ImageButton backButton = new ImageButton(new TextureRegionDrawable(backButtonTexture));
         backButton.addListener(new ClickListener() {
@@ -65,11 +64,15 @@ public class ModeSelectionScreen implements Screen {
         topBar.add(backButton).size(100, 100).pad(10).left();
         rootTable.add(topBar).expandX().left().row();
 
-        // Title
+        // 2) Title
         Image titleImg = new Image(titleTexture);
-        rootTable.add(titleImg).width(800).height(450).padTop(-180).center().row();
+        rootTable.add(titleImg)
+            .width(800).height(450)
+            .padTop(-180)
+            .center()
+            .row();
 
-        // Button Table
+        // 3) Tombol Mode
         Table buttonTable = new Table();
         buttonTable.defaults().pad(5);
 
@@ -77,6 +80,7 @@ public class ModeSelectionScreen implements Screen {
         defenseBtn.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
+                // Switch ke Tower Defense Music terlebih dahulu:
                 Main.currentMode = GameMode.TOWER_DEFENSE;
                 game.setScreen(new StageSelectionScreen(game, true));
             }
@@ -87,6 +91,8 @@ public class ModeSelectionScreen implements Screen {
         platformerBtn.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
+                // Jika ingin memainkan musik khusus platformer, panggil di sini
+                // AudioManager.playPlatformerMusic();
                 Main.currentMode = GameMode.PLATFORMER;
                 game.setScreen(new StageSelectionScreen(game, false));
             }
@@ -99,7 +105,10 @@ public class ModeSelectionScreen implements Screen {
     @Override
     public void show() {
         Gdx.input.setInputProcessor(stage);
-        viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
+        // Pastikan musik menu tetap diputar jika tidak berpindah ke tower defense:
+        if (!AudioManager.isPlayingMainMenuMusic()) {
+            AudioManager.playMainMenuMusic();
+        }
     }
 
     @Override
@@ -119,13 +128,10 @@ public class ModeSelectionScreen implements Screen {
     @Override public void resize(int width, int height) {
         viewport.update(width, height, true);
     }
-
     @Override public void pause() {}
     @Override public void resume() {}
-    @Override public void hide() {}
-
-    @Override
-    public void dispose() {
+    @Override public void hide()   {}
+    @Override public void dispose() {
         stage.dispose();
         skin.dispose();
         background.dispose();
