@@ -854,8 +854,31 @@ public class TowerDefenseScreen implements Screen {
 
     @Override public void resize(int w, int h) {}
     @Override public void show() {
-        System.out.println("🎵 TowerDefenseScreen: Starting tower defense music...");
-        AudioManager.playTowerDefenseMusic();
+        // ⭐ CRITICAL: Set input processor
+        Gdx.input.setInputProcessor(inputHandler);
+        System.out.println("🔧 Input processor set to: " + inputHandler);
+
+        // Jika game sebelumnya paused, tetap paused saat kembali dari settings
+        if (gameState.isPaused) {
+            System.out.println("⏸️ Game remains paused after returning from settings");
+
+            // ⭐ FORCE SETUP PAUSE MENU
+            uiManager.setupPauseMenu(camera);
+            System.out.println("🔧 Pause menu re-setup completed");
+
+            // Debug button positions
+            System.out.println("🔍 Debug - btnResume: " + uiManager.btnResume);
+            System.out.println("🔍 Debug - btnSetting: " + uiManager.btnSetting);
+            System.out.println("🔍 Debug - btnMenuPause: " + uiManager.btnMenuPause);
+        }
+
+        // Handle music
+        if (!gameState.isPaused) {
+            System.out.println("🎵 TowerDefenseScreen: Starting tower defense music...");
+            AudioManager.playTowerDefenseMusic();
+        } else {
+            System.out.println("🎵 TowerDefenseScreen: Game paused - keeping current music state");
+        }
     }
     @Override public void hide() {
         System.out.println("🛑 TowerDefenseScreen: Stopping tower defense music...");
