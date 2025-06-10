@@ -15,7 +15,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
 import io.DutchSlayer.Main;
-import io.DutchSlayer.defend.untils.Constant;
+import io.DutchSlayer.defend.utils.TDConstants;
 
 public class AboutScreen implements Screen {
 
@@ -33,7 +33,7 @@ public class AboutScreen implements Screen {
 
     public AboutScreen(Main game) {
         this.game = game;
-        this.viewport = new FitViewport(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT);
+        this.viewport = new FitViewport(TDConstants.SCREEN_WIDTH, TDConstants.SCREEN_HEIGHT);
         this.stage = new Stage(viewport);
         Gdx.input.setInputProcessor(stage);
 

@@ -3,6 +3,7 @@ package io.DutchSlayer.defend.ui;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Cursor;
 import com.badlogic.gdx.graphics.Texture;
+import io.DutchSlayer.defend.entities.towers.TowerType;
 
 /**
  * ImageLoader bertanggung-jawab memuat semua Texture.
@@ -20,8 +21,11 @@ public class ImageLoader {
     public static Texture towerTex;
     public static Texture maintowertex;
     public static Texture tower1Tex, tower2Tex, tower3Tex;
+    // ===== TOWER ANIMATION FRAMES =====
+    public static Texture[] towerAOEFrames = new Texture[2];      // AOE tower: normal + recoil
+    public static Texture[] towerSpeedFrames = new Texture[2];    // Speed tower: normal + shooting
 
-    public static Texture projTex;
+    public static Texture projTex, projtowtex;
     public static Texture aoeProjTex, fastProjTex, slowProjTex;
 
     public static Texture trapTex;
@@ -59,6 +63,12 @@ public class ImageLoader {
     public static Texture BtnNext;
     public static Texture BtnMenu;
     public static Texture BtnRetry;
+
+    // ===== PAUSE MENU ASSETS =====
+    public static Texture PauseUI;
+    public static Texture MenuBtn;
+    public static Texture ResumeBtn;
+    public static Texture SettingBtn;
 
     /** Panggil sekali di create() sebelum digunakan */
     public static void load() {
@@ -101,8 +111,15 @@ public class ImageLoader {
         tower1Tex = loadOrNull("Defend/Tower/TowerAOE.png");
         tower2Tex = loadOrNull("Defend/Tower/TowerSpeed.png");
         tower3Tex = loadOrNull("Defend/Tower/TowerDefensif.png");
+        towerAOEFrames[0] = loadOrNull("Defend/Tower/TowerAOE/TowerAOE1.png");     // Normal
+        towerAOEFrames[1] = loadOrNull("Defend/Tower/TowerAOE/TowerAOE2.png");     // Recoil/Shooting
+
+        // Speed Tower Animation (Machine Gun)
+        towerSpeedFrames[0] = loadOrNull("Defend/Tower/TowerSpeed/TowerSpeed1.png"); // Normal
+        towerSpeedFrames[1] = loadOrNull("Defend/Tower/TowerSpeed/TowerSpeed2.png"); // Shooting/Muzzle Flash
 
         projTex  = loadOrNull("Defend/Projectile/Projectile.png");
+        projtowtex = loadOrNull("Defend/Projectile/Projectile1.png");
         aoeProjTex = loadOrNull("Defend/Projectile/ProjectileAOE.png");
         fastProjTex= loadOrNull("Defend/Projectile/ProjectileSpeed.png");
         slowProjTex= loadOrNull("Defend/Projectile/ProjectileDefensif.png");
@@ -126,11 +143,16 @@ public class ImageLoader {
 
         goldIconTex = loadOrNull("Defend/UI/GoldIcon.png");// GANTI DENGAN PATH YANG BENAR NANTI
 
-        WinUI = loadOrNull("Defend/UI/WinUI.png");
-        LoseUI = loadOrNull("Defend/UI/LoseUI.png");
-        BtnNext = loadOrNull("Defend/UI/BtnNext.png");
-        BtnMenu = loadOrNull("Defend/UI/BtnMenu.png");
-        BtnRetry = loadOrNull("Defend/UI/BtnRetry.png");
+        WinUI = loadOrNull("Defend/UI/LoseAndWin/WinUI.png");
+        LoseUI = loadOrNull("Defend/UI/LoseAndWin/LoseUI.png");
+        BtnNext = loadOrNull("Defend/UI/LoseAndWin/BtnNext.png");
+        BtnMenu = loadOrNull("Defend/UI/LoseAndWin/BtnMenu.png");
+        BtnRetry = loadOrNull("Defend/UI/LoseAndWin/BtnRetry.png");
+
+        PauseUI = loadOrNull("Defend/UI/PauseUI/PauseUI.png");
+        MenuBtn = loadOrNull("Defend/UI/PauseUI/MenuBtn.png");
+        ResumeBtn = loadOrNull("Defend/UI/PauseUI/ResumeBtn.png");
+        SettingBtn = loadOrNull("Defend/UI/PauseUI/SettingBtn.png");
     }
 
     private static Texture loadOrNull(String path) {
@@ -141,6 +163,52 @@ public class ImageLoader {
             return null;
         }
     }
+
+    /**
+     * Helper methods untuk mendapatkan tower animation frames
+     */
+    public static Texture[] getTowerAnimationFrames(TowerType type) {
+        switch(type) {
+            case AOE:
+                return towerAOEFrames;
+            case FAST:
+                return towerSpeedFrames;
+//            case SLOW:
+//                return towerDefensifFrames;
+            default:
+                return null; // No animation for other types
+        }
+    }
+
+    /**
+     * Get shooting frame untuk tower type tertentu
+     */
+    public static Texture getTowerShootingFrame(TowerType type) {
+        Texture[] frames = getTowerAnimationFrames(type);
+        if (frames != null && frames.length > 1 && frames[1] != null) {
+            return frames[1];
+        }
+        return null; // Fallback to normal texture
+    }
+
+    /**
+     * Get normal frame untuk tower type tertentu
+     */
+    public static Texture getTowerNormalFrame(TowerType type) {
+        Texture[] frames = getTowerAnimationFrames(type);
+        if (frames != null && frames.length > 0 && frames[0] != null) {
+            return frames[0];
+        }
+
+        // Fallback ke basic textures
+        switch(type) {
+            case AOE: return tower1Tex;
+            case FAST: return tower2Tex;
+            case SLOW: return tower3Tex;
+            default: return null;
+        }
+    }
+
 
     /** Pastikan dipanggil di dispose() */
     public static void dispose() {
@@ -161,6 +229,7 @@ public class ImageLoader {
         if (aoeProjTex != null) aoeProjTex.dispose();
         if (fastProjTex != null) fastProjTex.dispose();
         if (slowProjTex != null) slowProjTex.dispose();
+        if (projtowtex != null)  projtowtex.dispose();
 
         if (trapAttackTex != null) trapAttackTex.dispose();
         if (trapSlowTex != null) trapSlowTex.dispose();
@@ -182,6 +251,11 @@ public class ImageLoader {
         if (BtnNext != null) BtnNext.dispose();
         if (BtnMenu != null) BtnMenu.dispose();
         if (BtnRetry != null) BtnRetry.dispose();
+
+        if (PauseUI != null) PauseUI.dispose();
+        if (MenuBtn != null) MenuBtn.dispose();
+        if (ResumeBtn != null) ResumeBtn.dispose();
+        if (SettingBtn != null) SettingBtn.dispose();
 
         for (int i = 0; i < enemyBasicFrames.length; i++) {
             if (enemyBasicFrames[i] != null) {

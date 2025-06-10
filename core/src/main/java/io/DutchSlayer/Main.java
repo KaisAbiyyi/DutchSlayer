@@ -6,8 +6,8 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.Gdx;
 
 import io.DutchSlayer.defend.screens.MainMenuScreen;
-import io.DutchSlayer.defend.untils.GameMode;
-import io.DutchSlayer.defend.untils.AudioManager;
+import io.DutchSlayer.defend.utils.GameMode;
+import io.DutchSlayer.defend.utils.AudioManager;
 
 public class Main extends Game {
     public static GameMode currentMode = GameMode.NONE;

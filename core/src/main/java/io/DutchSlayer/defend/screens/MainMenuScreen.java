@@ -15,8 +15,8 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
 import io.DutchSlayer.Main;
-import io.DutchSlayer.defend.untils.AudioManager;
-import io.DutchSlayer.defend.untils.Constant;
+import io.DutchSlayer.defend.utils.AudioManager;
+import io.DutchSlayer.defend.utils.TDConstants;
 
 public class MainMenuScreen implements Screen {
 
@@ -35,7 +35,7 @@ public class MainMenuScreen implements Screen {
 
     public MainMenuScreen(Main game) {
         this.game      = game;
-        this.viewport  = new FitViewport(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT);
+        this.viewport  = new FitViewport(TDConstants.SCREEN_WIDTH, TDConstants.SCREEN_HEIGHT);
         this.stage     = new Stage(viewport);
         this.skin      = new Skin(Gdx.files.internal("uiskin/uiskin.json"));
         this.background= new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
@@ -77,7 +77,7 @@ public class MainMenuScreen implements Screen {
         ImageButton settingsBtn = new ImageButton(new TextureRegionDrawable(settingsTexture));
         settingsBtn.addListener(new ClickListener() {
             @Override public void clicked(InputEvent e, float x, float y) {
-                game.setScreen(new SettingsScreen(game));
+                game.setScreen(new SettingScreen(game));
             }
         });
         buttonTable.add(settingsBtn).size(500, 120).row();

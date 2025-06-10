@@ -15,8 +15,8 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
 import io.DutchSlayer.Main;
-import io.DutchSlayer.defend.untils.Constant;
-import io.DutchSlayer.defend.untils.GameMode;
+import io.DutchSlayer.defend.utils.TDConstants;
+import io.DutchSlayer.defend.utils.GameMode;
 
 public class ModeSelectionScreen implements Screen {
 
@@ -33,7 +33,7 @@ public class ModeSelectionScreen implements Screen {
 
     public ModeSelectionScreen(Main game) {
         this.game = game;
-        this.viewport = new FitViewport(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT);
+        this.viewport = new FitViewport(TDConstants.SCREEN_WIDTH, TDConstants.SCREEN_HEIGHT);
         this.stage = new Stage(viewport);
         this.skin = new Skin(Gdx.files.internal("uiskin/uiskin.json"));
 

@@ -14,8 +14,7 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 import io.DutchSlayer.Main;
-import io.DutchSlayer.defend.screens.TowerDefenseScreen;
-import io.DutchSlayer.defend.untils.Constant;
+import io.DutchSlayer.defend.utils.TDConstants;
 
 public class StageSelectionScreen implements Screen {
     private final Main game;
@@ -40,7 +39,7 @@ public class StageSelectionScreen implements Screen {
         this.isDefendMode = isDefendMode;
 
         camera = new OrthographicCamera();
-        viewport = new FitViewport(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT, camera);
+        viewport = new FitViewport(TDConstants.SCREEN_WIDTH, TDConstants.SCREEN_HEIGHT, camera);
         stage = new Stage(viewport);
         Gdx.input.setInputProcessor(stage);
 
