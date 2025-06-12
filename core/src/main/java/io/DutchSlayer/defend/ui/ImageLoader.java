@@ -24,9 +24,11 @@ public class ImageLoader {
     // ===== TOWER ANIMATION FRAMES =====
     public static Texture[] towerAOEFrames = new Texture[2];      // AOE tower: normal + recoil
     public static Texture[] towerSpeedFrames = new Texture[2];    // Speed tower: normal + shooting
+    public static Texture[] towerDefensifFrames = new Texture[3]; // ⭐ ADD: Defensif tower frames
 
     public static Texture projTex, projtowtex;
     public static Texture aoeProjTex, fastProjTex, slowProjTex;
+    public static Texture bossProjectileTex;
 
     public static Texture trapTex;
     public static Texture trapAttackTex;
@@ -63,6 +65,7 @@ public class ImageLoader {
     public static Texture BtnNext;
     public static Texture BtnMenu;
     public static Texture BtnRetry;
+    public static Texture BtnMode;
 
     // ===== PAUSE MENU ASSETS =====
     public static Texture PauseUI;
@@ -84,7 +87,8 @@ public class ImageLoader {
         enemyShieldTex = loadOrNull("Defend/Enemy/DutchShield.png");
         enemyBossTex = loadOrNull("Defend/Enemy/DutchBoss.png");
         bombAssetTex = loadOrNull("Defend/Projectile/Bomb.png");
-        enemyProjectileTex = loadOrNull("Defend/Projectile/EnemyProjectileSpeed.png");
+        enemyProjectileTex = loadOrNull("Defend/Projectile/Projectile2.png");
+        bossProjectileTex = loadOrNull("Defend/Projectile/BossProjectile.png");
 
         enemyBasicFrames[0] = loadOrNull("Defend/Enemy/enemyBasic/EnemyB1.png");
         enemyBasicFrames[1] = loadOrNull("Defend/Enemy/enemyBasic/EnemyB2.png");
@@ -118,7 +122,11 @@ public class ImageLoader {
         towerSpeedFrames[0] = loadOrNull("Defend/Tower/TowerSpeed/TowerSpeed1.png"); // Normal
         towerSpeedFrames[1] = loadOrNull("Defend/Tower/TowerSpeed/TowerSpeed2.png"); // Shooting/Muzzle Flash
 
-        projTex  = loadOrNull("Defend/Projectile/Projectile.png");
+        towerDefensifFrames[0] = loadOrNull("Defend/Tower/TowerDefensif/TowerDefensif1.png");
+        towerDefensifFrames[1] = loadOrNull("Defend/Tower/TowerDefensif/TowerDefensif2.png");
+        towerDefensifFrames[2] = loadOrNull("Defend/Tower/TowerDefensif/TowerDefensif3.png");
+
+        projTex  = loadOrNull("Defend/Projectile/Projectile2.png");
         projtowtex = loadOrNull("Defend/Projectile/Projectile1.png");
         aoeProjTex = loadOrNull("Defend/Projectile/ProjectileAOE.png");
         fastProjTex= loadOrNull("Defend/Projectile/ProjectileSpeed.png");
@@ -148,6 +156,7 @@ public class ImageLoader {
         BtnNext = loadOrNull("Defend/UI/LoseAndWin/BtnNext.png");
         BtnMenu = loadOrNull("Defend/UI/LoseAndWin/BtnMenu.png");
         BtnRetry = loadOrNull("Defend/UI/LoseAndWin/BtnRetry.png");
+        BtnMode = loadOrNull("Defend/UI/LoseAndWin/ModeSelection.png");
 
         PauseUI = loadOrNull("Defend/UI/PauseUI/PauseUI.png");
         MenuBtn = loadOrNull("Defend/UI/PauseUI/MenuBtn.png");
@@ -173,8 +182,8 @@ public class ImageLoader {
                 return towerAOEFrames;
             case FAST:
                 return towerSpeedFrames;
-//            case SLOW:
-//                return towerDefensifFrames;
+            case SLOW:
+                return towerDefensifFrames;
             default:
                 return null; // No animation for other types
         }
@@ -256,6 +265,7 @@ public class ImageLoader {
         if (MenuBtn != null) MenuBtn.dispose();
         if (ResumeBtn != null) ResumeBtn.dispose();
         if (SettingBtn != null) SettingBtn.dispose();
+        if (BtnMode != null) BtnMode.dispose();
 
         for (int i = 0; i < enemyBasicFrames.length; i++) {
             if (enemyBasicFrames[i] != null) {
@@ -278,6 +288,25 @@ public class ImageLoader {
         for (int i = 0; i < enemyBomberFrames.length; i++) {
             if (enemyBomberFrames[i] != null) {
                 enemyBomberFrames[i].dispose();
+            }
+        }
+
+        for (int i = 0; i < towerAOEFrames.length; i++) {
+            if (towerAOEFrames[i] != null) {
+                towerAOEFrames[i].dispose();
+            }
+        }
+
+        for (int i = 0; i < towerSpeedFrames.length; i++) {
+            if (towerSpeedFrames[i] != null) {
+                towerSpeedFrames[i].dispose();
+            }
+        }
+
+        // ⭐ ADD DISPOSAL UNTUK DEFENSIF FRAMES
+        for (int i = 0; i < towerDefensifFrames.length; i++) {
+            if (towerDefensifFrames[i] != null) {
+                towerDefensifFrames[i].dispose();
             }
         }
     }

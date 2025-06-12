@@ -1,4 +1,4 @@
-// AoeProjectile.java
+// AoeProjectile.java - OPTIMIZED VERSION
 package io.DutchSlayer.defend.entities.projectiles;
 
 import com.badlogic.gdx.graphics.Texture;
@@ -10,85 +10,65 @@ import io.DutchSlayer.defend.entities.enemies.Enemy;
 /**
  * AoeProjectile adalah projectile yang memberikan damage area (AOE - Area of Effect)
  * Ketika mengenai target, semua enemy dalam radius tertentu akan terkena damage
+ * OPTIMIZED VERSION dengan reduced object allocation dan improved performance
  */
 public class AoeProjectile extends Projectile {
     private int aoeRadius;                        // Radius area damage
     private int aoeDamage;                        // Damage per enemy dalam AOE
 
-    // ===== PARABOLA TRAJECTORY SYSTEM =====
-    private boolean useParabola = true;           // Enable parabola trajectory
-    private float initialVelocityX;               // Kecepatan horizontal awal
-    private float initialVelocityY;               // Kecepatan vertikal awal
-    private float gravity = -800f;                // Gravitasi (negatif = ke bawah)
-    private float timeElapsed = 0f;               // Waktu yang telah berlalu
-    private Vector2 startPos;                     // Posisi awal peluru
-    private Vector2 targetPos;                    // Posisi target
-    private boolean hasExploded = false;          // Flag untuk mencegah multiple explosion
+    // ===== PARABOLA TRAJECTORY SYSTEM - OPTIMIZED =====
+    private boolean useParabola = true;
+    private float initialVelocityX;
+    private float initialVelocityY;
+    private float gravity = -800f;
+    private float timeElapsed = 0f;
+    private Vector2 startPos;
+    private Vector2 targetPos;
+    private boolean hasExploded = false;
 
-    // ===== VISUAL EFFECTS =====
-    private float maxHeight;                      // Tinggi maksimal parabola
-    private float totalTime;                      // Total waktu perjalanan
+    // ===== PRE-CALCULATED VALUES - OPTIMIZED =====
+    private float maxHeight;
+    private float totalTime;
+    private float halfWidth;                      // Pre-calculated untuk performa
+    private float halfHeight;                     // Pre-calculated untuk performa
 
-    private static final float FIXED_ARC_HEIGHT = 120f; // Tinggi parabola tetap (bisa diubah)
+    private static final float FIXED_ARC_HEIGHT = 120f;
+    private static final float EXPLOSION_THRESHOLD = 50f; // Pre-calculated constant
+    private static final float TIMEOUT_DURATION = 8f;     // Pre-calculated constant
 
     /**
-     * Constructor untuk AOE Projectile
-     *
-     * @param tex     Texture projectile
-     * @param startX  Posisi awal X
-     * @param startY  Posisi awal Y
-     * @param targetX Target posisi X
-     * @param targetY Target posisi Y
-     * @param radius  Jangkauan area damage
-     * @param scale   Skala sprite
-     * @param damage  Damage per enemy
+     * Constructor untuk AOE Projectile - OPTIMIZED
      */
     public AoeProjectile(Texture tex,
                          float startX, float startY,
                          float targetX, float targetY,
                          float radius, float scale, int damage, float customSpeed) {
-        // Call parent constructor dengan parameter yang benar
         super(tex, startX, startY, targetX, targetY, scale, customSpeed, damage);
 
         this.aoeRadius = (int)radius;
         this.aoeDamage = damage;
 
-        // ===== SETUP PARABOLA PHYSICS =====
+        // Pre-calculate half dimensions untuk performa
+        this.halfWidth = tex.getWidth() * scale / 2f;
+        this.halfHeight = tex.getHeight() * scale / 2f;
+
+        // ===== SETUP PARABOLA PHYSICS - OPTIMIZED =====
         this.startPos = new Vector2(startX, startY);
         this.targetPos = new Vector2(targetX, targetY);
+        this.maxHeight = 150f;
 
-        // Tinggi parabola TETAP 150px, tidak tergantung jarak
-        this.maxHeight = 150f; // KONSTANTA - selalu 150px ke atas
-
-        // Hitung jarak horizontal
+        // Pre-calculate values untuk mengurangi komputasi di runtime
         float horizontalDistance = Math.abs(targetX - startX);
-
-        // Waktu perjalanan berdasarkan jarak horizontal dan kecepatan base
         this.totalTime = horizontalDistance / (customSpeed * 0.8f);
-
-        // Kecepatan horizontal konstan
         this.initialVelocityX = (targetX - startX) / totalTime;
-
-        // ===== KALKULASI KECEPATAN VERTIKAL UNTUK TINGGI TETAP =====
-        // Untuk mencapai tinggi maksimal 150px, lalu turun ke target
-        float heightDiff = targetY - startY; // Perbedaan tinggi start vs target
-
-        // Rumus: untuk mencapai peak height, lalu turun ke target
-        // v0 = (heightDiff + maxHeight) / (totalTime/2) - g*(totalTime/2)
-        // Tapi kita ingin peak di tengah perjalanan, jadi:
         this.initialVelocityY = (2f * maxHeight) / totalTime;
 
-        // Adjust gravity agar projectile mencapai target Y dengan tepat
-        // g = 2 * (v0*t - heightDiff) / t^2
+        float heightDiff = targetY - startY;
         this.gravity = -2f * (initialVelocityY * totalTime - (heightDiff + maxHeight)) / (totalTime * totalTime);
-
-        System.out.println("🎯 AOE Mortir fired! Distance: " + horizontalDistance + ", Total time: " + totalTime);
-        System.out.println("   Fixed height: " + maxHeight + "px, Gravity: " + gravity);
-        System.out.println("   From (" + startX + ", " + startY + ") to (" + targetX + ", " + targetY + ")");
     }
 
     /**
-     * Backward compatibility constructor
+     * Backward compatibility constructor - OPTIMIZED
      */
     public AoeProjectile(Texture tex,
                          float startX, float startY,
@@ -98,112 +78,107 @@ public class AoeProjectile extends Projectile {
     }
 
     /**
-     * Override update untuk menggunakan fisika parabola
+     * Override update untuk menggunakan fisika parabola - OPTIMIZED
      */
     @Override
     public void update(float delta) {
-        if (hasExploded) return;
+        if (hasExploded || !isActive()) return; // Early exit optimization
 
         if (useParabola) {
             updateParabolaTrajectory(delta);
         } else {
-            super.update(delta); // Fallback ke movement linear
+            super.update(delta);
         }
 
-        // Check collision dengan target area
         checkTargetCollision();
     }
 
     /**
-     * Update posisi menggunakan rumus fisika parabola
+     * Update posisi menggunakan rumus fisika parabola - OPTIMIZED
      */
     private void updateParabolaTrajectory(float delta) {
         timeElapsed += delta;
 
+        // OPTIMIZED: Pre-calculate time squared untuk mengurangi operasi
+        float timeSquared = timeElapsed * timeElapsed;
+
         // Rumus kinematika: s = s0 + v0*t + 0.5*a*t^2
         float newX = startPos.x + initialVelocityX * timeElapsed;
-        float newY = startPos.y + initialVelocityY * timeElapsed + 0.5f * gravity * timeElapsed * timeElapsed;
+        float newY = startPos.y + initialVelocityY * timeElapsed + 0.5f * gravity * timeSquared;
 
-        // Update posisi bounds (menggunakan method dari parent class)
-        bounds.setPosition(newX - bounds.width/2, newY - bounds.height/2);
-
-        // Debug info
-        if (timeElapsed < 0.5f) { // Only print for first 0.5 seconds
-            System.out.println("Parabola update: t=" + String.format("%.2f", timeElapsed) +
-                ", pos=(" + String.format("%.1f", newX) + ", " + String.format("%.1f", newY) + ")");
-        }
+        // OPTIMIZED: Update bounds position langsung tanpa method call overhead
+        bounds.x = newX - halfWidth;
+        bounds.y = newY - halfHeight;
     }
 
     /**
-     * Check collision dengan area target
+     * Check collision dengan area target - OPTIMIZED
      */
     private void checkTargetCollision() {
-        float currentX = bounds.x + bounds.width/2;
-        float currentY = bounds.y + bounds.height/2;
+        // OPTIMIZED: Pre-calculate center positions
+        float currentX = bounds.x + halfWidth;
+        float currentY = bounds.y + halfHeight;
 
-        float distanceToTarget = Vector2.dst(currentX, currentY, targetPos.x, targetPos.y);
+        // OPTIMIZED: Inline distance calculation untuk performa
+        float dx = currentX - targetPos.x;
+        float dy = currentY - targetPos.y;
+        float distanceSquared = dx * dx + dy * dy; // Avoid sqrt untuk performa
 
-        // Jika sudah dekat dengan target atau sudah melewati target (Y), explode
-        if (distanceToTarget < 50f || currentY <= targetPos.y || timeElapsed > totalTime * 1.2f) {
-            explode();
-        }
-
-        // Safety timeout - explode setelah 8 detik jika belum sampai
-        if (timeElapsed > 8f) {
-            System.out.println("⏰ AOE Projectile timeout - forced explosion");
+        // Check collision conditions (menggunakan distance squared untuk performa)
+        if (distanceSquared < EXPLOSION_THRESHOLD * EXPLOSION_THRESHOLD ||
+            currentY <= targetPos.y ||
+            timeElapsed > totalTime * 1.2f ||
+            timeElapsed > TIMEOUT_DURATION) {
             explode();
         }
     }
 
     /**
-     * Trigger explosion - pindahkan projectile ke luar screen untuk removal
+     * Trigger explosion - OPTIMIZED
      */
     private void explode() {
         if (hasExploded) return;
 
         hasExploded = true;
-        // Pindahkan ke posisi luar screen agar game loop remove
-        bounds.setPosition(-1000f, -1000f);
-        System.out.println("💥 AOE Mortir exploded at target! Time: " + String.format("%.2f", timeElapsed) + "s");
+        setActive(false); // Use parent's active flag instead of manual positioning
     }
 
     /**
-     * METHOD BARU: Trigger AOE damage secara manual
-     * Dipanggil oleh GameLogic saat projectile explode
+     * METHOD BARU: Trigger AOE damage secara manual - OPTIMIZED
      */
     public void triggerAOEDamage(Array<Enemy> enemies) {
-        if (!hasExploded) return; // Hanya trigger damage setelah explode
+        if (!hasExploded) return;
 
-        float explosionX = targetPos.x; // Gunakan target position sebagai pusat explosion
+        float explosionX = targetPos.x;
         float explosionY = targetPos.y;
         int hitCount = 0;
 
-        System.out.println("🎯 Triggering AOE damage at (" + explosionX + ", " + explosionY + ") with radius " + aoeRadius);
+        // OPTIMIZED: Pre-calculate radius squared untuk menghindari sqrt
+        float radiusSquared = aoeRadius * aoeRadius;
 
-        // Loop semua enemy untuk cek distance
-        for (Enemy e : enemies) {
+        // OPTIMIZED: Loop dengan index untuk performa lebih baik
+        for (int i = 0; i < enemies.size; i++) {
+            Enemy e = enemies.get(i);
             if (e.isDestroyed()) continue;
 
-            float enemyX = e.getBounds().x + e.getBounds().width/2;
-            float enemyY = e.getBounds().y + e.getBounds().height/2;
+            // OPTIMIZED: Pre-calculate enemy center
+            float enemyX = e.getBounds().x + e.getBounds().width * 0.5f;
+            float enemyY = e.getBounds().y + e.getBounds().height * 0.5f;
 
-            float distance = Vector2.dst(explosionX, explosionY, enemyX, enemyY);
+            // OPTIMIZED: Distance check tanpa sqrt
+            float dx = explosionX - enemyX;
+            float dy = explosionY - enemyY;
+            float distanceSquared = dx * dx + dy * dy;
 
-            System.out.println("   Enemy at (" + String.format("%.1f", enemyX) + ", " + String.format("%.1f", enemyY) +
-                "), Distance: " + String.format("%.1f", distance) + ", In range: " + (distance <= aoeRadius));
-
-            if (distance <= aoeRadius) {
+            if (distanceSquared <= radiusSquared) {
                 e.takeDamage(aoeDamage);
                 hitCount++;
-                System.out.println("   ✅ Hit enemy! HP remaining: " + e.getHealth());
             }
         }
-
-        System.out.println("💥 AOE explosion hit " + hitCount + " enemies total!");
     }
 
     /**
-     * Override onHit untuk AOE damage
+     * Override onHit untuk AOE damage - OPTIMIZED dengan VOID return type
      */
     @Override
     public void onHit(Array<Enemy> enemies) {
@@ -213,77 +188,62 @@ public class AoeProjectile extends Projectile {
     }
 
     /**
-     * Override drawBatch untuk menggunakan posisi bounds (bukan posisi internal parent)
+     * Override drawBatch - OPTIMIZED
      */
     @Override
-    public void drawBatch(com.badlogic.gdx.graphics.g2d.SpriteBatch batch) {
-        if (tex != null && !hasExploded) {
-            // Gunakan posisi dari bounds yang sudah diupdate oleh parabola
-            float renderX = bounds.x;
-            float renderY = bounds.y;
+    public void drawBatch(SpriteBatch batch) {
+        if (tex == null || hasExploded || !isActive()) return; // Early exit
 
-            batch.draw(
-                tex,
-                renderX,           // X position dari bounds
-                renderY,           // Y position dari bounds
-                bounds.width,      // Width
-                bounds.height      // Height
-            );
-        }
+        batch.draw(tex, bounds.x, bounds.y, bounds.width, bounds.height);
     }
 
     /**
-     * Override getX dan getY untuk konsistensi dengan posisi visual
+     * Override getX dan getY - OPTIMIZED dengan pre-calculated values
      */
     @Override
     public float getX() {
-        return bounds.x + bounds.width/2;
+        return bounds.x + halfWidth;
     }
 
     @Override
     public float getY() {
-        return bounds.y + bounds.height/2;
+        return bounds.y + halfHeight;
     }
 
-    /**
-     * Check apakah projectile sudah exploded (untuk removal)
-     */
-    public boolean hasExploded() {
-        return hasExploded;
-    }
+    // ===== OPTIMIZED GETTERS - INLINE UNTUK PERFORMA =====
+    public boolean hasExploded() { return hasExploded; }
+    public float getCurrentHeight() { return bounds.y + halfHeight; }
+    public boolean isFlying() { return !hasExploded && isActive(); }
+    public float getMaxHeight() { return maxHeight; }
+    public float getProgress() { return Math.min(1.0f, timeElapsed / totalTime); }
+    public int getAoeRadius() { return aoeRadius; }
+    public int getAoeDamage() { return aoeDamage; }
 
     /**
-     * Get current height untuk visual effects (optional)
+     * BARU: Reset method untuk object pooling - OPTIMIZED
      */
-    public float getCurrentHeight() {
-        return bounds.y + bounds.height/2;
+    public void reset(float startX, float startY, float targetX, float targetY,
+                      float radius, int damage, float customSpeed) {
+        super.reset(startX, startY, targetX, targetY, customSpeed, damage);
+
+        this.hasExploded = false;
+        this.timeElapsed = 0f;
+        this.aoeRadius = (int)radius;
+        this.aoeDamage = damage;
+
+        // Reset trajectory calculation
+        this.startPos.set(startX, startY);
+        this.targetPos.set(targetX, targetY);
+
+        float horizontalDistance = Math.abs(targetX - startX);
+        this.totalTime = horizontalDistance / (customSpeed * 0.8f);
+        this.initialVelocityX = (targetX - startX) / totalTime;
+        this.initialVelocityY = (2f * maxHeight) / totalTime;
+
+        float heightDiff = targetY - startY;
+        this.gravity = -2f * (initialVelocityY * totalTime - (heightDiff + maxHeight)) / (totalTime * totalTime);
     }
 
-    /**
-     * Check apakah projectile masih dalam fase terbang
-     */
-    public boolean isFlying() {
-        return !hasExploded && bounds.x > -500f && bounds.y > -500f;
-    }
-
-    /**
-     * Get tinggi maksimal parabola saat ini
-     */
-    public float getMaxHeight() {
-        return maxHeight;
-    }
-
-    /**
-     * Get progress parabola (0.0 = start, 0.5 = peak, 1.0 = target)
-     */
-    public float getProgress() {
-        return Math.min(1.0f, timeElapsed / totalTime);
-    }
-
-    /**
-     * Method static untuk mengubah tinggi arc global
-     * Berguna untuk testing atau game balancing
-     */
     public static float getFixedArcHeight() {
         return FIXED_ARC_HEIGHT;
     }

@@ -128,20 +128,39 @@ public class InputHandler extends InputAdapter {
             AudioManager.PlayBtnPaper();
             gameState.pressButton("menu");
             scheduleAction(() -> {
+                // ⭐ SELALU PLAY MAIN MENU MUSIC SAAT KEMBALI KE MENU
+                System.out.println("🎵 Win Screen: Going to menu - playing main menu music");
+                AudioManager.playMainMenuMusic();
                 game.setScreen(new StageSelectionScreen(game, true));
             }, 0.1f);
             return true;
         }
+
+        if (uiManager.btnMode != null && uiManager.btnMode.contains(x, y)) {
+            AudioManager.PlayBtnPaper();
+            gameState.pressButton("mode");
+            scheduleAction(() -> {
+                System.out.println("🏆 Final stage completed! Going to Mode Selection...");
+                AudioManager.playMainMenuMusic();
+                game.setScreen(new ModeSelectionScreen(game));
+            }, 0.1f);
+            return true;
+        }
+
+        // ⭐ HANDLE NEXT STAGE BUTTON (STAGE 1-3)
         if (uiManager.btnNext != null && uiManager.btnNext.contains(x, y)) {
+            AudioManager.PlayBtnPaper();
             gameState.pressButton("next");
 
-            // Delay action sedikit untuk visual feedback
             scheduleAction(() -> {
                 if (gameState.currentStage < GameConstants.FINAL_STAGE) {
-                    AudioManager.PlayBtnPaper();
+                    // Lanjut ke stage berikutnya - tetap tower defense music
+                    System.out.println("🎵 Win Screen: Going to next stage - keeping tower defense music");
                     game.setScreen(new TowerDefenseScreen(game, gameState.currentStage + 1));
                 } else {
-                    AudioManager.PlayBtnPaper();
+                    // ⭐ BACKUP: Kalau somehow masuk sini di final stage, ke mode selection
+                    System.out.println("🎵 Win Screen: Final stage backup - playing main menu music");
+                    AudioManager.playMainMenuMusic();
                     game.setScreen(new ModeSelectionScreen(game));
                 }
             }, 0.1f);
@@ -178,6 +197,7 @@ public class InputHandler extends InputAdapter {
 
     private boolean handlePauseMenu(float x, float y) {
         if (uiManager.btnResume != null && uiManager.btnResume.contains(x, y)) {
+            AudioManager.PlayBtnSound();
             gameState.pressButton("resume");
 
             scheduleAction(() -> {
@@ -188,21 +208,24 @@ public class InputHandler extends InputAdapter {
         }
 
         if (uiManager.btnSetting != null && uiManager.btnSetting.contains(x, y)) {
+            System.out.println("✅ SETTING button clicked!");
+            AudioManager.PlayBtnSound();
             gameState.pressButton("setting");
 
             scheduleAction(() -> {
-                System.out.println("⚙️ Opening Settings...");
-                // Import SettingsScreen class jika belum ada
+                System.out.println("⚙️ Opening Settings from Pause Menu...");
                 game.setScreen(new SettingScreen(game, screen, gameState.currentStage));
             }, 0.1f);
             return true;
         }
 
         if (uiManager.btnMenuPause != null && uiManager.btnMenuPause.contains(x, y)) {
+            AudioManager.PlayBtnSound();
             gameState.pressButton("menu");
 
             scheduleAction(() -> {
                 System.out.println("🏠 Going to Stage Selection...");
+                AudioManager.playMainMenuMusic();
                 game.setScreen(new StageSelectionScreen(game, true));
             }, 0.1f);
             return true;
@@ -275,6 +298,7 @@ public class InputHandler extends InputAdapter {
                     return true;
                 }
 
+                AudioManager.playTowerRemoval();
                 // Remove tower biasa
                 int refund = 0;
                 switch(t.type) {
@@ -406,6 +430,12 @@ public class InputHandler extends InputAdapter {
     }
 
     private boolean deployTrap(float x, float y, TrapType trapType) {
+        int trapIndex = screen.getTrapIndex(gameState.selectedType);
+        if (!screen.canDeployTrap(trapIndex)) {
+            System.out.println("Trap " + trapType + " masih cooldown!");
+            return true; // Consume input tapi don't clear selection
+        }
+
         int cost = screen.getTrapCost(gameState.selectedType);
 
         for (int trapIdx = 0; trapIdx < gameState.trapZones.size; trapIdx++) {
@@ -420,6 +450,7 @@ public class InputHandler extends InputAdapter {
                 gameState.trapZones.set(trapIdx, new Trap(trapVert, 0.2f, trapType));
                 gameState.trapZones.get(trapIdx).occupied = true;
                 gameState.selectedType = null;
+                screen.startTrapCooldown(trapIndex);
                 AudioManager.playTrapDeploy();
                 System.out.println(trapType + " trap deployed!");
                 return true;

@@ -14,6 +14,7 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 import io.DutchSlayer.Main;
+import io.DutchSlayer.defend.utils.AudioManager;
 import io.DutchSlayer.defend.utils.TDConstants;
 
 public class StageSelectionScreen implements Screen {
@@ -139,6 +140,7 @@ public class StageSelectionScreen implements Screen {
     @Override
     public void show() {
         Gdx.input.setInputProcessor(stage);
+        AudioManager.playMainMenuMusic();
     }
 
     @Override

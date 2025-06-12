@@ -11,85 +11,83 @@ import io.DutchSlayer.defend.entities.projectiles.BombAsset;
 import io.DutchSlayer.defend.entities.projectiles.EnemyProjectile;
 import io.DutchSlayer.defend.entities.towers.Tower;
 import io.DutchSlayer.defend.ui.ImageLoader;
+import io.DutchSlayer.defend.utils.AudioManager;
 
 /**
- * Enemy class dengan sistem AI yang comprehensive
- * Support 5 enemy types: BASIC, SHOOTER, BOMBER, SHIELD, BOSS
- * Setiap type memiliki stats, behavior, dan special abilities yang berbeda
+ * Optimized Enemy class dengan efficient memory management
  */
 public class Enemy {
     /* ===== Size Enemy ===== */
     public static final float BASIC_SCALE = 0.2f;
     public static final float SHOOTER_SCALE = 0.18f;
-    public static final float BOMBER_SCALE = 0.15f;
+    public static final float BOMBER_SCALE = 0.2f;
     public static final float SHIELD_SCALE = 0.25f;
     public static final float BOSS_SCALE = 0.4f;
 
     /* ===== CONSTANTS ===== */
-    public static float scale;                     // Scale factor untuk semua enemy sprites
-    private static final float SHOOTER_INTERVAL = 1.5f;         // Shooter menembak setiap 1.5 detik
-    private static final float BOSS_INTERVAL = 8f;            // Boss menembak setiap 2.5 detik
-    private static final float KNOCKBACK_DURATION = 0.5f;       // Durasi knockback effect
-    private static final float KNOCKBACK_SPEED = 200f;          // Kecepatan mundur saat knockback
-    private static final float ATTACK_COOLDOWN_DURATION = 1f;   // Cooldown antar serangan ke tower
+    public static float scale;
+    private static final float SHOOTER_INTERVAL = 1.5f;
+    private static final float BOSS_INTERVAL = 8f;
+    private static final float KNOCKBACK_DURATION = 0.5f;
+    private static final float KNOCKBACK_SPEED = 200f;
+    private static final float ATTACK_COOLDOWN_DURATION = 1f;
+
+    /* ===== OPTIMIZATIONS: CACHED VALUES ===== */
+    private final Vector2 reusableVector = new Vector2(); // ✅ Reusable untuk calculations
+    private float halfWidth, halfHeight; // ✅ Cache half dimensions
+    private Texture currentTexture; // ✅ Cache current texture
+    private boolean textureDirty = true; // ✅ Flag untuk texture updates
 
     /* ===== VISUAL COMPONENTS ===== */
-    private final Texture tex;          // Texture sprite enemy
-    private final float scaledWidth;    // Lebar sprite setelah scaling
-    private final float scaledHeight;   // Tinggi sprite setelah scaling
-    private final Rectangle bounds;     // Collision bounds
+    private final Texture tex;
+    private final float scaledWidth;
+    private final float scaledHeight;
+    private final Rectangle bounds;
 
     /* ===== POSITION & MOVEMENT ===== */
-    private final Vector2 pos;              // Posisi saat ini (center point)
-    private final float baseSpeed;          // Kecepatan dasar (tidak berubah)
-    private float currentSpeed;             // Kecepatan saat ini (affected by effects)
+    private final Vector2 pos;
+    private final float baseSpeed;
+    private float currentSpeed;
 
     /* ===== ENEMY STATS ===== */
-    private final EnemyType type;           // Jenis enemy (BASIC/SHOOTER/etc.)
-    private int health;                     // HP saat ini
-    private final int maxHealth;            // HP maksimal (untuk health bar)
+    private final EnemyType type;
+    private int health;
+    private final int maxHealth;
 
     /* ===== AI STATE MACHINE ===== */
-    private EnemyState state = EnemyState.MOVING;    // State saat ini
-    private float stateTimer = 0f;                   // Timer untuk state transitions
-    private float shootCooldown = 0f;                // Cooldown untuk shooting abilities
-    private float shootInterval;                     // Interval tembakan (per instance)
+    private EnemyState state = EnemyState.MOVING;
+    private float stateTimer = 0f;
+    private float shootCooldown = 0f;
+    private float shootInterval;
 
     /* ===== SPECIAL BEHAVIORS ===== */
-    private boolean hasDroppedBomb = false;          // Bomber sudah drop bomb? (unused tapi kept for future)
-    private float targetX = 0f;                      // Position target (untuk boss positioning)
-    private boolean hasReachedTarget = false;        // Boss sudah sampai target position?
+    private boolean hasDroppedBomb = false;
+    private float targetX = 0f;
+    private boolean hasReachedTarget = false;
 
     /* ===== STATUS EFFECTS ===== */
-    private boolean isSlowed = false;                // Sedang kena slow effect?
-    private float slowDuration = 0f;                 // Sisa durasi slow effect
-    private float slowStrength = 0.5f;               // Kekuatan slow (0.5 = 50% speed reduction)
-    private boolean isKnockedBack = false;           // Sedang kena knockback effect?
-    private float knockbackTimer = 0f;               // Sisa waktu knockback
-    private float attackCooldown = 0f;               // Cooldown setelah attack tower
-
-    // ===== EFFECTS =====
-    private final float knockbackDuration = 0.5f;  // Durasi knockback 0.5 detik
-    private final float knockbackSpeed = 200f;     // Kecepatan mundur
+    private boolean isSlowed = false;
+    private float slowDuration = 0f;
+    private float slowStrength = 0.5f;
+    private boolean isKnockedBack = false;
+    private float knockbackTimer = 0f;
+    private float attackCooldown = 0f;
 
     /* ===== REFERENCES FOR INTERACTIONS ===== */
-    private Array<Tower> towersRef;                  // Reference ke towers (untuk shooting)
-    private Array<EnemyProjectile> enemyProjectilesRef;  // Reference ke enemy projectiles
-    private Array<BombAsset> bombsRef;               // Reference ke bombs (untuk bomber)
+    private Array<Tower> towersRef;
+    private Array<EnemyProjectile> enemyProjectilesRef;
+    private Array<BombAsset> bombsRef;
 
     // ===== ANIMASI FIELDS =====
-    private float animationTimer = 0f;           // Timer untuk animasi
-    private int currentFrame = 0;                // Frame saat ini (0-3)
-    private static final float ANIMATION_SPEED = 0.2f; // 0.2 detik per frame
-    private static final float ANIMATION_SPEED_BOMBER = 0.15f; // Bomber lebih cepat: 0.15 detik per frame
+    private float animationTimer = 0f;
+    private int currentFrame = 0;
+    private static final float ANIMATION_SPEED = 0.2f;
+    private static final float ANIMATION_SPEED_BOMBER = 0.15f;
 
     private boolean hasReachedTargetPosition = false;
 
     /**
-     * Constructor Enemy dengan type dan starting position
-     * @param type Jenis enemy (BASIC/SHOOTER/BOMBER/SHIELD/BOSS)
-     * @param xCenter Posisi awal X (center point)
-     * @param yCenter Posisi awal Y (center point)
+     * Constructor Enemy dengan optimized initialization
      */
     public Enemy(EnemyType type, float xCenter, float yCenter) {
         this.type = type;
@@ -99,55 +97,14 @@ public class Enemy {
         this.animationTimer = 0f;
         this.currentFrame = 0;
 
-        // ===== SET PROPERTIES BERDASARKAN ENEMY TYPE =====
-        switch(type) {
-            case BASIC:
-                this.tex = ImageLoader.enemyBasicTex != null ? ImageLoader.enemyBasicTex : ImageLoader.dutchtex;
-                this.health = 3;
-                this.baseSpeed = 100f;
-                this.scale = BASIC_SCALE;
-                break;
-
-            case SHOOTER:
-                this.tex = ImageLoader.enemyShooterTex != null ? ImageLoader.enemyShooterTex : ImageLoader.dutchtex;
-                this.shootInterval = SHOOTER_INTERVAL;
-                this.health = 2;            // Lower HP tapi bisa shoot
-                this.baseSpeed = 80f;       // Slower karena ranged
-                this.scale = SHOOTER_SCALE;
-                break;
-
-            case BOMBER:
-                this.tex = ImageLoader.enemyBomberTex != null ? ImageLoader.enemyBomberTex : ImageLoader.dutchtex;
-                this.health = 2;            // Low HP, suicide unit
-                this.baseSpeed = 120f;      // Fast untuk kamikaze rush
-                this.scale = BOMBER_SCALE;
-                break;
-
-            case SHIELD:
-                this.tex = ImageLoader.enemyShieldTex != null ? ImageLoader.enemyShieldTex : ImageLoader.dutchtex;
-                this.health = 8;            // High HP, tank unit
-                this.baseSpeed = 60f;       // Slow karena heavy armor
-                this.scale = SHIELD_SCALE;
-                break;
-
-            case BOSS:
-                this.tex = ImageLoader.enemyBossTex != null ? ImageLoader.enemyBossTex : ImageLoader.dutchtex;
-                this.shootInterval = BOSS_INTERVAL;
-                this.health = 100;           // Very high HP
-                this.baseSpeed = 50f;       // Slow tapi powerful
-                this.targetX = 1100f;       // Stop position di area tertentu
-                this.scale = BOSS_SCALE;
-                break;
-
-            default:
-                // Fallback case
-                this.tex = ImageLoader.dutchtex;
-                this.shootInterval = 2f;
-                this.health = 3;
-                this.baseSpeed = 100f;
-                this.scale = BASIC_SCALE;
-                break;
-        }
+        // ===== OPTIMIZED INITIALIZATION =====
+        EnemyStats stats = getEnemyStats(type); // ✅ Single method untuk stats
+        this.tex = stats.texture;
+        this.health = stats.health;
+        this.baseSpeed = stats.speed;
+        this.scale = stats.scale;
+        this.shootInterval = stats.shootInterval;
+        this.targetX = stats.targetX;
 
         // Initialize derived properties
         this.maxHealth = this.health;
@@ -155,86 +112,135 @@ public class Enemy {
         this.scaledWidth = tex.getWidth() * this.scale;
         this.scaledHeight = tex.getHeight() * this.scale;
 
-        // Setup collision bounds (centered pada posisi)
+        // ✅ Cache half dimensions
+        this.halfWidth = scaledWidth / 2f;
+        this.halfHeight = scaledHeight / 2f;
+
+        // Setup collision bounds
         this.bounds = new Rectangle(
-            xCenter - scaledWidth/2,
-            yCenter - scaledHeight/2,
+            xCenter - halfWidth,
+            yCenter - halfHeight,
             scaledWidth,
             scaledHeight
         );
     }
 
-    // 3. TAMBAHKAN METHOD UPDATE ANIMASI
-    private void updateAnimation(float delta) {
-        // ===== ANIMATE UNTUK BASIC DAN SHIELD =====
-        if ((type == EnemyType.BASIC || type == EnemyType.SHIELD || type == EnemyType.SHOOTER || type == EnemyType.BOMBER) &&
-            Math.abs(currentSpeed) > 0 && !isKnockedBack) {
+    /**
+     * ✅ OPTIMIZATION: Single method untuk enemy stats initialization
+     */
+    private static class EnemyStats {
+        final Texture texture;
+        final int health;
+        final float speed;
+        final float scale;
+        final float shootInterval;
+        final float targetX;
 
-            animationTimer += delta;
-
-            // ===== SPEED ADJUSTMENT PER ENEMY TYPE =====
-            float animSpeed = ANIMATION_SPEED;
-            if (type == EnemyType.BOMBER) {
-                animSpeed = 0.15f; // Bomber lebih cepat karena rushing
-            } else if (type == EnemyType.SHIELD) {
-                animSpeed = 0.25f; // Shield lebih lambat karena heavy
-            }
-
-            // Ganti frame berdasarkan speed yang disesuaikan
-            if (animationTimer >= animSpeed) {
-                animationTimer = 0f;
-                currentFrame = (currentFrame + 1) % 4; // Cycle 0->1->2->3->0
-
-            }
-        }
-        // Jika tidak bergerak atau knockback, tetap di frame 0 (idle pose)
-        else if (type == EnemyType.BASIC || type == EnemyType.SHIELD || type == EnemyType.SHOOTER || type == EnemyType.BOMBER) {
-            currentFrame = 0;
-            animationTimer = 0f;
+        EnemyStats(Texture texture, int health, float speed, float scale, float shootInterval, float targetX) {
+            this.texture = texture;
+            this.health = health;
+            this.speed = speed;
+            this.scale = scale;
+            this.shootInterval = shootInterval;
+            this.targetX = targetX;
         }
     }
 
-
-
-    /**
-     * Main update method - dipanggil setiap frame
-     * @param delta Time since last frame (seconds)
-     */
-    public void update(float delta) {
-        // Update status effects (slow, knockback, cooldowns)
-        updateEffects(delta);
-
-        // Update AI behavior berdasarkan enemy type
+    private EnemyStats getEnemyStats(EnemyType type) {
         switch(type) {
             case BASIC:
-                updateBasic(delta);
-                break;
+                return new EnemyStats(
+                    ImageLoader.enemyBasicTex != null ? ImageLoader.enemyBasicTex : ImageLoader.dutchtex,
+                    3, 100f, BASIC_SCALE, 0f, 0f
+                );
             case SHOOTER:
-                updateShooter(delta);
+                return new EnemyStats(
+                    ImageLoader.enemyShooterTex != null ? ImageLoader.enemyShooterTex : ImageLoader.dutchtex,
+                    2, 80f, SHOOTER_SCALE, SHOOTER_INTERVAL, 0f
+                );
             case BOMBER:
-                updateBomber(delta);
-                break;
+                return new EnemyStats(
+                    ImageLoader.enemyBomberTex != null ? ImageLoader.enemyBomberTex : ImageLoader.dutchtex,
+                    2, 120f, BOMBER_SCALE, 0f, 0f
+                );
             case SHIELD:
-                updateShield(delta);
-                break;
+                return new EnemyStats(
+                    ImageLoader.enemyShieldTex != null ? ImageLoader.enemyShieldTex : ImageLoader.dutchtex,
+                    8, 60f, SHIELD_SCALE, 0f, 0f
+                );
             case BOSS:
-                updateBoss(delta);
-                break;
+                return new EnemyStats(
+                    ImageLoader.enemyBossTex != null ? ImageLoader.enemyBossTex : ImageLoader.dutchtex,
+                    100, 50f, BOSS_SCALE, BOSS_INTERVAL, 1100f
+                );
+            default:
+                return new EnemyStats(ImageLoader.dutchtex, 3, 100f, BASIC_SCALE, 2f, 0f);
         }
+    }
 
-        // Update posisi berdasarkan calculated speed
+    /**
+     * ✅ OPTIMIZED: Animation update dengan early exit
+     */
+    private void updateAnimation(float delta) {
+        // Early exit untuk non-animated types
+        if (type == EnemyType.BOSS) return;
+
+        boolean shouldAnimate = Math.abs(currentSpeed) > 0 && !isKnockedBack;
+
+        if (shouldAnimate) {
+            animationTimer += delta;
+
+            float animSpeed = (type == EnemyType.BOMBER) ? 0.15f :
+                (type == EnemyType.SHIELD) ? 0.25f : ANIMATION_SPEED;
+
+            if (animationTimer >= animSpeed) {
+                animationTimer = 0f;
+                int oldFrame = currentFrame;
+                currentFrame = (currentFrame + 1) % 4;
+                textureDirty = (oldFrame != currentFrame); // ✅ Mark texture as dirty only if changed
+            }
+        } else {
+            if (currentFrame != 0) {
+                currentFrame = 0;
+                animationTimer = 0f;
+                textureDirty = true;
+            }
+        }
+    }
+
+    /**
+     * Main update method - optimized flow
+     */
+    public void update(float delta) {
+        updateEffects(delta);
+        updateAI(delta); // ✅ Simplified AI dispatch
         updatePosition(delta);
 
-        if (type == EnemyType.BASIC || type == EnemyType.SHIELD || type == EnemyType.SHOOTER || type == EnemyType.BOMBER) {
+        if (type != EnemyType.BOSS) {
             updateAnimation(delta);
         }
     }
 
     /**
-     * Update status effects dan cooldowns
+     * ✅ OPTIMIZATION: Simplified AI dispatch
      */
+    private void updateAI(float delta) {
+        switch(type) {
+            case BASIC:
+            case BOMBER:
+            case SHIELD:
+                determineSpeed();
+                break;
+            case SHOOTER:
+                updateShooter(delta);
+                break;
+            case BOSS:
+                updateBoss(delta);
+                break;
+        }
+    }
+
     private void updateEffects(float delta) {
-        // Handle knockback timer
         if (isKnockedBack) {
             knockbackTimer -= delta;
             if (knockbackTimer <= 0) {
@@ -242,12 +248,10 @@ public class Enemy {
             }
         }
 
-        // Handle attack cooldown (setelah menyerang tower)
         if (attackCooldown > 0) {
             attackCooldown -= delta;
         }
 
-        // Handle slow effect duration
         if (isSlowed && slowDuration > 0) {
             slowDuration -= delta;
             if (slowDuration <= 0) {
@@ -256,46 +260,6 @@ public class Enemy {
         }
     }
 
-    /**
-     * Dapatkan konfigurasi projectile berdasarkan enemy type
-     */
-    private ProjectileConfig getProjectileConfig() {
-        switch(type) {
-            case SHOOTER:
-                return new ProjectileConfig(250f, 0.12f, 1);  // Medium speed, small size, normal damage
-            case BOSS:
-                return new ProjectileConfig(180f, 0.20f, 3);  // Slower, bigger, high damage
-            default:
-                return new ProjectileConfig(200f, 0.15f, 1);  // Default config
-        }
-    }
-
-    /**
-     * Inner class untuk projectile configuration
-     */
-    private static class ProjectileConfig {
-        final float speed;
-        final float scale;
-        final int damage;
-
-        ProjectileConfig(float speed, float scale, int damage) {
-            this.speed = speed;
-            this.scale = scale;
-            this.damage = damage;
-        }
-    }
-
-
-    /**
-     * AI behavior untuk BASIC enemy - simple movement
-     */
-    private void updateBasic(float delta) {
-        determineSpeed();
-    }
-
-    /**
-     * AI behavior untuk SHOOTER enemy - stop and shoot tactics
-     */
     private void updateShooter(float delta) {
         stateTimer += delta;
         shootCooldown -= delta;
@@ -303,7 +267,6 @@ public class Enemy {
         switch(state) {
             case MOVING:
                 determineSpeed();
-                // Transition ke ATTACKING state ketika sampai shooting range
                 if (pos.x <= 1000f) {
                     state = EnemyState.ATTACKING;
                     currentSpeed = 0f;
@@ -312,8 +275,7 @@ public class Enemy {
                 break;
 
             case ATTACKING:
-                currentSpeed = 0f;  // Stay stationary while shooting
-                // Shoot jika cooldown sudah habis dan ada target
+                currentSpeed = 0f;
                 if (shootCooldown <= 0f && towersRef != null && !towersRef.isEmpty()) {
                     shoot();
                     shootCooldown = SHOOTER_INTERVAL;
@@ -322,24 +284,6 @@ public class Enemy {
         }
     }
 
-    /**
-     * AI behavior untuk BOMBER enemy - simplified ke basic movement
-     * Bombing behavior dihandle di collision detection di GameScreen
-     */
-    private void updateBomber(float delta) {
-        determineSpeed();   // Just rush forward untuk kamikaze
-    }
-
-    /**
-     * AI behavior untuk SHIELD enemy - simple movement, no special actions
-     */
-    private void updateShield(float delta) {
-        determineSpeed();   // Tank unit, just move forward
-    }
-
-    /**
-     * AI behavior untuk BOSS enemy - move to position then stationary shooting
-     */
     private void updateBoss(float delta) {
         stateTimer += delta;
         shootCooldown -= delta;
@@ -347,7 +291,6 @@ public class Enemy {
         switch(state) {
             case MOVING:
                 determineSpeed();
-                // Transition ke STATIONARY ketika sampai target position
                 if (pos.x <= targetX) {
                     state = EnemyState.STATIONARY;
                     currentSpeed = 0f;
@@ -357,8 +300,7 @@ public class Enemy {
                 break;
 
             case STATIONARY:
-                currentSpeed = 0f;  // Stay at position
-                // Shoot powerful projectiles
+                currentSpeed = 0f;
                 if (shootCooldown <= 0f && towersRef != null && !towersRef.isEmpty()) {
                     shootBoss();
                     shootCooldown = BOSS_INTERVAL;
@@ -367,242 +309,153 @@ public class Enemy {
         }
     }
 
-    /**
-     * Calculate current speed berdasarkan status effects
-     */
     private void determineSpeed() {
         if (isKnockedBack) {
-            currentSpeed = -knockbackSpeed;     // Negative = move backward
+            currentSpeed = -KNOCKBACK_SPEED;
         } else if (isSlowed) {
-            currentSpeed = baseSpeed * slowStrength;    // Reduced speed
+            currentSpeed = baseSpeed * slowStrength;
         } else {
-            currentSpeed = baseSpeed;           // Normal speed
+            currentSpeed = baseSpeed;
         }
     }
 
     /**
-     * Update posisi enemy berdasarkan current speed dan state
+     * ✅ OPTIMIZED: Position update dengan cached values
      */
     private void updatePosition(float delta) {
-        // Skip movement jika speed = 0 (stationary/attacking states)
         if (currentSpeed != 0f) {
             if (type == EnemyType.BOMBER && state == EnemyState.RETREATING) {
-                // BOMBER retreating - move right (away from towers)
                 pos.x += currentSpeed * delta;
             } else {
-                // Normal movement - move left (towards towers)
                 pos.x -= currentSpeed * delta;
             }
 
-            // Update collision bounds sesuai posisi baru
-            bounds.setPosition(pos.x - bounds.width/2, pos.y - bounds.height/2);
+            // ✅ Use cached half dimensions
+            bounds.setPosition(pos.x - halfWidth, pos.y - halfHeight);
         }
     }
 
     /**
-     * SHOOTER enemy shoot projectile
+     * ✅ OPTIMIZED: Shooting dengan reusable vector
      */
     private void shoot() {
         if (towersRef == null || towersRef.isEmpty() || enemyProjectilesRef == null) return;
 
+        AudioManager.playEnemyShoot();
+        getProjectileOrigin(reusableVector); // ✅ Reuse vector instead of creating new
+
         EnemyProjectile projectile = EnemyProjectile.createShooterProjectile(
-            ImageLoader.enemyProjectileTex != null ? ImageLoader.enemyProjectileTex : ImageLoader.projTex,
-            pos.x - 20f,  // Start di depan enemy (offset ke kiri)
-            pos.y,        // Same height sebagai enemy
-            1             // Normal damage
+            ImageLoader.enemyProjectileTex,
+            reusableVector.x,
+            reusableVector.y,
+            1
         );
         enemyProjectilesRef.add(projectile);
-        System.out.println("Enemy shot projectile!");
+        // ✅ Removed debug print untuk performance
     }
 
-    /**
-     * BOSS enemy shoot powerful projectile
-     */
     private void shootBoss() {
         if (towersRef == null || towersRef.isEmpty() || enemyProjectilesRef == null) return;
 
+        AudioManager.playBossShoot();
+        getProjectileOrigin(reusableVector); // ✅ Reuse vector
+
         EnemyProjectile projectile = EnemyProjectile.createBossProjectile(
             ImageLoader.enemyProjectileTex != null ? ImageLoader.enemyProjectileTex : ImageLoader.projTex,
-            pos.x - 30f,  // Start lebih jauh dari boss (bigger offset)
-            pos.y,        // Same height sebagai boss
-            3             // Higher damage untuk boss projectile
+            reusableVector.x,
+            reusableVector.y,
+            3
         );
         enemyProjectilesRef.add(projectile);
-        System.out.println("Boss shot powerful projectile!");
+        // ✅ Removed debug print
     }
 
     /**
-     * Check apakah enemy ini adalah bomber type
-     * @return true jika enemy type adalah BOMBER
+     * ✅ OPTIMIZED: No object creation, use passed vector
      */
-    public boolean isBomber() {
-        return type == EnemyType.BOMBER;
+    private void getProjectileOrigin(Vector2 result) {
+        switch(type) {
+            case SHOOTER:
+                result.set(pos.x - scaledWidth * 0.40f, pos.y + scaledHeight * 0.01f);
+                break;
+            case BOSS:
+                result.set(pos.x - scaledWidth * 0.45f, pos.y + scaledHeight * 0.09f);
+                break;
+            default:
+                result.set(pos.x - scaledWidth * 0.3f, pos.y);
+                break;
+        }
     }
 
     /**
-     * Create bomb asset di posisi enemy saat ini (untuk bomber collision)
-     * @return BombAsset baru atau null jika bukan bomber
+     * ✅ OPTIMIZED: Texture caching sistem
      */
-    public BombAsset createBombAtPosition(float targetX, float targetY) {
-        if (type != EnemyType.BOMBER) return null;
+    private Texture getCurrentTexture() {
+        if (!textureDirty && currentTexture != null) {
+            return currentTexture; // ✅ Return cached texture
+        }
 
-        return new BombAsset(
-            ImageLoader.bombAssetTex != null ? ImageLoader.bombAssetTex : ImageLoader.trapTex,
-            pos.x,          // Start dari bomber position X
-            pos.y,          // Start dari bomber position Y
-            targetX,        // Target X (biasanya tower position)
-            targetY         // Target Y (biasanya ground level)
-        );
+        // Update texture only when dirty
+        currentTexture = getTextureForCurrentFrame();
+        textureDirty = false;
+        return currentTexture;
     }
 
-    /**
-     * Create bomb asset di posisi enemy saat ini (backward compatibility)
-     * @return BombAsset baru atau null jika bukan bomber
-     */
-    public BombAsset createBombAtPosition() {
-        if (type != EnemyType.BOMBER) return null;
+    private Texture getTextureForCurrentFrame() {
+        Texture[] frames = getFramesArray();
 
-        // Default: throw ke depan bomber dan jatuh ke ground
-        return createBombAtPosition(pos.x - 100f, 150f); // 150f = GROUND_Y
-    }
-
-    /**
-     * Shield protection mechanism - BASIC enemy seek protection behind SHIELD enemy
-     * @param allEnemies Array semua enemy untuk find shield
-     */
-    public void seekProtection(Array<Enemy> allEnemies) {
-        if (type != EnemyType.BASIC) return;    // Only basic enemies seek protection
-
-        // Find nearest shield enemy dalam range
-        Enemy nearestShield = null;
-        float nearestDistance = Float.MAX_VALUE;
-
-        for (Enemy e : allEnemies) {
-            if (e.type == EnemyType.SHIELD && !e.isDestroyed()) {
-                float distance = Math.abs(pos.x - e.pos.x);
-                if (distance < nearestDistance && distance < 100f) { // Within 100px
-                    nearestDistance = distance;
-                    nearestShield = e;
-                }
+        if (frames != null && currentFrame >= 0 && currentFrame < frames.length) {
+            Texture frameTexture = frames[currentFrame];
+            if (frameTexture != null) {
+                return frameTexture;
             }
         }
 
-        // Move behind shield (position adjustment)
-        if (nearestShield != null && pos.x < nearestShield.pos.x) {
-            pos.x = nearestShield.pos.x + 30f; // Position behind shield
-            System.out.println("Basic enemy seeking protection behind shield!");
+        return tex; // Fallback to original texture
+    }
+
+    /**
+     * ✅ OPTIMIZATION: Single method untuk frame arrays
+     */
+    private Texture[] getFramesArray() {
+        switch(type) {
+            case BASIC: return ImageLoader.enemyBasicFrames;
+            case SHIELD: return ImageLoader.enemyShieldFrames;
+            case SHOOTER: return ImageLoader.enemyShooterFrames;
+            case BOMBER: return ImageLoader.enemyBomberFrames;
+            default: return null;
         }
     }
 
-
     /**
-     * Apply knockback effect (enemy terdorong mundur)
-     */
-    public void knockback() {
-        if (!isKnockedBack) {  // Prevent multiple knockbacks
-            isKnockedBack = true;
-            knockbackTimer = knockbackDuration;
-            attackCooldown = ATTACK_COOLDOWN_DURATION;
-        }
-    }
-
-    /**
-     * Set references untuk enemy interactions
-     * CRITICAL: Method ini HARUS dipanggil setelah enemy creation dan sebelum add ke game arrays
-     * @param towers Reference ke towers array (untuk shooting target)
-     * @param enemyProjectiles Reference ke enemy projectiles array
-     * @param bombs Reference ke bombs array (untuk bomber)
-     */
-    public void setReferences(Array<Tower> towers, Array<EnemyProjectile> enemyProjectiles, Array<BombAsset> bombs) {
-        this.towersRef = towers;
-        this.enemyProjectilesRef = enemyProjectiles;
-        this.bombsRef = bombs;
-    }
-
-    /**
-     * Check apakah enemy bisa menyerang tower
-     * @return true jika tidak ada cooldown dan tidak sedang knockback
-     */
-    public boolean canAttack() {
-        return attackCooldown <= 0 && !isKnockedBack;
-    }
-
-    /**
-     * Enemy menerima damage
-     * @param dmg Amount damage yang diterima
-     */
-    public void takeDamage(int dmg) {
-        health = Math.max(0, health - dmg);
-    }
-
-    /**
-     * Check apakah enemy sudah mati
-     * @return true jika health <= 0
-     */
-    public boolean isDestroyed() {
-        return health <= 0;
-    }
-
-    /**
-     * Apply normal slow effect (50% speed reduction)
-     * @param duration Durasi slow dalam detik
-     */
-    public void slow(float duration) {
-        this.slowDuration = duration;
-        this.slowStrength = 0.5f; // Normal slow = 50% speed reduction
-        this.isSlowed = true;
-    }
-
-    /**
-     * Apply heavy slow effect dengan custom strength
-     * @param duration Durasi slow dalam detik
-     * @param strength Strength slow (0.1f = 90% speed reduction)
-     */
-    public void slowHeavy(float duration, float strength) {
-        this.slowDuration = duration;
-        this.slowStrength = strength; // 0.1f = 90% speed reduction
-        this.isSlowed = true;
-    }
-
-    /**
-     * Render enemy dengan visual effects berdasarkan state
-     * @param batch SpriteBatch untuk drawing
+     * ✅ OPTIMIZED: Rendering dengan cached values
      */
     public void drawBatch(SpriteBatch batch) {
-        Texture currentTexture = getCurrentTexture();
-
         if (tex != null) {
-            // ===== VISUAL EFFECTS BERDASARKAN STATUS =====
+            // Set color berdasarkan status
             if (isKnockedBack) {
-                batch.setColor(1f, 0.5f, 0.5f, 1f); // Warna kemerahan saat knockback
+                batch.setColor(1f, 0.5f, 0.5f, 1f);
             } else if (isSlowed) {
-                batch.setColor(0.5f, 0.5f, 1f, 1f); // Warna biru saat slowed
+                batch.setColor(0.5f, 0.5f, 1f, 1f);
             } else {
-                batch.setColor(1f, 1f, 1f, 1f); // Normal color
+                batch.setColor(1f, 1f, 1f, 1f);
             }
 
-            // Draw sprite centered pada posisi
+            // ✅ Use cached half dimensions
             batch.draw(
-                currentTexture,
-                pos.x - scaledWidth/2,
-                pos.y - scaledHeight/2,
+                getCurrentTexture(),
+                pos.x - halfWidth,
+                pos.y - halfHeight,
                 scaledWidth,
                 scaledHeight
             );
 
-            // Reset color untuk sprites berikutnya
             batch.setColor(1f, 1f, 1f, 1f);
         }
     }
 
-    /**
-     * Render enemy menggunakan ShapeRenderer (fallback jika texture null)
-     * @param shapes ShapeRenderer untuk drawing shapes
-     */
-
     public void drawShape(ShapeRenderer shapes) {
         if (tex == null) {
-            // Color-coded berdasarkan status
             if (isKnockedBack) {
                 shapes.setColor(Color.ORANGE);
             } else if (isSlowed) {
@@ -611,117 +464,85 @@ public class Enemy {
                 shapes.setColor(Color.RED);
             }
 
-            // Draw circle centered pada posisi
-            float radius = scaledWidth/2f;
-            shapes.circle(pos.x, pos.y, radius);;
+            // ✅ Use cached half width as radius
+            shapes.circle(pos.x, pos.y, halfWidth);
         }
     }
 
-    // 5. DAPATKAN TEXTURE SAAT INI
-    private Texture getCurrentTexture() {
-        // ===== BASIC ENEMY ANIMATION =====
-        if (type == EnemyType.BASIC) {
+    // ===== REMAINING METHODS (unchanged but optimized) =====
+    public boolean isBomber() { return type == EnemyType.BOMBER; }
 
-            if (ImageLoader.enemyBasicFrames == null) {
-                return ImageLoader.enemyBasicTex != null ? ImageLoader.enemyBasicTex : ImageLoader.dutchtex;
-            }
-
-            if (currentFrame >= 0 && currentFrame < ImageLoader.enemyBasicFrames.length) {
-                Texture frameTexture = ImageLoader.enemyBasicFrames[currentFrame];
-                if (frameTexture != null) {
-                    return frameTexture;
-                } else {
-                }
-            }
-
-            return ImageLoader.enemyBasicTex != null ? ImageLoader.enemyBasicTex : ImageLoader.dutchtex;
-        }
-
-        // ===== TAMBAHAN: SHIELD ENEMY ANIMATION =====
-        else if (type == EnemyType.SHIELD) {
-
-            if (ImageLoader.enemyShieldFrames == null) {
-                return ImageLoader.enemyShieldTex != null ? ImageLoader.enemyShieldTex : ImageLoader.dutchtex;
-            }
-
-            if (currentFrame >= 0 && currentFrame < ImageLoader.enemyShieldFrames.length) {
-                Texture frameTexture = ImageLoader.enemyShieldFrames[currentFrame];
-                if (frameTexture != null) {
-                    return frameTexture;
-                } else {
-                }
-            }
-
-            return ImageLoader.enemyShieldTex != null ? ImageLoader.enemyShieldTex : ImageLoader.dutchtex;
-        }
-
-        // ===== TAMBAHAN: SHOOTER ENEMY ANIMATION =====
-        else if (type == EnemyType.SHOOTER) {
-
-            if (ImageLoader.enemyShooterFrames == null) {
-                return ImageLoader.enemyShooterTex != null ? ImageLoader.enemyShooterTex : ImageLoader.dutchtex;
-            }
-
-            if (currentFrame >= 0 && currentFrame < ImageLoader.enemyShooterFrames.length) {
-                Texture frameTexture = ImageLoader.enemyShooterFrames[currentFrame];
-                if (frameTexture != null) {
-                    return frameTexture;
-                } else {
-                }
-            }
-
-            return ImageLoader.enemyShooterTex != null ? ImageLoader.enemyShooterTex : ImageLoader.dutchtex;
-        }
-
-        // ===== TAMBAHAN: BOMBER ENEMY ANIMATION =====
-        else if (type == EnemyType.BOMBER) {
-
-            if (ImageLoader.enemyBomberFrames == null) {
-                return ImageLoader.enemyBomberTex != null ? ImageLoader.enemyBomberTex : ImageLoader.dutchtex;
-            }
-
-            if (currentFrame >= 0 && currentFrame < ImageLoader.enemyBomberFrames.length) {
-                Texture frameTexture = ImageLoader.enemyBomberFrames[currentFrame];
-                if (frameTexture != null) {
-                    return frameTexture;
-                } else {
-                }
-            }
-            return ImageLoader.enemyBomberTex != null ? ImageLoader.enemyBomberTex : ImageLoader.dutchtex;
-        }
-
-        // Untuk enemy type lain (SHOOTER, BOMBER, BOSS), gunakan texture biasa
-        return tex;
+    public BombAsset createBombAtPosition(float targetX, float targetY) {
+        if (type != EnemyType.BOMBER) return null;
+        return new BombAsset(
+            ImageLoader.bombAssetTex != null ? ImageLoader.bombAssetTex : ImageLoader.trapTex,
+            pos.x, pos.y, targetX, targetY
+        );
     }
 
-    /**
-     * Check apakah boss sudah reach target position (untuk music trigger)
-     * @return true jika boss sudah di target position
-     */
+    public BombAsset createBombAtPosition() {
+        if (type != EnemyType.BOMBER) return null;
+        return createBombAtPosition(pos.x - 100f, 150f);
+    }
+
+    public void seekProtection(Array<Enemy> allEnemies) {
+        if (type != EnemyType.BASIC) return;
+
+        Enemy nearestShield = null;
+        float nearestDistance = Float.MAX_VALUE;
+
+        for (Enemy e : allEnemies) {
+            if (e.type == EnemyType.SHIELD && !e.isDestroyed()) {
+                float distance = Math.abs(pos.x - e.pos.x);
+                if (distance < nearestDistance && distance < 100f) {
+                    nearestDistance = distance;
+                    nearestShield = e;
+                }
+            }
+        }
+
+        if (nearestShield != null && pos.x < nearestShield.pos.x) {
+            pos.x = nearestShield.pos.x + 30f;
+            // ✅ Removed debug print
+        }
+    }
+
+    public void knockback() {
+        if (!isKnockedBack) {
+            isKnockedBack = true;
+            knockbackTimer = KNOCKBACK_DURATION;
+            attackCooldown = ATTACK_COOLDOWN_DURATION;
+        }
+    }
+
+    public void setReferences(Array<Tower> towers, Array<EnemyProjectile> enemyProjectiles, Array<BombAsset> bombs) {
+        this.towersRef = towers;
+        this.enemyProjectilesRef = enemyProjectiles;
+        this.bombsRef = bombs;
+    }
+
+    public boolean canAttack() { return attackCooldown <= 0 && !isKnockedBack; }
+    public void takeDamage(int dmg) { health = Math.max(0, health - dmg); }
+    public boolean isDestroyed() { return health <= 0; }
+
+    public void slow(float duration) {
+        this.slowDuration = duration;
+        this.slowStrength = 0.5f;
+        this.isSlowed = true;
+    }
+
+    public void slowHeavy(float duration, float strength) {
+        this.slowDuration = duration;
+        this.slowStrength = strength;
+        this.isSlowed = true;
+    }
+
     public boolean hasReachedTarget() {
-        if (type == EnemyType.BOSS) {
-            return hasReachedTargetPosition || state == EnemyState.STATIONARY;
-        }
-        return false;
+        return type == EnemyType.BOSS && (hasReachedTargetPosition || state == EnemyState.STATIONARY);
     }
 
-    /**
-     * Get boss position X (untuk music system monitoring)
-     * @return current X position
-     */
-    public float getX() {
-        return pos.x;
-    }
-
-    /**
-     * Check apakah ini boss type
-     * @return true jika enemy type adalah BOSS
-     */
-    public boolean isBoss() {
-        return type == EnemyType.BOSS;
-    }
-
-    /* ===== GETTERS ===== */
+    // ===== GETTERS =====
+    public float getX() { return pos.x; }
     public float getWidth() { return scaledWidth; }
     public Rectangle getBounds() { return bounds; }
     public int getHealth() { return health; }
@@ -729,12 +550,7 @@ public class Enemy {
     public EnemyType getType() { return type; }
     public boolean isKnockedBack() { return isKnockedBack; }
     public EnemyState getState() { return state; }
-    // ===== GETTER UNTUK DEBUG =====
-    public int getCurrentFrame() {
-        return currentFrame;
-    }
-
-    public float getAnimationTimer() {
-        return animationTimer;
-    }
+    public boolean isBoss() { return type == EnemyType.BOSS; }
+    public int getCurrentFrame() { return currentFrame; }
+    public float getAnimationTimer() { return animationTimer; }
 }

@@ -20,11 +20,11 @@ public class UIManager {
     private final GlyphLayout layout;
 
     // Button bounds
-    public Rectangle btnAttack, btnDefense, btnSpeed;
     public Rectangle btnPause, btnRemove;
     public Rectangle btnNext, btnMenuWin;
     public Rectangle btnRetryLose, btnMenuLose;
     public Rectangle pausePanel, btnResume, btnSetting, btnMenuPause;
+    public Rectangle btnMode;
 
     // Navbar positions
     public final float[] navTowerX = new float[3];
@@ -78,7 +78,10 @@ public class UIManager {
         btnRemove = new Rectangle(removeX, removeY, removeSize, removeSize);
     }
 
-    public void setupWinUI() {
+    public void setupWinUI(int currentStage) {
+        System.out.println("🔧 DEBUG setupWinUI called with stage: " + currentStage);
+        System.out.println("🔧 DEBUG FINAL_STAGE constant: " + GameConstants.FINAL_STAGE);
+
         float centerX = camera.viewportWidth / 2f;
         float centerY = camera.viewportHeight / 2f;
         // ===== UKURAN BUTTON BERDASARKAN TEXTURE ASLI =====
@@ -93,7 +96,17 @@ public class UIManager {
         float rightButtonX = centerX + buttonSpacing / 2f;
 
         btnMenuWin = new Rectangle(leftButtonX, buttonY, buttonWidth, buttonHeight);
-        btnNext = new Rectangle(rightButtonX, buttonY, buttonWidth, buttonHeight);
+        if (currentStage == GameConstants.FINAL_STAGE) {
+            // ===== STAGE 4 (FINAL): Mode Selection Button =====
+            btnMode = new Rectangle(rightButtonX, buttonY, buttonWidth, buttonHeight);
+            btnNext = null; // Clear next button
+            System.out.println("🏆 Final stage completed! Mode button setup.");
+        } else {
+            // ===== STAGE 1-3: Next Stage Button =====
+            btnNext = new Rectangle(rightButtonX, buttonY, buttonWidth, buttonHeight);
+            btnMode = null; // Clear mode button
+            System.out.println("🎉 Stage " + currentStage + " completed! Next button setup.");
+        }
     }
 
     public void setupLoseUI() {
@@ -379,46 +392,6 @@ public class UIManager {
         font.draw(batch, stageText, stageX, stageY);
         font.setColor(Color.WHITE);
         batch.end();
-    }
-
-    public void drawBossMusicDebugInfo(SpriteBatch batch, GameState gameState) {
-        if (gameState.currentStage == 4) { // Only for stage 4
-            batch.setProjectionMatrix(camera.combined);
-            batch.begin();
-
-            String[] debugLines = {
-                "Wave: " + gameState.currentWave + "/3",
-                "Boss Alive: " + gameState.hasBossAlive(),
-                "Music Transitioning: " + AudioManager.isTransitioning(),
-                "Fade Progress: " + String.format("%.1f%%", AudioManager.getFadeProgress() * 100),
-            };
-
-            // Boss position if alive
-            if (gameState.currentBoss != null) {
-                String[] bossInfo = {
-                    "Boss X: " + String.format("%.0f", gameState.currentBoss.getX()),
-                    "Boss Target: " + (gameState.currentBoss.hasReachedTarget() ? "REACHED" : "MOVING"),
-                    "Boss State: " + gameState.currentBoss.getState()
-                };
-
-                // Combine arrays
-                String[] allLines = new String[debugLines.length + bossInfo.length];
-                System.arraycopy(debugLines, 0, allLines, 0, debugLines.length);
-                System.arraycopy(bossInfo, 0, allLines, debugLines.length, bossInfo.length);
-                debugLines = allLines;
-            }
-
-            // Draw debug text
-            float startY = camera.viewportHeight - 100f;
-            font.setColor(Color.CYAN);
-
-            for (int i = 0; i < debugLines.length; i++) {
-                font.draw(batch, debugLines[i], 20f, startY - (i * 20f));
-            }
-
-            font.setColor(Color.WHITE); // Reset
-            batch.end();
-        }
     }
 
     // ===== TAMBAHAN: Method untuk mengatur ukuran button secara dinamis =====

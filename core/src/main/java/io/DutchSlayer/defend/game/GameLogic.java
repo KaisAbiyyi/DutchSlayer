@@ -1,6 +1,7 @@
 package io.DutchSlayer.defend.game;
 
 import com.badlogic.gdx.math.Intersector;
+import com.badlogic.gdx.utils.Array;
 import io.DutchSlayer.defend.entities.enemies.Enemy;
 import io.DutchSlayer.defend.entities.enemies.EnemyType;
 import io.DutchSlayer.defend.entities.projectiles.AoeProjectile;
@@ -9,6 +10,7 @@ import io.DutchSlayer.defend.entities.projectiles.EnemyProjectile;
 import io.DutchSlayer.defend.entities.projectiles.Projectile;
 import io.DutchSlayer.defend.entities.towers.Tower;
 import io.DutchSlayer.defend.entities.traps.Trap;
+import io.DutchSlayer.defend.screens.TowerDefenseScreen;
 import io.DutchSlayer.defend.ui.ImageLoader;
 import io.DutchSlayer.defend.utils.AudioManager;
 
@@ -136,6 +138,7 @@ public class GameLogic {
             e.knockback();
 
             if (t.isDestroyed()) {
+                resetTowerZone(towerIndex);
                 gameState.towers.removeIndex(towerIndex);
                 if (t.isMain) {
                     gameState.isGameOver = true;
@@ -160,6 +163,7 @@ public class GameLogic {
                     hit = true;
 
                     if (t.isDestroyed()) {
+                        resetTowerZone(j);
                         gameState.towers.removeIndex(j);
                         if (t.isMain) gameState.isGameOver = true;
                     }
@@ -179,7 +183,7 @@ public class GameLogic {
             bomb.update(delta);
 
             if (bomb.shouldExplode()) {
-                bomb.explode(gameState.towers);
+                handleBombExplosion(bomb);
             }
 
             if (bomb.hasExploded()) {
@@ -200,13 +204,16 @@ public class GameLogic {
                 if (e.getBounds().overlaps(trap.bounds)) {
                     switch (trap.getType()) {
                         case ATTACK:
+                            AudioManager.playTrapAttackHit();
                             e.takeDamage(1);
                             e.slow(2f);
                             break;
                         case SLOW:
+                            AudioManager.playTrapSlowHit();
                             e.slowHeavy(5f, 0.1f);
                             break;
                         case EXPLOSION:
+                            AudioManager.playTrapExplosionHit();
                             handleExplosionTrap(trap);
                             break;
                     }
@@ -214,6 +221,41 @@ public class GameLogic {
                     trap.occupied = false;
                     System.out.println("💥 Trap consumed!");
                     break;
+                }
+            }
+        }
+    }
+
+    /**
+     * Handle bomb explosion dengan proper zone reset
+     */
+    private void handleBombExplosion(BombAsset bomb) {
+        // Get towers yang akan di-explode sebelum bomb.explode() dipanggil
+        Array<Integer> towersToDestroy = new Array<>();
+
+        for (int j = gameState.towers.size - 1; j >= 0; j--) {
+            Tower t = gameState.towers.get(j);
+            if (bomb.willDamageTower(t)) {
+                towersToDestroy.add(j);
+            }
+        }
+
+        // Explode bomb (ini akan damage towers)
+        bomb.explode(gameState.towers);
+
+        // Check dan reset zones untuk towers yang hancur
+        for (int j = towersToDestroy.size - 1; j >= 0; j--) {
+            int towerIndex = towersToDestroy.get(j);
+            if (towerIndex < gameState.towers.size) {
+                Tower t = gameState.towers.get(towerIndex);
+                if (t.isDestroyed()) {
+                    resetTowerZone(towerIndex);
+                    gameState.towers.removeIndex(towerIndex);
+                    if (t.isMain) {
+                        gameState.isGameOver = true;
+                        gameState.isGameWon = false;
+                        uiManager.setupLoseUI();
+                    }
                 }
             }
         }
@@ -306,7 +348,7 @@ public class GameLogic {
                     System.out.println("👑 BOSS DEFEATED! Returning to normal music...");
 
                     // Transition back to tower defense music
-                    AudioManager.playTowerDefenseMusic();
+
                     gameState.clearBossReference();
 
                     // Reset boss music flags for potential future waves
@@ -355,9 +397,10 @@ public class GameLogic {
                     gameState.waveTransitionTimer = 0f;
                 } else {
                     gameState.isGameWon = true;
-                    uiManager.setupWinUI();
+                    uiManager.setupWinUI(gameState.currentStage);
                     if (gameState.currentStage == GameConstants.FINAL_STAGE) {
                         System.out.println("🏆 CONGRATULATIONS! YOU COMPLETED THE FINAL STAGE! 🏆");
+                        AudioManager.stopMusic();
                     } else {
                         System.out.println("🎉 Stage " + gameState.currentStage + " completed! Ready for Stage " + (gameState.currentStage + 1));
                     }
@@ -383,11 +426,9 @@ public class GameLogic {
     }
 
     private void spawnEnemy() {
-        float enemyH = ImageLoader.dutchtex.getHeight() * Enemy.scale;
-        float ey = GameConstants.GROUND_Y + 40f;
-
         EnemyType enemyType = determineEnemyType();
-        Enemy newEnemy = new Enemy(enemyType, 1280, ey);
+        float enemyY = GameConstants.GROUND_Y + getEnemyYOffset(enemyType);
+        Enemy newEnemy = new Enemy(enemyType, 1280, enemyY);
         newEnemy.setReferences(gameState.towers, gameState.enemyProjectiles, gameState.bombs);
         gameState.enemies.add(newEnemy);
 
@@ -470,7 +511,7 @@ public class GameLogic {
             // ===== TRIGGER FADE OUT: Boss masuk ke range tertentu =====
             if (!musicFadeStarted && currentBoss.getX() <= 1200f) {
                 System.out.println("🎵 Boss approaching! Starting fade out...");
-                AudioManager.fadeOutCurrentMusic(3f); // 3 detik fade out
+                AudioManager.fadeOutCurrentMusic(2f); // 3 detik fade out
                 musicFadeStarted = true;
             }
 
@@ -498,6 +539,31 @@ public class GameLogic {
         }
     }
 
+    /**
+     * ⭐ NEW METHOD: Reset zone ketika tower hancur
+     * @param towerIndex Index tower yang hancur
+     */
+    private void resetTowerZone(int towerIndex) {
+        // Skip main tower (index 0)
+        if (towerIndex == 0) {
+            System.out.println("🏰 Main tower destroyed - no zone to reset");
+            return;
+        }
+
+        // Calculate deployed tower index (main tower tidak masuk deployedTowerZones)
+        int deployedIndex = towerIndex - 1;
+
+        if (deployedIndex >= 0 && deployedIndex < gameState.deployedTowerZones.size) {
+            TowerDefenseScreen.Zone destroyedZone = gameState.deployedTowerZones.get(deployedIndex);
+            destroyedZone.occupied = false;
+            gameState.deployedTowerZones.removeIndex(deployedIndex);
+
+            System.out.println("🔄 Zone reset for tower index " + towerIndex + " (deployed index " + deployedIndex + ")");
+        } else {
+            System.out.println("⚠️ Could not find deployed zone for tower index " + towerIndex);
+        }
+    }
+
     // ===== RESET BOSS MUSIC FLAGS SAAT RESTART =====
     public void resetBossMusicState() {
         musicFadeStarted = false;
@@ -522,5 +588,16 @@ public class GameLogic {
 
     public boolean canDeployTrap(int trapIndex) {
         return !gameState.trapCooldownActive[trapIndex];
+    }
+
+    private float getEnemyYOffset(EnemyType enemyType) {
+        switch(enemyType) {
+            case BASIC:   return 40f;  // Normal height
+            case SHOOTER: return 45f;  // Slightly higher (better aim)
+            case BOMBER:  return 50f;  // Higher (diving attack)
+            case SHIELD:  return 70f;  // Lower (heavy armor)
+            case BOSS:    return 60f;  // Elevated (imposing)
+            default:      return 40f;
+        }
     }
 }

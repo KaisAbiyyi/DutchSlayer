@@ -6,10 +6,7 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.viewport.FitViewport;
@@ -17,36 +14,34 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import io.DutchSlayer.Main;
 import io.DutchSlayer.defend.utils.AudioManager;
 import io.DutchSlayer.defend.utils.TDConstants;
+import io.DutchSlayer.utils.Constant;
 
 public class MainMenuScreen implements Screen {
 
     private final Main game;
     private final Stage stage;
-    private final FitViewport viewport; // Ubah jadi FitViewport
+    private final FitViewport viewport;
     private final Skin skin;
     private final Texture background;
 
     private final Texture titleTexture;
     private final Texture startTexture;
-    private final Texture aboutTexture;
     private final Texture settingsTexture;
-    private final Texture exitTexture; // Tambahan
-
+    private final Texture aboutTexture;
+    private final Texture exitTexture; // Tombol Exit
 
     public MainMenuScreen(Main game) {
-        this.game      = game;
-        this.viewport  = new FitViewport(TDConstants.SCREEN_WIDTH, TDConstants.SCREEN_HEIGHT);
-        this.stage     = new Stage(viewport);
-        this.skin      = new Skin(Gdx.files.internal("uiskin/uiskin.json"));
-        this.background= new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
+        this.game       = game;
+        this.viewport   = new FitViewport(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT);
+        this.stage      = new Stage(viewport);
+        this.skin       = new Skin(Gdx.files.internal("uiskin/uiskin.json"));
+        this.background = new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
 
-        // Load textures
         this.titleTexture    = new Texture(Gdx.files.internal("button/DutchSlayer.png"));
         this.startTexture    = new Texture(Gdx.files.internal("button/StartButton.png"));
         this.settingsTexture = new Texture(Gdx.files.internal("button/SettingsButton.png"));
         this.aboutTexture    = new Texture(Gdx.files.internal("button/AboutButton.png"));
         this.exitTexture     = new Texture(Gdx.files.internal("button/Exit.png"));
-
 
         Gdx.input.setInputProcessor(stage);
         createUI();
@@ -58,11 +53,15 @@ public class MainMenuScreen implements Screen {
         rootTable.top().left();
         stage.addActor(rootTable);
 
-        // Title
+        // 1) Judul
         Image titleImg = new Image(titleTexture);
-        rootTable.add(titleImg).width(800).height(450).padTop(-140).padBottom(-140).center().row();
+        rootTable.add(titleImg)
+            .width(800).height(450)
+            .padTop(-140).padBottom(-140)
+            .center()
+            .row();
 
-        // Button Table
+        // 2) Tabel tombol
         Table buttonTable = new Table();
         buttonTable.defaults().padBottom(20);
 
@@ -90,21 +89,26 @@ public class MainMenuScreen implements Screen {
         });
         buttonTable.add(aboutBtn).size(500, 120).row();
 
-        // Tambahan: Exit Button
         ImageButton exitBtn = new ImageButton(new TextureRegionDrawable(exitTexture));
         exitBtn.addListener(new ClickListener() {
             @Override public void clicked(InputEvent e, float x, float y) {
-                Gdx.app.exit(); // Keluar dari game
+                Gdx.app.exit();
             }
         });
         buttonTable.add(exitBtn).size(500, 120);
 
-        rootTable.add(buttonTable).expand().center().padBottom(10);
+        rootTable.add(buttonTable)
+            .expand()
+            .center()
+            .padBottom(10);
     }
 
-
-    @Override public void show() {
+    @Override
+    public void show() {
         Gdx.input.setInputProcessor(stage);
+        viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
+
+        // Jika saat ini **bukan** Main Menu Music, segera play
         viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
         AudioManager.playMainMenuMusic();
     }
@@ -123,14 +127,14 @@ public class MainMenuScreen implements Screen {
         stage.draw();
     }
 
-    @Override public void resize(int width, int height) {
+    @Override
+    public void resize(int width, int height) {
         viewport.update(width, height, true);
     }
-
-    @Override public void pause() {}
+    @Override public void pause()  {}
     @Override public void resume() {}
-    @Override public void hide() {
-        AudioManager.stopMusic();
+    @Override public void hide()   {
+        // Jangan stop musik di sini — biarkan terus mengalun sampai screen lain memanggil stop/play baru
     }
 
     @Override
@@ -142,7 +146,6 @@ public class MainMenuScreen implements Screen {
         startTexture.dispose();
         settingsTexture.dispose();
         aboutTexture.dispose();
-        exitTexture.dispose(); // Tambahan
-
+        exitTexture.dispose();
     }
 }

@@ -260,6 +260,23 @@ public class BombAsset {
         }
     }
 
+    /**
+     * Check apakah bomb akan damage tower tanpa benar-benar explode
+     * @param tower Tower yang akan dicek
+     * @return true jika tower dalam radius explosion
+     */
+    public boolean willDamageTower(Tower tower) {
+        if (!isLanded() || hasExploded()) {
+            return false;
+        }
+
+        float distance = (float) Math.sqrt(
+            Math.pow(baseX - tower.x, 2) + Math.pow(baseY - tower.y, 2)
+        );
+
+        return distance <= EXPLOSION_RADIUS;
+    }
+
     /* ===== GETTERS - COMPATIBLE WITH EXISTING CODE ===== */
     public float getX() { return currentX; }
     public float getY() { return currentY; }

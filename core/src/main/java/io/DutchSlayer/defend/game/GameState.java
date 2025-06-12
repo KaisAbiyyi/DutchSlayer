@@ -165,7 +165,7 @@ public class GameState {
                 break;
             case "continue":
             case "resume":
-                isContinueButtonPressed = true;
+                isResumeButtonPressed = true;
                 break;
             case "restart":
                 isRestartButtonPressed = true;

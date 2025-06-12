@@ -29,12 +29,12 @@ public class EnemyProjectile {
 
     /* ===== CONFIGURATION CONSTANTS ===== */
     // Speed configurations per enemy type
-    private static final float SHOOTER_SPEED = 250f;    // Medium speed
+    private static final float SHOOTER_SPEED = 1200f;    // Medium speed
     private static final float BOSS_SPEED = 700f;       // Slower but powerful
 
     // Scale configurations per enemy type
-    private static final float SHOOTER_SCALE = 0.12f;   // Small projectile
-    private static final float BOSS_SCALE = 0.20f;      // Large projectile
+    private static final float SHOOTER_SCALE = 0.01f;   // Small projectile
+    private static final float BOSS_SCALE = 0.07f;      // Large projectile
 
     /**
      * Constructor utama dengan custom speed

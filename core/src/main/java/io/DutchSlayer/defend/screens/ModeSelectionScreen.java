@@ -15,6 +15,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
 import io.DutchSlayer.Main;
+import io.DutchSlayer.defend.utils.AudioManager;
 import io.DutchSlayer.defend.utils.TDConstants;
 import io.DutchSlayer.defend.utils.GameMode;
 
@@ -100,6 +101,7 @@ public class ModeSelectionScreen implements Screen {
     public void show() {
         Gdx.input.setInputProcessor(stage);
         viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
+        AudioManager.playMainMenuMusic();
     }
 
     @Override

@@ -39,15 +39,18 @@ public class TowerDefenseScreen implements Screen {
     private final GlyphLayout layout = new GlyphLayout();
 
     // Refactored components
-    private final GameState gameState;
+    public final GameState gameState;
     private final GameLogic gameLogic;
     private final UIManager uiManager;
     private final InputHandler inputHandler;
 
-    // Camera system for boss introduction
-    private float originalCameraZoom = 1f;
-    private Vector2 originalCameraPosition = new Vector2();
-    private Vector2 targetCameraPosition = new Vector2();
+//    // Camera system for boss introduction
+//    private float originalCameraZoom = 1f;
+//    private Vector2 originalCameraPosition = new Vector2();
+//    private Vector2 targetCameraPosition = new Vector2();
+
+    // Tambahkan flag untuk track apakah sedang ke settings
+    private boolean isGoingToSettings = false;
 
     public TowerDefenseScreen(final Main game, int stage) {
         this.game = game;
@@ -83,7 +86,7 @@ public class TowerDefenseScreen implements Screen {
             ImageLoader.projTex,
             100, tyMain,
             0.3f,
-            true,
+            false,
             true,
             TowerType.BASIC,
             10, 0.1f
@@ -232,6 +235,8 @@ public class TowerDefenseScreen implements Screen {
         for (Trap t : gameState.trapZones) t.drawBatch(game.batch);
         game.batch.end();
 
+        renderEnemyHealthBars();
+
         // Draw game entities
         game.batch.begin();
         for (Tower t : gameState.towers) t.drawBatch(game.batch);
@@ -239,7 +244,10 @@ public class TowerDefenseScreen implements Screen {
         // Draw enemies with health indicators
         for (Enemy e : gameState.enemies) {
             e.drawBatch(game.batch);
-            drawEnemyHealthAndType(e);
+        }
+
+        for (Enemy e : gameState.enemies) {
+            drawEnemyTypeAndState(e);
         }
 
         for (io.DutchSlayer.defend.entities.projectiles.Projectile p : gameState.projectiles) p.drawBatch(game.batch);
@@ -263,44 +271,86 @@ public class TowerDefenseScreen implements Screen {
         shapes.end();
     }
 
-    private void drawEnemyHealthAndType(Enemy e) {
-        // Health text
-        String hpText = String.valueOf(e.getHealth());
-        layout.setText(font, hpText);
-        float textX = e.getBounds().x + e.getBounds().width/2f - layout.width/2f;
-        float textY = e.getBounds().y + e.getBounds().height + 15f;
+    private void renderEnemyHealthBars() {
+        shapes.setProjectionMatrix(camera.combined);
 
-        float healthPercent = (float)e.getHealth() / e.getMaxHealth();
-        if (healthPercent > 0.6f) {
-            font.setColor(Color.GREEN);
-        } else if (healthPercent > 0.3f) {
-            font.setColor(Color.YELLOW);
-        } else {
-            font.setColor(Color.RED);
+        for (Enemy e : gameState.enemies) {
+            float enemyX = e.getBounds().x;
+            float enemyY = e.getBounds().y;
+            float enemyWidth = e.getBounds().width;
+            float enemyHeight = e.getBounds().height;
+
+            // ===== HP BAR CONFIGURATION =====
+            float barWidth = Math.min(enemyWidth * 0.6f, 30f);  // Max 30px, 60% dari enemy width
+            float barHeight = 3f;                               // Lebih tipis: 3px
+            float barX = enemyX + (enemyWidth - barWidth) / 2f; // Center horizontal
+            float barY = enemyY + enemyHeight + 4f;             // Lebih dekat: 4px di atas enemy
+
+            // ===== CALCULATE HP PERCENTAGE =====
+            float healthPercent = (float)e.getHealth() / e.getMaxHealth();
+            float filledWidth = barWidth * healthPercent;
+
+            // ===== DRAW HP BAR BACKGROUND =====
+            shapes.begin(ShapeRenderer.ShapeType.Filled);
+            shapes.setColor(0.2f, 0.2f, 0.2f, 0.9f);
+            shapes.rect(barX, barY, barWidth, barHeight);
+
+            // ===== DRAW HP BAR FILL =====
+            Color healthColor;
+            if (healthPercent > 0.6f) {
+                healthColor = Color.GREEN;
+            } else if (healthPercent > 0.3f) {
+                healthColor = Color.YELLOW;
+            } else {
+                healthColor = Color.RED;
+            }
+
+            shapes.setColor(healthColor);
+            shapes.rect(barX, barY, filledWidth, barHeight);
+            shapes.end();
+
+            // ===== DRAW HP BAR BORDER =====
+            shapes.begin(ShapeRenderer.ShapeType.Line);
+            shapes.setColor(Color.WHITE);
+            shapes.rect(barX, barY, barWidth, barHeight);
+            shapes.end();
         }
+    }
 
-        font.draw(game.batch, hpText, textX, textY);
+    // ===== SEPARATE METHOD UNTUK TEXT (BATCH ONLY) =====
+    private void drawEnemyTypeAndState(Enemy e) {
+        // ⚠️ ASSUMES SpriteBatch is already active!
+        float enemyX = e.getBounds().x;
+        float enemyY = e.getBounds().y;
+        float enemyWidth = e.getBounds().width;
+        float enemyHeight = e.getBounds().height;
 
-        // Enemy type indicator
+        // Calculate HP bar position to place text above it
+        float barHeight = 6f;
+        float barY = enemyY + enemyHeight + 8f;
+
+        // ===== ENEMY TYPE INDICATOR =====
         String typeText = getEnemyTypeDisplay(e.getType());
         layout.setText(font, typeText);
-        float typeX = e.getBounds().x + e.getBounds().width/2f - layout.width/2f;
-        float typeY = textY + 15f;
+        float typeX = enemyX + enemyWidth/2f - layout.width/2f;
+        float typeY = barY + barHeight + 15f;
 
         font.setColor(getEnemyTypeColor(e.getType()));
         font.draw(game.batch, typeText, typeX, typeY);
 
-        // State indicator for special enemies
+        // ===== STATE INDICATOR untuk special enemies =====
         if (e.getType() == EnemyType.SHOOTER || e.getType() == EnemyType.BOMBER || e.getType() == EnemyType.BOSS) {
             String stateText = getStateDisplay(e);
             if (!stateText.isEmpty()) {
                 layout.setText(font, stateText);
-                float stateX = e.getBounds().x + e.getBounds().width/2f - layout.width/2f;
+                float stateX = enemyX + enemyWidth/2f - layout.width/2f;
                 float stateY = typeY + 15f;
                 font.setColor(Color.CYAN);
                 font.draw(game.batch, stateText, stateX, stateY);
             }
         }
+
+        font.setColor(Color.WHITE);  // Reset font color
     }
 
     private void drawBombStatus(BombAsset bomb) {
@@ -410,9 +460,9 @@ public class TowerDefenseScreen implements Screen {
             uiManager.drawStageInfo(game.batch, gameState);
         }
 
-        if (gameState.currentStage == 4) {
-             uiManager.drawBossMusicDebugInfo(game.batch, gameState); // Uncomment untuk debug
-        }
+//        if (gameState.currentStage == 4) {
+//             uiManager.drawBossMusicDebugInfo(game.batch, gameState); // Uncomment untuk debug
+//        }
     }
 
     private void renderGameOverScreen() {
@@ -436,7 +486,7 @@ public class TowerDefenseScreen implements Screen {
             }
 
             if (uiManager.btnMenuWin == null || uiManager.btnNext == null) {
-                uiManager.setupWinUI();
+                uiManager.setupWinUI(gameState.currentStage);
             }
 
             if (ImageLoader.BtnMenu != null && uiManager.btnMenuWin != null) {
@@ -448,13 +498,150 @@ public class TowerDefenseScreen implements Screen {
                 game.batch.setColor(Color.WHITE);
             }
 
-            if (ImageLoader.BtnNext != null && uiManager.btnNext != null) {
-                // ⭐ KUNCI: Gunakan ukuran Rectangle yang sudah diperbaiki
-                game.batch.draw(ImageLoader.BtnNext,
-                    uiManager.btnNext.x, uiManager.btnNext.y,
-                    uiManager.btnNext.width, uiManager.btnNext.height);
+            if (gameState.currentStage == GameConstants.FINAL_STAGE) {
+                // Draw Mode button for final stage
+                if (ImageLoader.BtnMode != null && uiManager.btnMode != null) {
+                    System.out.println("✅ DEBUG Drawing Mode button at: " + uiManager.btnMode);
+                    if (gameState.isNextButtonPressed) {
+                        game.batch.setColor(0.7f, 0.7f, 0.7f, 1f);
+                    } else {
+                        game.batch.setColor(Color.WHITE);
+                    }
 
-                game.batch.setColor(Color.WHITE);
+                    game.batch.draw(ImageLoader.BtnMode,
+                        uiManager.btnMode.x, uiManager.btnMode.y,
+                        uiManager.btnMode.width, uiManager.btnMode.height);
+                    game.batch.setColor(Color.WHITE);
+                } else {
+                    System.out.println("❌ DEBUG Mode button NOT drawn - texture: " +
+                        (ImageLoader.BtnMode != null ? "OK" : "NULL") + ", rect: " + uiManager.btnMode);
+
+                    // ⭐ FALLBACK: Draw green rectangle as Mode button
+                    game.batch.end();
+                    shapes.begin(ShapeRenderer.ShapeType.Filled);
+                    shapes.setColor(Color.GREEN);
+                    if (uiManager.btnMode != null) {
+                        shapes.rect(uiManager.btnMode.x, uiManager.btnMode.y,
+                            uiManager.btnMode.width, uiManager.btnMode.height);
+                    }
+                    shapes.end();
+                    game.batch.begin();
+
+                    // Draw "MODE" text
+                    if (uiManager.btnMode != null) {
+                        font.setColor(Color.WHITE);
+                        font.draw(game.batch, "MODE",
+                            uiManager.btnMode.x + 70, uiManager.btnMode.y + 70);
+                    }
+                }
+            } else {
+                // Draw Next button for stages 1-3
+                if (ImageLoader.BtnNext != null && uiManager.btnNext != null) {
+                    System.out.println("✅ DEBUG Drawing Next button at: " + uiManager.btnNext);
+                    if (gameState.isNextButtonPressed) {
+                        game.batch.setColor(0.7f, 0.7f, 0.7f, 1f);
+                    } else {
+                        game.batch.setColor(Color.WHITE);
+                    }
+
+                    game.batch.draw(ImageLoader.BtnNext,
+                        uiManager.btnNext.x, uiManager.btnNext.y,
+                        uiManager.btnNext.width, uiManager.btnNext.height);
+                    game.batch.setColor(Color.WHITE);
+                } else {
+                    System.out.println("❌ DEBUG Next button NOT drawn - texture: " +
+                        (ImageLoader.BtnNext != null ? "OK" : "NULL") + ", rect: " + uiManager.btnNext);
+
+                    // ⭐ FALLBACK: Draw blue rectangle as Next button
+                    game.batch.end();
+                    shapes.begin(ShapeRenderer.ShapeType.Filled);
+                    shapes.setColor(Color.BLUE);
+                    if (uiManager.btnNext != null) {
+                        shapes.rect(uiManager.btnNext.x, uiManager.btnNext.y,
+                            uiManager.btnNext.width, uiManager.btnNext.height);
+                    }
+                    shapes.end();
+                    game.batch.begin();
+
+                    // Draw "NEXT" text
+                    if (uiManager.btnNext != null) {
+                        font.setColor(Color.WHITE);
+                        font.draw(game.batch, "NEXT STAGE",
+                            uiManager.btnNext.x + 50, uiManager.btnNext.y + 70);
+                    }
+                }
+            }if (gameState.currentStage == GameConstants.FINAL_STAGE) {
+                // Draw Mode button for final stage
+                if (ImageLoader.BtnMode != null && uiManager.btnMode != null) {
+                    System.out.println("✅ DEBUG Drawing Mode button at: " + uiManager.btnMode);
+                    if (gameState.isNextButtonPressed) {
+                        game.batch.setColor(0.7f, 0.7f, 0.7f, 1f);
+                    } else {
+                        game.batch.setColor(Color.WHITE);
+                    }
+
+                    game.batch.draw(ImageLoader.BtnMode,
+                        uiManager.btnMode.x, uiManager.btnMode.y,
+                        uiManager.btnMode.width, uiManager.btnMode.height);
+                    game.batch.setColor(Color.WHITE);
+                } else {
+                    System.out.println("❌ DEBUG Mode button NOT drawn - texture: " +
+                        (ImageLoader.BtnMode != null ? "OK" : "NULL") + ", rect: " + uiManager.btnMode);
+
+                    // ⭐ FALLBACK: Draw green rectangle as Mode button
+                    game.batch.end();
+                    shapes.begin(ShapeRenderer.ShapeType.Filled);
+                    shapes.setColor(Color.GREEN);
+                    if (uiManager.btnMode != null) {
+                        shapes.rect(uiManager.btnMode.x, uiManager.btnMode.y,
+                            uiManager.btnMode.width, uiManager.btnMode.height);
+                    }
+                    shapes.end();
+                    game.batch.begin();
+
+                    // Draw "MODE" text
+                    if (uiManager.btnMode != null) {
+                        font.setColor(Color.WHITE);
+                        font.draw(game.batch, "MODE",
+                            uiManager.btnMode.x + 70, uiManager.btnMode.y + 70);
+                    }
+                }
+            } else {
+                // Draw Next button for stages 1-3
+                if (ImageLoader.BtnNext != null && uiManager.btnNext != null) {
+                    System.out.println("✅ DEBUG Drawing Next button at: " + uiManager.btnNext);
+                    if (gameState.isNextButtonPressed) {
+                        game.batch.setColor(0.7f, 0.7f, 0.7f, 1f);
+                    } else {
+                        game.batch.setColor(Color.WHITE);
+                    }
+
+                    game.batch.draw(ImageLoader.BtnNext,
+                        uiManager.btnNext.x, uiManager.btnNext.y,
+                        uiManager.btnNext.width, uiManager.btnNext.height);
+                    game.batch.setColor(Color.WHITE);
+                } else {
+                    System.out.println("❌ DEBUG Next button NOT drawn - texture: " +
+                        (ImageLoader.BtnNext != null ? "OK" : "NULL") + ", rect: " + uiManager.btnNext);
+
+                    // ⭐ FALLBACK: Draw blue rectangle as Next button
+                    game.batch.end();
+                    shapes.begin(ShapeRenderer.ShapeType.Filled);
+                    shapes.setColor(Color.BLUE);
+                    if (uiManager.btnNext != null) {
+                        shapes.rect(uiManager.btnNext.x, uiManager.btnNext.y,
+                            uiManager.btnNext.width, uiManager.btnNext.height);
+                    }
+                    shapes.end();
+                    game.batch.begin();
+
+                    // Draw "NEXT" text
+                    if (uiManager.btnNext != null) {
+                        font.setColor(Color.WHITE);
+                        font.draw(game.batch, "NEXT STAGE",
+                            uiManager.btnNext.x + 50, uiManager.btnNext.y + 70);
+                    }
+                }
             }
         } else {
             if (ImageLoader.LoseUI != null) {
@@ -736,7 +923,7 @@ public class TowerDefenseScreen implements Screen {
         float towerMainH = ImageLoader.maintowertex.getHeight() * 0.6f;
         float tyMain = GameConstants.GROUND_Y + towerMainH/5f;
         gameState.towers.add(new Tower(
-            ImageLoader.maintowertex, ImageLoader.projTex, 100, tyMain, 0.3f, true, true, TowerType.BASIC, 10, 0.1f
+            ImageLoader.maintowertex, ImageLoader.projTex, 100, tyMain, 0.3f, false, true, TowerType.BASIC, 10, 0.1f
         ));
 
         // Reset zones
@@ -802,15 +989,6 @@ public class TowerDefenseScreen implements Screen {
         }
     }
 
-    public int getTrapCost(NavItem trapType) {
-        switch(trapType) {
-            case TRAP1: return GameConstants.TRAP_ATTACK_COST;
-            case TRAP2: return GameConstants.TRAP_SLOW_COST;
-            case TRAP3: return GameConstants.TRAP_EXPLOSION_COST;
-            default: return 10;
-        }
-    }
-
     public int getAttackUpgradeCost(Tower tower) {
         return (int)(GameConstants.BASE_ATTACK_UPGRADE_COST * Math.pow(GameConstants.UPGRADE_COST_MULTIPLIER, tower.getAttackLevel()));
     }
@@ -821,14 +999,6 @@ public class TowerDefenseScreen implements Screen {
 
     public int getSpeedUpgradeCost(Tower tower) {
         return (int)(GameConstants.BASE_SPEED_UPGRADE_COST * Math.pow(GameConstants.UPGRADE_COST_MULTIPLIER, tower.getSpeedLevel()));
-    }
-
-    public boolean canDeployTower(int towerIndex) {
-        return gameLogic.canDeployTower(towerIndex);
-    }
-
-    public void startTowerCooldown(int towerIndex) {
-        gameLogic.startTowerCooldown(towerIndex);
     }
 
     // Navigation enum
@@ -872,17 +1042,84 @@ public class TowerDefenseScreen implements Screen {
             System.out.println("🔍 Debug - btnMenuPause: " + uiManager.btnMenuPause);
         }
 
-        // Handle music
-        if (!gameState.isPaused) {
-            System.out.println("🎵 TowerDefenseScreen: Starting tower defense music...");
-            AudioManager.playTowerDefenseMusic();
+        // Jika game sebelumnya paused, tetap paused saat kembali dari settings
+        if (gameState.isPaused) {
+            System.out.println("⏸️ Game remains paused after returning from settings");
+
+            // ⭐ FORCE SETUP PAUSE MENU
+            uiManager.setupPauseMenu(camera);
+            System.out.println("🔧 Pause menu re-setup completed");
+
+            // Debug button positions
+            System.out.println("🔍 Debug - btnResume: " + uiManager.btnResume);
+            System.out.println("🔍 Debug - btnSetting: " + uiManager.btnSetting);
+            System.out.println("🔍 Debug - btnMenuPause: " + uiManager.btnMenuPause);
+
+            // ⭐ JIKA PAUSED (kembali dari settings), JANGAN RESTART MUSIK
+            System.out.println("🎵 TowerDefenseScreen: Game paused - preserving current music");
         } else {
-            System.out.println("🎵 TowerDefenseScreen: Game paused - keeping current music state");
+            // ⭐ HANYA PLAY MUSIK JIKA GAME TIDAK PAUSED (first time masuk atau resume)
+            System.out.println("🎵 TowerDefenseScreen: Game not paused - ensuring tower defense music");
+            AudioManager.playTowerDefenseMusic();
         }
     }
+
+    public void setGoingToSettings(boolean goingToSettings) {
+        this.isGoingToSettings = goingToSettings;
+        System.out.println("🔧 TowerDefenseScreen: Going to settings flag set to " + goingToSettings);
+    }
+
+    // ===== EXISTING TOWER METHODS =====
+    public boolean canDeployTower(int towerIndex) {
+        return gameLogic.canDeployTower(towerIndex);
+    }
+
+    public void startTowerCooldown(int towerIndex) {
+        gameLogic.startTowerCooldown(towerIndex);
+    }
+
+    // ===== NEW: TRAP METHODS (SAME PATTERN) =====
+    public boolean canDeployTrap(int trapIndex) {
+        return gameLogic.canDeployTrap(trapIndex);
+    }
+
+    public void startTrapCooldown(int trapIndex) {
+        gameLogic.startTrapCooldown(trapIndex);
+    }
+
+    // ===== TRAP INDEX MAPPING HELPER =====
+    public int getTrapIndex(NavItem navItem) {
+        switch(navItem) {
+            case TRAP1: return GameConstants.TRAP_ATTACK_INDEX;     // 0
+            case TRAP2: return GameConstants.TRAP_SLOW_INDEX;       // 1
+            case TRAP3: return GameConstants.TRAP_EXPLOSION_INDEX;  // 2
+            default: return -1;
+        }
+    }
+
+    // ===== TRAP COST HELPER (if needed) =====
+    public int getTrapCost(NavItem selectedType) {
+        switch(selectedType) {
+            case TRAP1: return GameConstants.TRAP_ATTACK_COST;
+            case TRAP2: return GameConstants.TRAP_SLOW_COST;
+            case TRAP3: return GameConstants.TRAP_EXPLOSION_COST;
+            default: return 0;
+        }
+    }
+
     @Override public void hide() {
-        System.out.println("🛑 TowerDefenseScreen: Stopping tower defense music...");
-        AudioManager.stopMusic();
+        if (isGoingToSettings) {
+            System.out.println("🎵 TowerDefenseScreen: Going to settings - preserving tower defense music");
+            // Reset flag
+            isGoingToSettings = false;
+            // JANGAN stop musik
+        } else if (gameState.isPaused) {
+            System.out.println("🎵 TowerDefenseScreen: Game paused - preserving tower defense music");
+            // Jangan stop musik saat pause
+        } else {
+            System.out.println("🛑 TowerDefenseScreen: Normal hide - stopping tower defense music");
+            AudioManager.stopMusic();
+        }
     }
     @Override public void pause() {}
     @Override public void resume() {}

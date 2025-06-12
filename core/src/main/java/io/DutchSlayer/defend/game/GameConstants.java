@@ -71,4 +71,9 @@ public class GameConstants {
     // Tower cooldowns
     public static final float[] TOWER_MAX_COOLDOWNS = {3f, 2f, 4f};
     public static final float[] TRAP_MAX_COOLDOWNS = {2f, 3f, 5f};
+
+    // ===== TRAP INDICES MAPPING =====
+    public static final int TRAP_ATTACK_INDEX = 0;      // TRAP1 → index 0
+    public static final int TRAP_SLOW_INDEX = 1;        // TRAP2 → index 1
+    public static final int TRAP_EXPLOSION_INDEX = 2;   // TRAP3 → index 2
 }

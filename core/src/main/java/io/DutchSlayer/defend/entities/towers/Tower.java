@@ -15,69 +15,130 @@ import io.DutchSlayer.defend.ui.ImageLoader;
 import io.DutchSlayer.defend.utils.AudioManager;
 
 /**
- * Tower class dengan sistem upgrade dan berbagai type tower
+ * Optimized Tower class dengan sistem upgrade dan berbagai type tower
  * Support 4 type: BASIC, AOE, FAST, SLOW dengan stats dan projectile berbeda
+ *
+ * OPTIMIZATIONS:
+ * - Pre-calculated upgrade costs
+ * - Cached textures and targeting
+ * - Reusable objects (Vector2, Rectangle)
+ * - Reduced string operations
+ * - Efficient animation system
  */
 public class Tower {
+
+    /* ===== STATIC CONSTANTS & PRE-CALCULATED VALUES ===== */
+    private static final boolean DEBUG_MODE = false;
+    private static final int MAX_TOTAL_UPGRADES = 10;
+    private static final float ANIMATION_DURATION = 0.2f;
+    private static final float IDLE_ANIMATION_SPEED = 0.6f;
+    private static final float TARGET_CHECK_INTERVAL = 0.1f;
+    private static final float MIN_FIRE_RATE = 0.05f;
+
+    // Pre-calculated upgrade costs (menghindari Math.pow berulang)
+    private static final int[] ATTACK_UPGRADE_COSTS = new int[MAX_TOTAL_UPGRADES + 1];
+    private static final int[] DEFENSE_UPGRADE_COSTS = new int[MAX_TOTAL_UPGRADES + 1];
+    private static final int[] SPEED_UPGRADE_COSTS = new int[MAX_TOTAL_UPGRADES + 1];
+
+    // Projectile origin offsets per tower type
+    private static final float[][] PROJECTILE_OFFSETS = {
+        {0.4f, 0.1f},   // BASIC
+        {0.5f, 0.7f},   // AOE
+        {0.39f, 0.35f}, // FAST
+        {0.35f, 0.15f}  // SLOW
+    };
+
+    // Main tower offsets
+    private static final float MAIN_TOWER_OFFSET_X = 0.3f;
+    private static final float MAIN_TOWER_OFFSET_Y = 0.4f;
+
+    static {
+        // Pre-calculate semua upgrade costs
+        for (int i = 0; i <= MAX_TOTAL_UPGRADES; i++) {
+            ATTACK_UPGRADE_COSTS[i] = (int)(20 * Math.pow(1.5f, i));
+            DEFENSE_UPGRADE_COSTS[i] = (int)(15 * Math.pow(1.5f, i));
+            SPEED_UPGRADE_COSTS[i] = (int)(25 * Math.pow(1.5f, i));
+        }
+    }
+
     /* ===== TOWER PROPERTIES ===== */
-    public final boolean canShoot;          // Apakah tower bisa menembak
-    public final boolean isMain;            // Apakah ini main tower (game over jika hancur)
-    public final TowerType type;            // Jenis tower (BASIC/AOE/FAST/SLOW)
+    public final boolean canShoot;
+    public final boolean isMain;
+    public final TowerType type;
 
     /* ===== POSITION & VISUAL ===== */
-    public final float x, y;                // Posisi center tower
-    public final float scaledW, scaledH;    // Ukuran sprite setelah scaling
-    private final float scale;              // Scale factor
-    private final Texture towerTex;         // Texture tower
-    private final Texture projTex;          // Texture projectile
-    private float projScale;                // Scale projectile
+    public final float x, y;
+    public final float scaledW, scaledH;
+    private final float scale;
+    private final Texture towerTex;
+    private final Texture projTex;
+    private final float projScale;
 
     /* ===== COMBAT STATS ===== */
-    private int health;                     // HP saat ini
-    private int baseHealth;                 // Health awal (backup)
-    private int damage;                     // Damage aktual
-    private int baseDamage;                 // Damage awal (backup)
-    private float fireRate;                 // Fire rate aktual
-    private float baseFireRate;             // Fire rate awal (backup)
-    private float slowDuration;             // Durasi slow (untuk SLOW tower)
+    private int health;
+    private int baseHealth;
+    private int damage;
+    private int baseDamage;
+    private float fireRate;
+    private float baseFireRate;
+    private float slowDuration;
 
     /* ===== SHOOTING MECHANICS ===== */
-    private float cooldown = 0f;            // Cooldown sampai bisa shoot lagi
+    private float cooldown = 0f;
+
+    /* ===== TARGETING OPTIMIZATION ===== */
+    private Enemy currentTarget;
+    private float targetCheckCooldown = 0f;
 
     /* ===== UPGRADE SYSTEM ===== */
-    private int totalUpgradeCount = 0;                  // Total upgrade yang sudah dilakukan
-    private static final int MAX_TOTAL_UPGRADES = 10;   // Maksimal 10 upgrade total
+    private int totalUpgradeCount = 0;
+    private int attackLevel = 0;
+    private int defenseLevel = 0;
+    private int speedLevel = 0;
 
-    // Level individual untuk setiap stat
-    private int attackLevel = 0;     // Level attack (0 = base level)
-    private int defenseLevel = 0;    // Level defense (0 = base level)
-    private int speedLevel = 0;      // Level speed (0 = base level)
+    /* ===== ANIMATION SYSTEM OPTIMIZATION ===== */
+    private boolean isAnimating = false;
+    private boolean hasIdleAnimation = false;
+    private int currentFrame = 0;
+    private float animationTimer = 0f;
 
-    /* ===== SIMPLE ANIMATION SYSTEM ===== */
-    private boolean isAnimating = false;          // Sedang animasi shooting?
-    private float animationTimer = 0f;            // Timer animasi
-    private static final float ANIMATION_DURATION = 0.2f;  // Durasi animasi singkat
+    // Cached texture untuk menghindari getCurrentTexture() setiap frame
+    private Texture cachedCurrentTexture;
+    private boolean textureNeedsUpdate = true;
+
+    /* ===== REUSABLE OBJECTS (menghindari garbage collection) ===== */
+    private final Vector2 tempOrigin = new Vector2();
+    private final Rectangle tempBounds = new Rectangle();
+
+    private Array<Enemy> enemiesRef = null;
+
+    /* ===== TOWER TYPE CONFIGS ===== */
+    private static final TowerConfig[] TOWER_CONFIGS = {
+        new TowerConfig(5f, 1, false),      // BASIC
+        new TowerConfig(4f, 2, false),      // AOE
+        new TowerConfig(0.5f, 1, false),    // FAST
+        new TowerConfig(1.5f, 0, true)      // SLOW
+    };
+
+    private static class TowerConfig {
+        final float baseFireRate;
+        final int baseDamage;
+        final boolean hasIdleAnim;
+
+        TowerConfig(float fireRate, int damage, boolean idleAnim) {
+            this.baseFireRate = fireRate;
+            this.baseDamage = damage;
+            this.hasIdleAnim = idleAnim;
+        }
+    }
 
     /**
-     * @param towerTex    texture tower
-     * @param projTex     texture projectile
-     * @param xCenter     posisi X center
-     * @param yCenter     posisi Y center
-     * @param scale       skala sprite
-     * @param canShoot    apakah tower ini bisa menembak
-     * @param initialHealth  nilai HP awal
+     * Constructor dengan optimasi initialization
      */
-    public Tower(Texture towerTex,
-                 Texture projTex,
-                 float xCenter,
-                 float yCenter,
-                 float scale,
-                 boolean canShoot,
-                 boolean isMain,
-                 TowerType type,
-                 int initialHealth,
-                 float projScale)
-    {
+    public Tower(Texture towerTex, Texture projTex, float xCenter, float yCenter,
+                 float scale, boolean canShoot, boolean isMain, TowerType type,
+                 int initialHealth, float projScale) {
+
         this.towerTex = towerTex;
         this.projTex = projTex;
         this.scale = scale;
@@ -85,183 +146,168 @@ public class Tower {
         this.isMain = isMain;
         this.type = type;
         this.health = initialHealth;
+        this.baseHealth = initialHealth;
         this.projScale = projScale;
 
         // Calculate sprite dimensions
-        this.scaledW = towerTex.getWidth()  * scale;
+        this.scaledW = towerTex.getWidth() * scale;
         this.scaledH = towerTex.getHeight() * scale;
         this.x = xCenter;
         this.y = yCenter;
 
-        // ===== SET BASE STATS BERDASARKAN TOWER TYPE =====
-        switch(type) {
-            case BASIC:
-                this.baseFireRate = 5f;     // Lambat
-                this.baseDamage = 1;        // Damage rendah
-                break;
-            case AOE:
-                this.baseFireRate = 4f;     // Agak lambat
-                this.baseDamage = 2;        // Damage tinggi (AOE)
-                break;
-            case FAST:
-                this.baseFireRate = 0.5f;   // Sangat cepat
-                this.baseDamage = 1;        // Damage rendah
-                break;
-            case SLOW:
-                this.baseFireRate = 1.5f;   // Sedang
-                this.baseDamage = 0;        // Tidak ada damage (pure utility)
-                this.slowDuration= 2f;      // 2 detik slow
-                break;
+        // Initialize bounds
+        tempBounds.set(x - scaledW/2, y - scaledH/2, scaledW, scaledH);
+
+        // Set stats berdasarkan tower type menggunakan config array
+        TowerConfig config = TOWER_CONFIGS[type.ordinal()];
+        this.baseFireRate = config.baseFireRate;
+        this.baseDamage = config.baseDamage;
+        this.hasIdleAnimation = config.hasIdleAnim;
+
+        // Special case untuk SLOW tower
+        if (type == TowerType.SLOW) {
+            this.slowDuration = 2f;
         }
 
-        // Initialize current stats = base stats
+        // Initialize current stats
         this.fireRate = this.baseFireRate;
         this.damage = this.baseDamage;
-        this.baseHealth = initialHealth;
-        this.health = initialHealth;
+
+        // Cache initial texture
+        updateCachedTexture();
     }
 
-
     /**
-     * ===== Calculate projectile spawn point berdasarkan tower type =====
+     * Optimized projectile origin calculation dengan reusable Vector2
      */
     private Vector2 getProjectileOrigin() {
-        Vector2 origin = new Vector2();
+        tempOrigin.set(0, 0);
 
         if (isMain) {
-            // ===== MAIN TOWER (Castle/Fort) =====
-            // Projectile keluar dari cannon di atas main tower
-            origin.x = x + scaledW * 0.3f;    // Sedikit ke kanan dari center
-            origin.y = y + scaledH * 0.4f;    // Di bagian atas tower
-
+            tempOrigin.x = x + scaledW * MAIN_TOWER_OFFSET_X;
+            tempOrigin.y = y + scaledH * MAIN_TOWER_OFFSET_Y;
         } else {
-            // ===== DEPLOYED TOWERS BERDASARKAN TYPE =====
-            switch(type) {
-                case BASIC:
-                    // Basic tower: projectile keluar dari ujung cannon
-                    origin.x = x + scaledW * 0.4f;   // Right side (cannon tip)
-                    origin.y = y + scaledH * 0.1f;   // Slightly above center
-                    break;
-
-                case AOE:
-                    // AOE tower: projectile keluar dari launcher/mortar
-                    origin.x = x + scaledW * 0.5f;   // Center-right
-                    origin.y = y + scaledH * 0.8f;   // Upper part (mortar)
-                    break;
-
-                case FAST:
-                    // Fast tower: projectile keluar dari machine gun
-                    origin.x = x + scaledW * 0.39f;  // Far right (gun barrel)
-                    origin.y = y + scaledW * 0.27f;                    // Center height
-                    break;
-
-                case SLOW:
-                    // Slow tower: projectile keluar dari special weapon
-                    origin.x = x + scaledW * 0.35f;  // Center-right
-                    origin.y = y + scaledH * 0.15f;  // Slightly above center
-                    break;
-
-                default:
-                    // Default positioning
-                    origin.x = x + scaledW * 0.3f;
-                    origin.y = y;
-                    break;
+            int typeIndex = type.ordinal();
+            if (typeIndex < PROJECTILE_OFFSETS.length) {
+                tempOrigin.x = x + scaledW * PROJECTILE_OFFSETS[typeIndex][0];
+                tempOrigin.y = y + scaledH * PROJECTILE_OFFSETS[typeIndex][1];
+            } else {
+                // Fallback
+                tempOrigin.x = x + scaledW * 0.3f;
+                tempOrigin.y = y;
             }
         }
 
-        return origin;
+        return tempOrigin;
     }
 
     /**
-     * Tower menerima damage
+     * Optimized targeting system dengan caching
      */
-    public void takeDamage(int dmg) {
-        health -= dmg;
+    private Enemy findBestTarget(Array<Enemy> enemies) {
+        if (enemies.isEmpty()) return null;
+
+        // Simple targeting: return first alive enemy
+        for (Enemy enemy : enemies) {
+            if (!enemy.isDestroyed()) {
+                return enemy;
+            }
+        }
+        return null;
     }
 
     /**
-     * Check apakah tower sudah hancur
-     */
-    public boolean isDestroyed() {
-        return health <= 0;
-    }
-
-    /**
-     * Update tower logic setiap frame (handle shooting)
+     * Optimized update method
      */
     public void update(float delta, Array<Enemy> enemies, Array<Projectile> projs) {
+        this.enemiesRef = enemies;
         updateAnimation(delta);
 
-        if (!canShoot || isDestroyed()) return;
+        // Early return untuk kondisi yang tidak bisa shoot
+        if (!canShoot || isDestroyed() || enemies.isEmpty()) {
+            return;
+        }
 
         // Update cooldown
         cooldown -= delta;
         if (cooldown > 0) return;
-        if (enemies.isEmpty()) return;
 
-        // Target enemy pertama (simple targeting)
-        Enemy target = enemies.first();
-        float targetX = target.getBounds().x + target.getBounds().width/2f;
-        float targetY = target.getBounds().y + target.getBounds().height/2f;
+        // Update target secara berkala, bukan setiap frame
+        targetCheckCooldown -= delta;
+        if (targetCheckCooldown <= 0f || currentTarget == null || currentTarget.isDestroyed()) {
+            currentTarget = findBestTarget(enemies);
+            targetCheckCooldown = TARGET_CHECK_INTERVAL;
+        }
+
+        if (currentTarget == null) return;
+
+        // Get target position
+        Rectangle targetBounds = currentTarget.getBounds();
+        float targetX = targetBounds.x + targetBounds.width * 0.5f;
+        float targetY = targetBounds.y + targetBounds.height * 0.5f;
 
         Vector2 origin = getProjectileOrigin();
 
-        // ===== CREATE PROJECTILE BERDASARKAN TOWER TYPE =====
-        switch(type) {
-            case BASIC:
-                projs.add(new Projectile(
-                    projTex, origin.x, origin.y, targetX, targetY, projScale,900f, damage
-                ));
-                break;
-            case AOE:
-                AudioManager.playAOEShootWithVolume(0.7f);
-                triggerShootAnimation();
-                projs.add(new AoeProjectile(
-                    projTex,        // texture projectile
-                    origin.x,       // start X
-                    origin.y,       // start Y
-                    targetX,        // target X
-                    targetY,        // target Y
-                    100f,           // radius AOE
-                    projScale,     // scale projectile
-                    damage,        // damage
-                    800f           // speed untuk kalkulasi parabola
-                ));
-                break;
-            case FAST:
-                AudioManager.playTowerShootWithVolume(0.5f);
-                triggerShootAnimation();
-                projs.add(new Projectile(
-                    projTex, origin.x, origin.y, targetX, targetY, projScale, 1500f, damage
-                ));
-                break;
-            case SLOW:
-                projs.add(new SlowProjectile(
-                    projTex, origin.x, origin.y, targetX, targetY,
-                    slowDuration, projScale, 500f
-                ));
-                break;
-        }
+        // Create projectile berdasarkan tower type
+        createProjectile(projs, origin.x, origin.y, targetX, targetY);
 
         // Reset cooldown
         cooldown = fireRate;
     }
 
     /**
-     * Trigger shooting animation
+     * Optimized projectile creation
+     */
+    private void createProjectile(Array<Projectile> projs, float originX, float originY,
+                                  float targetX, float targetY) {
+        switch(type) {
+            case BASIC:
+                projs.add(new Projectile(projTex, originX, originY, targetX, targetY,
+                    projScale, 900f, damage));
+                break;
+
+            case AOE:
+                AudioManager.playAOEShootWithVolume(0.7f);
+                triggerShootAnimation();
+                projs.add(new AoeProjectile(projTex, originX, originY, targetX, targetY,
+                    100f, projScale, damage, 800f));
+                break;
+
+            case FAST:
+                AudioManager.playTowerShootWithVolume(0.5f);
+                triggerShootAnimation();
+                projs.add(new Projectile(projTex, originX, originY, targetX, targetY,
+                    projScale, 1500f, damage));
+                break;
+
+            case SLOW:
+                AudioManager.playSlowProjectileWithVolume(1f);
+                projs.add(new SlowProjectile(projTex, originX, originY, targetX, targetY,
+                    slowDuration, projScale, 500f));
+                break;
+        }
+    }
+
+    /**
+     * Trigger shooting animation dengan flag update
      */
     private void triggerShootAnimation() {
         if (type == TowerType.FAST || type == TowerType.AOE || type == TowerType.SLOW) {
             isAnimating = true;
             animationTimer = 0f;
-            System.out.println("🎬 " + type + " tower shooting animation!");
+            textureNeedsUpdate = true;
+            debugPrint("🎬 " + type + " tower shooting animation!");
         }
     }
 
     /**
-     * Update animation timer
+     * Optimized animation update
      */
     private void updateAnimation(float delta) {
+        boolean wasAnimating = isAnimating;
+        int oldFrame = currentFrame;
+
+        // Update shooting animation
         if (isAnimating) {
             animationTimer += delta;
             if (animationTimer >= ANIMATION_DURATION) {
@@ -269,156 +315,203 @@ public class Tower {
                 animationTimer = 0f;
             }
         }
-    }
 
-    /**
-     * Get current texture based on animation state
-     */
-    private Texture getCurrentTexture() {
-        if (isAnimating) {
-            // Gunakan frame ke-2 saat shooting
-            Texture[] frames = ImageLoader.getTowerAnimationFrames(type);
-            if (frames != null && frames.length > 1 && frames[1] != null) {
-                return frames[1]; // Shooting frame
+        // Update idle animation
+        if (hasIdleAnimation) {
+            animationTimer += delta;
+            if (animationTimer >= IDLE_ANIMATION_SPEED) {
+                animationTimer = 0f;
+                currentFrame = (currentFrame + 1) % 3;
             }
         }
 
-        // Default ke frame normal atau original texture
-        Texture[] frames = ImageLoader.getTowerAnimationFrames(type);
-        if (frames != null && frames.length > 0 && frames[0] != null) {
-            return frames[0]; // Normal frame
+        // Update texture cache hanya jika ada perubahan
+        if (wasAnimating != isAnimating || oldFrame != currentFrame) {
+            textureNeedsUpdate = true;
         }
-
-        return towerTex; // Fallback ke original texture
     }
 
-    /* ===== UPGRADE METHODS ===== */
+    /**
+     * Update cached texture hanya ketika diperlukan
+     */
+    private void updateCachedTexture() {
+        if (!textureNeedsUpdate) return;
+
+        Texture[] frames = ImageLoader.getTowerAnimationFrames(type);
+
+        // Shooting animation (priority)
+        if (isAnimating && frames != null && frames.length > 1 && frames[1] != null) {
+            cachedCurrentTexture = frames[1];
+        }
+        // Idle animation
+        else if (hasIdleAnimation && frames != null && frames.length > 0) {
+            if (currentFrame == 0 && frames[0] != null) {
+                cachedCurrentTexture = frames[0];
+            } else if (currentFrame == 1 && frames.length > 1 && frames[1] != null) {
+                cachedCurrentTexture = frames[1];
+            } else if (currentFrame == 2 && frames.length > 2 && frames[2] != null) {
+                cachedCurrentTexture = frames[2];
+            } else {
+                cachedCurrentTexture = frames[0];
+            }
+        }
+        // Fallback
+        else if (frames != null && frames.length > 0 && frames[0] != null) {
+            cachedCurrentTexture = frames[0];
+        } else {
+            cachedCurrentTexture = towerTex;
+        }
+
+        textureNeedsUpdate = false;
+    }
 
     /**
-     * Upgrade attack (increase damage)
+     * Optimized damage handling
+     */
+    public void takeDamage(int dmg) {
+        health -= dmg;
+    }
+
+    /**
+     * Check destroyed status
+     */
+    public boolean isDestroyed() {
+        return health <= 0;
+    }
+
+    /* ===== OPTIMIZED UPGRADE METHODS ===== */
+
+    /**
+     * Upgrade attack dengan pre-calculated costs
      */
     public boolean upgradeAttack() {
-        if (totalUpgradeCount < MAX_TOTAL_UPGRADES) {
-            attackLevel++;
-            totalUpgradeCount++;
+        if (totalUpgradeCount >= MAX_TOTAL_UPGRADES) return false;
 
-            // Increase damage berdasarkan tower type
-            int damageBonus = 1;
-            if (type == TowerType.AOE) damageBonus = 2; // AOE gets more damage
+        attackLevel++;
+        totalUpgradeCount++;
 
-            damage = baseDamage + (attackLevel * damageBonus);
-            System.out.println("⚔️ Attack upgraded! Level: " + attackLevel + ", Damage: " + damage);
-            return true;
-        }
-        return false;
+        int damageBonus = (type == TowerType.AOE) ? 2 : 1;
+        damage = baseDamage + (attackLevel * damageBonus);
+
+        debugPrint("⚔️ Attack upgraded! Level: " + attackLevel + ", Damage: " + damage);
+        return true;
     }
 
     /**
-     * Upgrade defense (increase max health + heal)
+     * Upgrade defense dengan pre-calculated costs
      */
     public boolean upgradeDefense() {
-        if (totalUpgradeCount < MAX_TOTAL_UPGRADES) {
-            defenseLevel++;
-            totalUpgradeCount++;
+        if (totalUpgradeCount >= MAX_TOTAL_UPGRADES) return false;
 
-            // Increase max health dan heal
-            int healthIncrease = defenseLevel * 2;
-            int newMaxHealth = baseHealth + healthIncrease;
+        defenseLevel++;
+        totalUpgradeCount++;
 
-            // Bonus healing - restore 2 HP
-            health = Math.min(health + 2, newMaxHealth);
-            System.out.println("🛡️ Defense upgraded! Level: " + defenseLevel + ", Health: " + health + "/" + newMaxHealth);
-            return true;
-        }
-        return false;
+        int healthIncrease = defenseLevel * 2;
+        int newMaxHealth = baseHealth + healthIncrease;
+        health = Math.min(health + 2, newMaxHealth);
+
+        debugPrint("🛡️ Defense upgraded! Level: " + defenseLevel + ", Health: " + health + "/" + newMaxHealth);
+        return true;
     }
 
     /**
-     * Upgrade speed (decrease fire rate = faster shooting)
+     * Upgrade speed dengan pre-calculated costs
      */
     public boolean upgradeSpeed() {
-        if (totalUpgradeCount < MAX_TOTAL_UPGRADES) {
-            speedLevel++;
-            totalUpgradeCount++;
+        if (totalUpgradeCount >= MAX_TOTAL_UPGRADES) return false;
 
-            // Decrease fire rate berdasarkan tower type
-            float speedBonus = 0.15f; // Base speed bonus
-            if (type == TowerType.FAST) speedBonus = 0.05f; // Fast tower gets smaller bonus
-            if (type == TowerType.SLOW) speedBonus = 0.25f; // Slow tower gets bigger bonus
+        speedLevel++;
+        totalUpgradeCount++;
 
-            fireRate = Math.max(0.05f, baseFireRate - (speedLevel * speedBonus));
-            System.out.println("⚡ Speed upgraded! Level: " + speedLevel + ", Fire rate: " + fireRate + "s");
-            return true;
+        float speedBonus;
+        switch(type) {
+            case FAST: speedBonus = 0.05f; break;
+            case SLOW: speedBonus = 0.25f; break;
+            default: speedBonus = 0.15f; break;
         }
-        return false;
+
+        fireRate = Math.max(MIN_FIRE_RATE, baseFireRate - (speedLevel * speedBonus));
+
+        debugPrint("⚡ Speed upgraded! Level: " + speedLevel + ", Fire rate: " + fireRate + "s");
+        return true;
     }
 
-    // Tambahkan method untuk mendapatkan upgrade info
+    /* ===== PRE-CALCULATED UPGRADE COSTS ===== */
+
+    public int getAttackUpgradeCost() {
+        return ATTACK_UPGRADE_COSTS[Math.min(attackLevel, MAX_TOTAL_UPGRADES)];
+    }
+
+    public int getDefenseUpgradeCost() {
+        return DEFENSE_UPGRADE_COSTS[Math.min(defenseLevel, MAX_TOTAL_UPGRADES)];
+    }
+
+    public int getSpeedUpgradeCost() {
+        return SPEED_UPGRADE_COSTS[Math.min(speedLevel, MAX_TOTAL_UPGRADES)];
+    }
+
+    /* ===== UPGRADE VALIDATION ===== */
+
+    public boolean canUpgradeAttack(int currentGold) {
+        return totalUpgradeCount < MAX_TOTAL_UPGRADES &&
+            currentGold >= getAttackUpgradeCost();
+    }
+
+    public boolean canUpgradeDefense(int currentGold) {
+        return totalUpgradeCount < MAX_TOTAL_UPGRADES &&
+            currentGold >= getDefenseUpgradeCost();
+    }
+
+    public boolean canUpgradeSpeed(int currentGold) {
+        return totalUpgradeCount < MAX_TOTAL_UPGRADES &&
+            currentGold >= getSpeedUpgradeCost();
+    }
+
+    /**
+     * Get upgrade info dengan optimized string building
+     */
     public String getUpgradeInfo(String upgradeType) {
         switch(upgradeType.toLowerCase()) {
             case "attack":
-                return "DMG: " + damage + " → " + (damage + (type == TowerType.AOE ? 2 : 1));
+                int nextDamage = damage + (type == TowerType.AOE ? 2 : 1);
+                return "DMG: " + damage + " → " + nextDamage;
+
             case "defense":
-                return "HP: " + health + "/" + getMaxHealth() + " → " + (health + 2) + "/" + (getMaxHealth() + 2);
+                int maxHealth = getMaxHealth();
+                return "HP: " + health + "/" + maxHealth + " → " + (health + 2) + "/" + (maxHealth + 2);
+
             case "speed":
-                float nextFireRate = Math.max(0.05f, fireRate - (type == TowerType.FAST ? 0.05f : 0.15f));
-                return "Rate: " + String.format("%.2f", fireRate) + "s → " + String.format("%.2f", nextFireRate) + "s";
+                float speedBonus = (type == TowerType.FAST) ? 0.05f : 0.15f;
+                float nextFireRate = Math.max(MIN_FIRE_RATE, fireRate - speedBonus);
+                return String.format("Rate: %.2fs → %.2fs", fireRate, nextFireRate);
+
             default:
                 return "";
         }
     }
 
-    /* ===== UPGRADE COST METHODS ===== */
+    /* ===== OPTIMIZED RENDERING ===== */
 
     /**
-     * Calculate attack upgrade cost (exponential scaling)
-     */
-    public int getAttackUpgradeCost() {
-        return (int)(20 * Math.pow(1.5f, attackLevel));
-    }
-
-    public int getDefenseUpgradeCost() {
-        return (int)(15 * Math.pow(1.5f, defenseLevel));
-    }
-
-    public int getSpeedUpgradeCost() {
-        return (int) (25 * Math.pow(1.5f, speedLevel));
-    }
-
-    /* ===== UPGRADE VALIDATION METHODS ===== */
-
-    // Method untuk cek apakah bisa upgrade (dengan cost)
-    public boolean canUpgradeAttack(int currentGold) {
-        return totalUpgradeCount < MAX_TOTAL_UPGRADES && currentGold >= getAttackUpgradeCost();
-    }
-
-    public boolean canUpgradeDefense(int currentGold) {
-        return totalUpgradeCount < MAX_TOTAL_UPGRADES && currentGold >= getDefenseUpgradeCost();
-    }
-
-    public boolean canUpgradeSpeed(int currentGold) {
-        return totalUpgradeCount < MAX_TOTAL_UPGRADES && currentGold >= getSpeedUpgradeCost();
-    }
-
-    /**
-     * Modified drawBatch dengan animated texture
+     * Optimized batch drawing dengan cached texture
      */
     public void drawBatch(SpriteBatch batch) {
-        Texture currentTexture = getCurrentTexture();
+        // Update cached texture hanya jika diperlukan
+        updateCachedTexture();
 
-        // Optional: Visual flash effect saat shooting
+        // Visual flash effect saat shooting
         if (isAnimating && type != TowerType.BASIC) {
-            batch.setColor(1.2f, 1.2f, 1.2f, 1f); // Sedikit lebih terang
+            batch.setColor(1.2f, 1.2f, 1.2f, 1f);
         }
 
-        batch.draw(currentTexture, x - scaledW/2, y - scaledH/2, scaledW, scaledH);
+        batch.draw(cachedCurrentTexture, x - scaledW/2, y - scaledH/2, scaledW, scaledH);
 
         // Reset color
         batch.setColor(1f, 1f, 1f, 1f);
     }
 
     /**
-     * Render tower menggunakan ShapeRenderer (fallback)
+     * Shape renderer fallback
      */
     public void drawShape(ShapeRenderer shapes) {
         if (towerTex == null) {
@@ -427,24 +520,26 @@ public class Tower {
         }
     }
 
+    /* ===== OPTIMIZED GETTERS ===== */
 
-
-    /* ===== GETTERS ===== */
     public Rectangle getBounds() {
-        return new Rectangle(x - scaledW/2, y - scaledH/2, scaledW, scaledH);
+        // Update reusable bounds object
+        tempBounds.set(x - scaledW/2, y - scaledH/2, scaledW, scaledH);
+        return tempBounds;
     }
 
+    // Basic getters
     public int getHealth() { return health; }
     public int getRemainingUpgrades() { return MAX_TOTAL_UPGRADES - totalUpgradeCount; }
     public boolean canUpgrade() { return totalUpgradeCount < MAX_TOTAL_UPGRADES; }
 
-    // Individual upgrade levels
+    // Upgrade levels
     public int getAttackLevel() { return attackLevel; }
     public int getDefenseLevel() { return defenseLevel; }
     public int getSpeedLevel() { return speedLevel; }
     public int getTotalUpgradeCount() { return totalUpgradeCount; }
 
-    // Current stats (after upgrades)
+    // Current stats
     public int getCurrentDamage() { return damage; }
     public float getCurrentFireRate() { return fireRate; }
     public int getMaxHealth() { return baseHealth + (defenseLevel * 2); }
@@ -452,4 +547,20 @@ public class Tower {
     // UI helpers
     public String getUpgradeRemaining() { return String.valueOf(getRemainingUpgrades()); }
     public String getUpgradeLevel() { return String.valueOf(totalUpgradeCount); }
+
+    /* ===== DEBUG UTILITY ===== */
+
+    private void debugPrint(String message) {
+        if (DEBUG_MODE) {
+            System.out.println(message);
+        }
+    }
+
+    /**
+     * Set enemies reference untuk AOE projectile tracking
+     * Panggil di update() method
+     */
+    public void setEnemiesReference(Array<Enemy> enemies) {
+        this.enemiesRef = enemies;
+    }
 }

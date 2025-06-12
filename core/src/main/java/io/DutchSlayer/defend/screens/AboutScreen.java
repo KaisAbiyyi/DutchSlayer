@@ -6,16 +6,14 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.viewport.FitViewport;
-
 import io.DutchSlayer.Main;
+import io.DutchSlayer.defend.utils.AudioManager;
 import io.DutchSlayer.defend.utils.TDConstants;
+import io.DutchSlayer.utils.Constant;
 
 public class AboutScreen implements Screen {
 
@@ -33,13 +31,10 @@ public class AboutScreen implements Screen {
 
     public AboutScreen(Main game) {
         this.game = game;
-        this.viewport = new FitViewport(TDConstants.SCREEN_WIDTH, TDConstants.SCREEN_HEIGHT);
+        this.viewport = new FitViewport(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT);
         this.stage = new Stage(viewport);
-        Gdx.input.setInputProcessor(stage);
-
         this.skin = new Skin(Gdx.files.internal("uiskin/uiskin.json"));
 
-        // Muat semua texture
         this.background       = new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
         this.titleTexture     = new Texture(Gdx.files.internal("button/AboutUs.png"));
         this.backButtonTexture= new Texture(Gdx.files.internal("button/backbutton.png"));
@@ -56,7 +51,7 @@ public class AboutScreen implements Screen {
         rootTable.top().left();
         stage.addActor(rootTable);
 
-        // 1) Baris untuk tombol Back di pojok kiri atas
+        // Baris untuk tombol Back
         ImageButton backButton = new ImageButton(new TextureRegionDrawable(backButtonTexture));
         backButton.addListener(new ClickListener() {
             @Override
@@ -64,48 +59,40 @@ public class AboutScreen implements Screen {
                 game.setScreen(new MainMenuScreen(game));
             }
         });
-        rootTable.add(backButton)
-            .size(100, 100)
-            .pad(10)
-            .left();
+        rootTable.add(backButton).size(100, 100).pad(10).left();
         rootTable.row();
 
-        // 2) Judul About Us sebagai Image, dipusatkan
+        // Judul About Us
         Image titleImg = new Image(titleTexture);
         rootTable.add(titleImg)
-            .size(800, 400)      // Ubah size sesuai kebutuhan
-            .padTop(-160)          // Sesuaikan jarak dari tombol Back
-            .center()
-            .row();
+            .size(800, 400)
+            .padTop(-160)
+            .center().row();
 
-        // 3) Table untuk nama anggota (gambar) satu kolom, dipusatkan
+        // Tabel anggota
         Table memberTable = new Table();
         memberTable.defaults().padTop(-150);
 
         Image kaisImg = new Image(kaisTexture);
-        memberTable.add(kaisImg)
-            .size(400, 200)    // Ubah ukuran sesuai kebutuhan
-            .row();
+        memberTable.add(kaisImg).size(400, 200).row();
 
         Image alvinImg = new Image(alvinTexture);
-        memberTable.add(alvinImg)
-            .size(400, 200)
-            .row();
+        memberTable.add(alvinImg).size(400, 200).row();
 
         Image haerulImg = new Image(haerulTexture);
-        memberTable.add(haerulImg)
-            .size(400, 200)
-            .row();
+        memberTable.add(haerulImg).size(400, 200).row();
 
         rootTable.add(memberTable)
-            .expand()
-            .center()
+            .expand().center()
             .padTop(-250);
     }
 
     @Override
     public void show() {
         Gdx.input.setInputProcessor(stage);
+        if (!AudioManager.isMusicPlaying()) {
+            AudioManager.playMainMenuMusic();
+        }
     }
 
     @Override
@@ -115,12 +102,7 @@ public class AboutScreen implements Screen {
 
         game.batch.setProjectionMatrix(viewport.getCamera().combined);
         game.batch.begin();
-        game.batch.draw(
-            background,
-            0, 0,
-            viewport.getWorldWidth(),
-            viewport.getWorldHeight()
-        );
+        game.batch.draw(background, 0, 0, viewport.getWorldWidth(), viewport.getWorldHeight());
         game.batch.end();
 
         stage.act(delta);
@@ -131,7 +113,6 @@ public class AboutScreen implements Screen {
     public void resize(int width, int height) {
         viewport.update(width, height, true);
     }
-
     @Override public void pause()  {}
     @Override public void resume() {}
     @Override public void hide()   {}

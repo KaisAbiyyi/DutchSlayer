@@ -6,6 +6,7 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 import io.DutchSlayer.defend.entities.enemies.Enemy;
 import io.DutchSlayer.defend.ui.ImageLoader;
+import io.DutchSlayer.defend.utils.AudioManager;
 
 public class Trap {
     /* ===== GEOMETRY & COLLISION ===== */
@@ -178,16 +179,19 @@ public class Trap {
     private void activateTrapEffect(Enemy triggerEnemy, Array<Enemy> allEnemies) {
         switch(type) {
             case ATTACK:
+                AudioManager.playTrapAttackHit();
                 triggerEnemy.takeDamage(ATTACK_DAMAGE);
                 triggerEnemy.slow(ATTACK_SLOW_DURATION);
                 break;
 
             case SLOW:
+                AudioManager.playTrapSlowHit();
                 triggerEnemy.slowHeavy(SLOW_DURATION, SLOW_STRENGTH); // Heavy slow method
                 break;
 
             case EXPLOSION:
                 explodeAOE(allEnemies);
+                AudioManager.playTrapExplosionHit();
                 break;
         }
     }
