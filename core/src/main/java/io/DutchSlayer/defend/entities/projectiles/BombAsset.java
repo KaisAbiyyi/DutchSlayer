@@ -37,7 +37,7 @@ public class BombAsset {
     private float explosionScale = 1.0f;
 
     /* ===== VISUAL SCALING ===== */
-    private final float bombScale = 0.1f;  // ⭐ FIXED: Constant scale untuk bomb
+    private final float bombScale = 0.2f;  // ⭐ FIXED: Constant scale untuk bomb
 
     /* ===== CONSTANTS - INSTANT EXPLOSION ===== */
     private static final int DAMAGE = 2;
