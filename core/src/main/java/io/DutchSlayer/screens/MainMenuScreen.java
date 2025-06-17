@@ -1,110 +1,152 @@
 package io.DutchSlayer.screens;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Graphics;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.viewport.FitViewport;
+
 import io.DutchSlayer.Main;
-import io.DutchSlayer.attack.screens.GameScreen;
-import io.DutchSlayer.attack.screens.StageSelectorScreen;
+import io.DutchSlayer.defend.screens.ModeSelectionScreen;
+import io.DutchSlayer.defend.screens.SettingScreen;
+import io.DutchSlayer.defend.utils.AudioManager;
 import io.DutchSlayer.utils.Constant;
 
 public class MainMenuScreen implements Screen {
 
     private final Main game;
     private final Stage stage;
+    private final FitViewport viewport;
+    private final Skin skin;
+    private final Texture background;
+
+    private final Texture titleTexture;
+    private final Texture startTexture;
+    private final Texture settingsTexture;
+    private final Texture aboutTexture;
+    private final Texture exitTexture; // Tombol Exit
 
     public MainMenuScreen(Main game) {
-        this.game = game;
+        this.game       = game;
+        this.viewport   = new FitViewport(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT);
+        this.stage      = new Stage(viewport);
+        this.skin       = new Skin(Gdx.files.internal("uiskin/uiskin.json"));
+        this.background = new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
 
-        // Gunakan FitViewport agar tetap scaling
-        FitViewport viewport = new FitViewport(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT);
-        this.stage = new Stage(viewport);
+        this.titleTexture    = new Texture(Gdx.files.internal("button/DutchSlayer.png"));
+        this.startTexture    = new Texture(Gdx.files.internal("button/StartButton.png"));
+        this.settingsTexture = new Texture(Gdx.files.internal("button/SettingsButton.png"));
+        this.aboutTexture    = new Texture(Gdx.files.internal("button/AboutButton.png"));
+        this.exitTexture     = new Texture(Gdx.files.internal("button/Exit.png"));
 
         Gdx.input.setInputProcessor(stage);
-
-        Skin skin = new Skin(Gdx.files.internal("uiskin/uiskin.json"));
-        Table table = new Table();
-        table.setFillParent(true);
-        stage.addActor(table);
-
-        Label title = new Label("Dutch Slayer", skin, "default");
-        TextButton startButton = new TextButton("Start Game", skin);
-        TextButton aboutButton = new TextButton("About Us", skin);
-        TextButton fullscreenButton = new TextButton("Toggle Fullscreen", skin);
-
-        // === Listener Tombol ===
-        startButton.addListener(event -> {
-            if (startButton.isPressed()) {
-                game.setScreen(new StageSelectorScreen(game));
-            }
-            return false;
-        });
-
-        aboutButton.addListener(event -> {
-            if (aboutButton.isPressed()) {
-                game.setScreen(new AboutScreen(game));
-            }
-            return false;
-        });
-
-        fullscreenButton.addListener(event -> {
-            if (fullscreenButton.isPressed()) {
-                toggleFullscreen();
-            }
-            return false;
-        });
-
-        // Tambahkan ke layout
-        table.add(title).padBottom(40).row();
-        table.add(startButton).size(Constant.BUTTON_WIDTH, Constant.BUTTON_HEIGHT).padBottom(20).row();
-        table.add(aboutButton).size(Constant.BUTTON_WIDTH, Constant.BUTTON_HEIGHT).padBottom(20).row();
-        table.add(fullscreenButton).size(Constant.BUTTON_WIDTH, Constant.BUTTON_HEIGHT);
+        createUI();
     }
 
-    private void toggleFullscreen() {
-        if (Gdx.graphics.isFullscreen()) {
-            Gdx.graphics.setWindowedMode(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT);
-        } else {
-            Graphics.DisplayMode currentMode = Gdx.graphics.getDisplayMode();
-            Gdx.graphics.setFullscreenMode(currentMode);
-        }
+    private void createUI() {
+        Table rootTable = new Table();
+        rootTable.setFillParent(true);
+        rootTable.top().left();
+        stage.addActor(rootTable);
+
+        // 1) Judul
+        Image titleImg = new Image(titleTexture);
+        rootTable.add(titleImg)
+            .width(800).height(450)
+            .padTop(-140).padBottom(-140)
+            .center()
+            .row();
+
+        // 2) Tabel tombol
+        Table buttonTable = new Table();
+        buttonTable.defaults().padBottom(20);
+
+        ImageButton startBtn = new ImageButton(new TextureRegionDrawable(startTexture));
+        startBtn.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent e, float x, float y) {
+                game.setScreen(new ModeSelectionScreen(game));
+            }
+        });
+        buttonTable.add(startBtn).size(500, 120).row();
+
+        ImageButton settingsBtn = new ImageButton(new TextureRegionDrawable(settingsTexture));
+        settingsBtn.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent e, float x, float y) {
+                game.setScreen(new SettingScreen(game));
+            }
+        });
+        buttonTable.add(settingsBtn).size(500, 120).row();
+
+        ImageButton aboutBtn = new ImageButton(new TextureRegionDrawable(aboutTexture));
+        aboutBtn.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent e, float x, float y) {
+                game.setScreen(new AboutScreen(game));
+            }
+        });
+        buttonTable.add(aboutBtn).size(500, 120).row();
+
+        ImageButton exitBtn = new ImageButton(new TextureRegionDrawable(exitTexture));
+        exitBtn.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent e, float x, float y) {
+                Gdx.app.exit();
+            }
+        });
+        buttonTable.add(exitBtn).size(500, 120);
+
+        rootTable.add(buttonTable)
+            .expand()
+            .center()
+            .padBottom(10);
     }
 
     @Override
     public void show() {
+        Gdx.input.setInputProcessor(stage);
+        viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
+
+        // Jika saat ini **bukan** Main Menu Music, segera play
+        viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
+        AudioManager.playMainMenuMusic();
     }
 
     @Override
     public void render(float delta) {
-        Gdx.gl.glClearColor(0.15f, 0.15f, 0.2f, 1);
+        Gdx.gl.glClearColor(0.1f, 0.1f, 0.15f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        game.batch.setProjectionMatrix(viewport.getCamera().combined);
+        game.batch.begin();
+        game.batch.draw(background, 0, 0, viewport.getWorldWidth(), viewport.getWorldHeight());
+        game.batch.end();
+
         stage.act(delta);
         stage.draw();
     }
 
     @Override
     public void resize(int width, int height) {
-        stage.getViewport().update(width, height, true);
+        viewport.update(width, height, true);
     }
-
-    @Override
-    public void pause() {
-    }
-
-    @Override
-    public void resume() {
-    }
-
-    @Override
-    public void hide() {
+    @Override public void pause()  {}
+    @Override public void resume() {}
+    @Override public void hide()   {
+        // Jangan stop musik di sini — biarkan terus mengalun sampai screen lain memanggil stop/play baru
     }
 
     @Override
     public void dispose() {
         stage.dispose();
+        skin.dispose();
+        background.dispose();
+        titleTexture.dispose();
+        startTexture.dispose();
+        settingsTexture.dispose();
+        aboutTexture.dispose();
+        exitTexture.dispose();
     }
 }

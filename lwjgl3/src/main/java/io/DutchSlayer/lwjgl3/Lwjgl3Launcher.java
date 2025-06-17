@@ -9,8 +9,12 @@ import io.DutchSlayer.Main;
  */
 public class Lwjgl3Launcher {
     public static void main(String[] args) {
-        if (StartupHelper.startNewJvmIfRequired()) return; // This handles macOS support and helps on Windows.
-        createApplication();
+        try {
+            if (StartupHelper.startNewJvmIfRequired()) return;
+            createApplication();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } // This handles macOS support and helps on Windows.
     }
 
     private static Lwjgl3Application createApplication() {
@@ -32,6 +36,7 @@ public class Lwjgl3Launcher {
 
         configuration.setWindowedMode(1280, 720);
         configuration.setResizable(false);
+        configuration.setBackBufferConfig(8, 8, 8, 8, 16, 0, 0);
         //// You can change these files; they are in lwjgl3/src/main/resources/ .
         //// They can also be loaded from the root of assets/ .
         configuration.setWindowIcon("libgdx128.png", "libgdx64.png", "libgdx32.png", "libgdx16.png");

@@ -9,7 +9,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import io.DutchSlayer.Main;
-import io.DutchSlayer.attack.screens.GameScreen;
 import io.DutchSlayer.screens.MainMenuScreen;
 
 public class GameVictoryScreen implements Screen {
