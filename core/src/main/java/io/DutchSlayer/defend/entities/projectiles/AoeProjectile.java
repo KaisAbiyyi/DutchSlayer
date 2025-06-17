@@ -32,7 +32,7 @@ public class AoeProjectile extends Projectile {
     private float halfWidth;                      // Pre-calculated untuk performa
     private float halfHeight;                     // Pre-calculated untuk performa
 
-    private static final float FIXED_ARC_HEIGHT = 120f;
+    private static final float FIXED_ARC_HEIGHT = 100f;
     private static final float EXPLOSION_THRESHOLD = 50f; // Pre-calculated constant
     private static final float TIMEOUT_DURATION = 8f;     // Pre-calculated constant
 

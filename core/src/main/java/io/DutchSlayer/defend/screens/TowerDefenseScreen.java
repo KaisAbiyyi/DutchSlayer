@@ -584,27 +584,6 @@ public class TowerDefenseScreen implements Screen {
                         uiManager.btnMode.x, uiManager.btnMode.y,
                         uiManager.btnMode.width, uiManager.btnMode.height);
                     game.batch.setColor(Color.WHITE);
-                } else {
-                    System.out.println("❌ DEBUG Mode button NOT drawn - texture: " +
-                        (ImageLoader.BtnMode != null ? "OK" : "NULL") + ", rect: " + uiManager.btnMode);
-
-                    // ⭐ FALLBACK: Draw green rectangle as Mode button
-                    game.batch.end();
-                    shapes.begin(ShapeRenderer.ShapeType.Filled);
-                    shapes.setColor(Color.GREEN);
-                    if (uiManager.btnMode != null) {
-                        shapes.rect(uiManager.btnMode.x, uiManager.btnMode.y,
-                            uiManager.btnMode.width, uiManager.btnMode.height);
-                    }
-                    shapes.end();
-                    game.batch.begin();
-
-                    // Draw "MODE" text
-                    if (uiManager.btnMode != null) {
-                        font.setColor(Color.WHITE);
-                        font.draw(game.batch, "MODE",
-                            uiManager.btnMode.x + 70, uiManager.btnMode.y + 70);
-                    }
                 }
             } else {
                 // Draw Next button for stages 1-3
@@ -620,27 +599,6 @@ public class TowerDefenseScreen implements Screen {
                         uiManager.btnNext.x, uiManager.btnNext.y,
                         uiManager.btnNext.width, uiManager.btnNext.height);
                     game.batch.setColor(Color.WHITE);
-                } else {
-                    System.out.println("❌ DEBUG Next button NOT drawn - texture: " +
-                        (ImageLoader.BtnNext != null ? "OK" : "NULL") + ", rect: " + uiManager.btnNext);
-
-                    // ⭐ FALLBACK: Draw blue rectangle as Next button
-                    game.batch.end();
-                    shapes.begin(ShapeRenderer.ShapeType.Filled);
-                    shapes.setColor(Color.BLUE);
-                    if (uiManager.btnNext != null) {
-                        shapes.rect(uiManager.btnNext.x, uiManager.btnNext.y,
-                            uiManager.btnNext.width, uiManager.btnNext.height);
-                    }
-                    shapes.end();
-                    game.batch.begin();
-
-                    // Draw "NEXT" text
-                    if (uiManager.btnNext != null) {
-                        font.setColor(Color.WHITE);
-                        font.draw(game.batch, "NEXT STAGE",
-                            uiManager.btnNext.x + 50, uiManager.btnNext.y + 70);
-                    }
                 }
             }
         } else {

@@ -34,7 +34,8 @@ public class Enemy {
 
     /* ===== OPTIMIZATIONS: CACHED VALUES ===== */
     private final Vector2 reusableVector = new Vector2(); // ✅ Reusable untuk calculations
-    private float halfWidth, halfHeight; // ✅ Cache half dimensions
+    private final float halfWidth;
+    private final float halfHeight; // ✅ Cache half dimensions
     private Texture currentTexture; // ✅ Cache current texture
     private boolean textureDirty = true; // ✅ Flag untuk texture updates
 
@@ -61,7 +62,6 @@ public class Enemy {
     private float shootInterval;
 
     /* ===== SPECIAL BEHAVIORS ===== */
-    private boolean hasDroppedBomb = false;
     private float targetX = 0f;
     private boolean hasReachedTarget = false;
 
@@ -470,8 +470,6 @@ public class Enemy {
     }
 
     // ===== REMAINING METHODS (unchanged but optimized) =====
-    public boolean isBomber() { return type == EnemyType.BOMBER; }
-
     public BombAsset createBombAtPosition(float targetX, float targetY) {
         if (type != EnemyType.BOMBER) return null;
         return new BombAsset(
@@ -548,9 +546,5 @@ public class Enemy {
     public int getHealth() { return health; }
     public int getMaxHealth() { return maxHealth; }
     public EnemyType getType() { return type; }
-    public boolean isKnockedBack() { return isKnockedBack; }
     public EnemyState getState() { return state; }
-    public boolean isBoss() { return type == EnemyType.BOSS; }
-    public int getCurrentFrame() { return currentFrame; }
-    public float getAnimationTimer() { return animationTimer; }
 }

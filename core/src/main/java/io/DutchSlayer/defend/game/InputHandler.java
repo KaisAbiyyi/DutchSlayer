@@ -130,6 +130,7 @@ public class InputHandler extends InputAdapter {
             scheduleAction(() -> {
                 // ⭐ SELALU PLAY MAIN MENU MUSIC SAAT KEMBALI KE MENU
                 System.out.println("🎵 Win Screen: Going to menu - playing main menu music");
+                AudioManager.stopMusic();
                 AudioManager.playMainMenuMusic();
                 game.setScreen(new StageSelectionScreen(game, true));
             }, 0.1f);
@@ -141,6 +142,7 @@ public class InputHandler extends InputAdapter {
             gameState.pressButton("mode");
             scheduleAction(() -> {
                 System.out.println("🏆 Final stage completed! Going to Mode Selection...");
+                AudioManager.stopMusic();
                 AudioManager.playMainMenuMusic();
                 game.setScreen(new ModeSelectionScreen(game));
             }, 0.1f);
@@ -156,10 +158,12 @@ public class InputHandler extends InputAdapter {
                 if (gameState.currentStage < GameConstants.FINAL_STAGE) {
                     // Lanjut ke stage berikutnya - tetap tower defense music
                     System.out.println("🎵 Win Screen: Going to next stage - keeping tower defense music");
+                    AudioManager.stopMusic();
                     game.setScreen(new TowerDefenseScreen(game, gameState.currentStage + 1));
                 } else {
                     // ⭐ BACKUP: Kalau somehow masuk sini di final stage, ke mode selection
                     System.out.println("🎵 Win Screen: Final stage backup - playing main menu music");
+                    AudioManager.stopMusic();
                     AudioManager.playMainMenuMusic();
                     game.setScreen(new ModeSelectionScreen(game));
                 }
@@ -177,6 +181,7 @@ public class InputHandler extends InputAdapter {
 
             scheduleAction(() -> {
                 System.out.println("Going to Main Menu...");
+                AudioManager.stopMusic();
                 game.setScreen(new StageSelectionScreen(game, true));
             }, 0.1f);
             return true;
@@ -188,6 +193,7 @@ public class InputHandler extends InputAdapter {
 
             scheduleAction(() -> {
                 System.out.println("Restarting game...");
+                AudioManager.stopMusic();
                 screen.restartGame();
             }, 0.1f);
             return true;

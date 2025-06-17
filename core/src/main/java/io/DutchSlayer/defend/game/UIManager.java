@@ -380,8 +380,11 @@ public class UIManager {
         }
 
         layout.setText(font, stageText);
-        float stageX = (camera.viewportWidth - layout.width) / 2f;
-        float stageY = camera.viewportHeight - 20f;
+        float stageX = (camera.viewportWidth - layout.width) / 2f; // Center horizontal
+
+        // Calculate position below navbar
+        float navbarY = camera.viewportHeight - GameConstants.NAVBAR_HEIGHT;
+        float stageY = navbarY - 20f;
 
         if (gameState.currentStage == GameConstants.FINAL_STAGE) {
             font.setColor(Color.GOLD);

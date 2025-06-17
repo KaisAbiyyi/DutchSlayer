@@ -50,6 +50,7 @@ public class ImageLoader {
     public static Texture removeBtnTex;
     public static Texture hammerCursorTex;
     public static Texture PauseBtntex;
+    public static Texture explosionTex;
 
     public static Texture UITowerAOE;
     public static Texture UITowerSpeed;     // ← ADD THIS
@@ -131,6 +132,7 @@ public class ImageLoader {
         aoeProjTex = loadOrNull("Defend/Projectile/ProjectileAOE.png");
         fastProjTex= loadOrNull("Defend/Projectile/ProjectileSpeed.png");
         slowProjTex= loadOrNull("Defend/Projectile/ProjectileDefensif.png");
+        explosionTex = loadOrNull("Defend/Explosion.png");
 
         trapTex = loadOrNull("Defend/Trap/Trap.png");
         trapAttackTex = loadOrNull("Defend/Trap/TrapAttack.png");
@@ -142,7 +144,8 @@ public class ImageLoader {
         removeBtnTex = loadOrNull("Defend/Button/BtnRemove.png");
         PauseBtntex = loadOrNull("Defend/Button/BtnPause.png");
 
-        UITowerAOE = loadOrNull("Defend/UI/UITowerAOE.png");
+        UITowerAOE = loadOrNull("Defe" +
+            "nd/UI/UITowerAOE.png");
         UITowerSpeed = loadOrNull("Defend/UI/UITowerSpeed.png");       // GANTI DENGAN PATH YANG BENAR NANTI
         UITowerDefensif = loadOrNull("Defend/UI/UITowerDefend.png"); // GANTI DENGAN PATH YANG BENAR NANTI
         UITrapAttack = loadOrNull("Defend/UI/UITrapAttack.png");       // GANTI DENGAN PATH YANG BENAR NANTI
@@ -243,6 +246,7 @@ public class ImageLoader {
         if (trapAttackTex != null) trapAttackTex.dispose();
         if (trapSlowTex != null) trapSlowTex.dispose();
         if (trapBombTex != null) trapBombTex.dispose();
+        if (explosionTex != null) explosionTex.dispose();
 
         if (hammerCursorTex != null) hammerCursorTex.dispose();
         if (removeBtnTex != null) removeBtnTex.dispose();

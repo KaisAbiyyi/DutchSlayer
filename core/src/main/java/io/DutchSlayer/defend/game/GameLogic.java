@@ -50,7 +50,14 @@ public class GameLogic {
         updateWaveSpawning(delta);
         updateGoldIncome(delta);
 
-        updateBossMusicTransition();
+        if (!gameState.isGameWon && !gameState.isGameOver) {
+            updateBossMusicTransition();
+        }
+
+        // ⭐ DEBUG: Victory music validation (can be removed after testing)
+        if (gameState.isGameWon) {
+            validateVictoryMusic();
+        }
     }
 
     private void updateCooldowns(float delta) {
@@ -143,6 +150,7 @@ public class GameLogic {
                 if (t.isMain) {
                     gameState.isGameOver = true;
                     gameState.isGameWon = false;
+                    AudioManager.playDefeatMusic();
                     uiManager.setupLoseUI();
                     System.out.println("💀 MAIN TOWER DESTROYED! GAME OVER!");
                 }
@@ -165,7 +173,12 @@ public class GameLogic {
                     if (t.isDestroyed()) {
                         resetTowerZone(j);
                         gameState.towers.removeIndex(j);
-                        if (t.isMain) gameState.isGameOver = true;
+                        if (t.isMain){
+                            gameState.isGameOver = true;
+                            gameState.isGameWon = false;
+                            AudioManager.playDefeatMusic();
+                            uiManager.setupLoseUI();
+                        }
                     }
                     break;
                 }
@@ -254,6 +267,7 @@ public class GameLogic {
                     if (t.isMain) {
                         gameState.isGameOver = true;
                         gameState.isGameWon = false;
+                        AudioManager.playDefeatMusic();
                         uiManager.setupLoseUI();
                     }
                 }
@@ -347,13 +361,11 @@ public class GameLogic {
                 if (e.getType() == EnemyType.BOSS) {
                     System.out.println("👑 BOSS DEFEATED! Returning to normal music...");
 
-                    // Transition back to tower defense music
-
                     gameState.clearBossReference();
 
                     // Reset boss music flags for potential future waves
                     bossMusicTriggered = false;
-                    // Keep musicFadeStarted true untuk prevent re-triggering di wave yang sama
+                    musicFadeStarted = false;
                 } else {
                     AudioManager.playEnemyDeath(e.getType());
                 }
@@ -398,11 +410,12 @@ public class GameLogic {
                 } else {
                     gameState.isGameWon = true;
                     uiManager.setupWinUI(gameState.currentStage);
-                    if (gameState.currentStage == GameConstants.FINAL_STAGE) {
-                        System.out.println("🏆 CONGRATULATIONS! YOU COMPLETED THE FINAL STAGE! 🏆");
+                    if (AudioManager.isMusicPlaying()) {
                         AudioManager.stopMusic();
-                    } else {
-                        System.out.println("🎉 Stage " + gameState.currentStage + " completed! Ready for Stage " + (gameState.currentStage + 1));
+                    }
+                    AudioManager.playVictoryMusic();
+                    if (gameState.currentStage == GameConstants.FINAL_STAGE) {
+                        AudioManager.stopMusic();
                     }
                 }
             }
@@ -491,6 +504,11 @@ public class GameLogic {
      */
     private void updateBossMusicTransition() {
         // Hanya untuk Stage 4
+
+        if (gameState.isGameWon || gameState.isGameOver) {
+            return; // Prevent boss music interference dengan victory/defeat music
+        }
+
         if (gameState.currentStage != 4) return;
 
         // ===== TRIGGER 1: Wave 2 Complete -> Start Fade Out =====
@@ -572,6 +590,20 @@ public class GameLogic {
         System.out.println("🔄 Boss music state reset");
     }
 
+    /**
+     * ⭐ DEBUG: Method untuk validate victory music
+     */
+    private void validateVictoryMusic() {
+        if (gameState.isGameWon) {
+            if (!AudioManager.isMusicPlaying()) {
+                System.out.println("⚠️ WARNING: Game won but no music playing - triggering victory music");
+                AudioManager.playVictoryMusic();
+            } else {
+                System.out.println("✅ Victory music validation: Music is playing");
+            }
+        }
+    }
+
     public void startTowerCooldown(int towerIndex) {
         gameState.towerCooldowns[towerIndex] = GameConstants.TOWER_MAX_COOLDOWNS[towerIndex];
         gameState.towerCooldownActive[towerIndex] = true;
@@ -599,5 +631,19 @@ public class GameLogic {
             case BOSS:    return 60f;  // Elevated (imposing)
             default:      return 40f;
         }
+    }
+
+    public void resetGameMusicState() {
+        resetBossMusicState();
+
+        // Stop any victory/defeat music and return to appropriate music
+        if (AudioManager.isMusicPlaying()) {
+            AudioManager.stopMusic();
+        }
+
+        // Start tower defense music for new game
+        AudioManager.playTowerDefenseMusic();
+
+        System.out.println("🔄 Game music state reset - returning to tower defense music");
     }
 }

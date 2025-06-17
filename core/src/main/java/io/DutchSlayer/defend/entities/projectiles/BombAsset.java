@@ -1,4 +1,4 @@
-// ===== BOMB ASSET WITH PICKUP-STYLE ANIMATION =====
+// ===== INSTANT BOMB EXPLOSION - NO COUNTDOWN =====
 // File: BombAsset.java
 package io.DutchSlayer.defend.entities.projectiles;
 
@@ -7,303 +7,329 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.utils.Array;
 import io.DutchSlayer.defend.entities.towers.Tower;
+import io.DutchSlayer.defend.ui.ImageLoader;
+import io.DutchSlayer.defend.utils.AudioManager;
 
 /**
- * BombAsset dengan animasi drop seperti PickupItem - terlempar ke atas dulu, lalu jatuh
+ * BombAsset dengan instant explosion saat menyentuh tanah
  */
 public class BombAsset {
     /* ===== VISUAL COMPONENTS ===== */
-    private final Texture tex;                      // Original texture
-    private float scaledW, scaledH;                 // Visual dimensions
-    private final Rectangle bounds;                 // Collision bounds
+    private final Texture tex;
+    private float scaledW, scaledH;
+    private final Rectangle bounds;
 
     /* ===== POSITION & PHYSICS ===== */
-    private final float baseX, baseY;               // Posisi dasar (target landing)
-    private float currentX, currentY;               // Posisi saat ini
-    private float offsetY = 0f;                     // Offset dari posisi dasar (seperti PickupItem)
+    private final float baseX, baseY;
+    private float currentX, currentY;
+    private float offsetY = 0f;
 
-    /* ===== PHYSICS - SAME AS PICKUPITEM ===== */
-    private float velocityY = 150f;                 // Initial velocity ke atas (sama dengan PickupItem)
-    private float gravity = -500f;                  // Gravitasi turun (sama dengan PickupItem)
-    private boolean falling = true;                 // Masih dalam proses jatuh?
-    private boolean isLanded = false;               // Sudah mendarat di ground?
+    /* ===== PHYSICS ===== */
+    private float velocityY = 150f;
+    private float gravity = -500f;
+    private boolean falling = true;
+    private boolean isLanded = false;
 
-    /* ===== TIMING ===== */
-    private float timer = 0f;                       // Timer total sejak dibuat
-    private boolean hasExploded = false;            // Sudah meledak?
+    /* ===== INSTANT EXPLOSION ===== */
+    private boolean hasExploded = false;
+    private boolean isShowingExplosion = false;
+    private float explosionTimer = 0f;
+    private float explosionScale = 1.0f;
 
-    /* ===== VISUAL SCALING EFFECTS ===== */
-    private final float initialScale = 0.15f;       // Ukuran awal
-    private final float maxScale = 0.30f;           // Ukuran maksimal (saat mau meledak)
-    private float currentScale;                     // Ukuran saat ini
+    /* ===== VISUAL SCALING ===== */
+    private final float bombScale = 0.1f;  // ⭐ FIXED: Constant scale untuk bomb
 
-    /* ===== EXPLOSION CONSTANTS ===== */
-    private static final float EXPLODE_TIME = 3f;       // Waktu countdown setelah landing
-    private static final int DAMAGE = 2;                // Damage per tower
-    private static final float EXPLOSION_RADIUS = 250f; // Radius ledakan
-    private static final float GROUND_Y = 150f;         // Ground level (same as GROUND_Y constant)
+    /* ===== CONSTANTS - INSTANT EXPLOSION ===== */
+    private static final int DAMAGE = 2;
+    private static final float EXPLOSION_RADIUS = 250f;
+    private static final float GROUND_Y = 150f;
+    private static final float EXPLOSION_DISPLAY_TIME = 0.3f;
+    private static final float EXPLOSION_MAX_SCALE = 2.0f;
 
-    /**
-     * Constructor - Bomb dengan pickup-style drop animation
-     * @param tex Texture bomb
-     * @param dropX Posisi X tempat bomb akan jatuh (target final)
-     * @param dropY Posisi Y tempat bomb akan jatuh (biasanya GROUND_Y)
-     */
     public BombAsset(Texture tex, float dropX, float dropY) {
         this.tex = tex;
         this.baseX = dropX;
         this.baseY = dropY;
-
-        // Setup posisi awal (sama dengan target, tapi akan ter-offset ke atas)
         this.currentX = dropX;
         this.currentY = dropY;
 
-        // Setup visual scaling
-        this.currentScale = initialScale;
-        this.scaledW = tex.getWidth() * currentScale;
-        this.scaledH = tex.getHeight() * currentScale;
+        // ⭐ FIXED SCALING: No animation scaling
+        this.scaledW = tex.getWidth() * bombScale;
+        this.scaledH = tex.getHeight() * bombScale;
 
-        // Setup collision bounds
         this.bounds = new Rectangle(
             currentX - scaledW/2,
             currentY - scaledH/2,
             scaledW, scaledH
         );
 
-        System.out.println("💣 Bomb dropped with pickup-style animation!");
-        System.out.println("   Target landing: (" + dropX + ", " + dropY + ")");
-        System.out.println("   Initial velocity: " + velocityY + " (upward)");
+        System.out.println("💣 Bomb created with INSTANT explosion on ground contact!");
     }
 
-    /**
-     * 4-parameter constructor untuk backward compatibility
-     */
     public BombAsset(Texture tex, float startX, float startY, float targetX, float targetY) {
-        // Gunakan target sebagai drop position, ignore start position
         this(tex, targetX, targetY);
-        System.out.println("   Note: Using target position (" + targetX + ", " + targetY + ") as drop location");
     }
 
     /**
-     * Update bomb logic setiap frame - SAMA PERSIS SEPERTI PICKUPITEM
+     * ⭐ SIMPLIFIED: Update dengan instant explosion
      */
     public void update(float delta) {
-        if (hasExploded) return; // Skip jika sudah meledak
+        // ===== EXPLOSION UPDATE =====
+        if (isShowingExplosion) {
+            updateExplosion(delta);
+            return;
+        }
 
-        timer += delta;
+        if (hasExploded) {
+            return; // Sudah selesai
+        }
 
-        // ===== PHYSICS UPDATE - IDENTICAL TO PICKUPITEM =====
-        if (!isLanded && falling) {
-            velocityY += gravity * delta;        // Apply gravity
-            offsetY += velocityY * delta;        // Update offset
+        // ===== PHYSICS UPDATE =====
+        if (falling && !isLanded) {
+            velocityY += gravity * delta;
+            offsetY += velocityY * delta;
 
             float actualY = baseY + offsetY;
             if (actualY <= GROUND_Y) {
-                offsetY = GROUND_Y - baseY;      // Snap to ground
+                // ⭐ INSTANT EXPLOSION saat menyentuh tanah
+                offsetY = GROUND_Y - baseY;
+                currentY = baseY + offsetY;
                 falling = false;
                 isLanded = true;
-                System.out.println("💣 Bomb landed! Starting countdown...");
+
+                // ⭐ TRIGGER EXPLOSION IMMEDIATELY
+                triggerExplosion();
+
+                System.out.println("💣 Bomb hit ground and EXPLODED INSTANTLY!");
+                return;
             }
         }
 
-        // Update current position dengan offset
         currentY = baseY + offsetY;
-
-        // ===== VISUAL SCALING =====
-        updateScaling();
-
-        // ===== UPDATE VISUAL COMPONENTS =====
         updateVisuals();
     }
 
     /**
-     * Handle scaling effect berdasarkan state
+     * ⭐ NEW: Trigger explosion immediately
      */
-    private void updateScaling() {
-        if (isLanded) {
-            // Setelah mendarat: gradually membesar sampai mau meledak
-            float landedTime = timer - getFallTime();
-            if (landedTime > 0) {
-                float scaleProgress = landedTime / EXPLODE_TIME;
-                currentScale = initialScale + (maxScale - initialScale) * Math.min(1f, scaleProgress);
-            }
-        } else {
-            // Saat terbang: slight size variation berdasarkan altitude
-            float altitude = currentY - GROUND_Y;
-            float altitudeProgress = Math.max(0, altitude / 100f); // Scale based on 100px max height
-            currentScale = initialScale + (initialScale * 0.2f * altitudeProgress);
-        }
+    private void triggerExplosion() {
+        isShowingExplosion = true;
+        explosionTimer = 0f;
+        explosionScale = 1.0f;
+
+        // ⭐ PLAY EXPLOSION SOUND
+        AudioManager.playTrapExplosionHit();
+
+        // ⭐ DAMAGE TOWERS IMMEDIATELY
+        damageTowersInRadius();
+
+        System.out.println("💥 INSTANT EXPLOSION triggered!");
     }
 
     /**
-     * Update visual components berdasarkan scaling
+     * ⭐ NEW: Damage towers dalam radius
      */
-    private void updateVisuals() {
-        // Update scaled dimensions
-        scaledW = tex.getWidth() * currentScale;
-        scaledH = tex.getHeight() * currentScale;
+    private void damageTowersInRadius() {
+        // This will be called from GameLogic when shouldExplode() returns true
+        // For now, just mark that explosion should happen
+    }
 
-        // Update collision bounds
+    /**
+     * ⭐ SIMPLIFIED: Update explosion visual
+     */
+    private void updateExplosion(float delta) {
+        explosionTimer += delta;
+
+        // ⭐ SIMPLE SCALING: Cepat membesar lalu mengecil
+        float progress = explosionTimer / EXPLOSION_DISPLAY_TIME;
+
+        if (progress <= 0.3f) {
+            // Phase 1: Rapid expansion
+            float expandProgress = progress / 0.3f;
+            explosionScale = 1.0f + (EXPLOSION_MAX_SCALE - 1.0f) * expandProgress;
+        } else if (progress <= 0.7f) {
+            // Phase 2: Hold at max
+            explosionScale = EXPLOSION_MAX_SCALE;
+        } else {
+            // Phase 3: Quick fade
+            float fadeProgress = (progress - 0.7f) / 0.3f;
+            explosionScale = EXPLOSION_MAX_SCALE * (1.0f - fadeProgress);
+        }
+
+        // ⭐ EXPLOSION SELESAI
+        if (explosionTimer >= EXPLOSION_DISPLAY_TIME) {
+            hasExploded = true;
+            isShowingExplosion = false;
+            System.out.println("💥 Explosion completed!");
+        }
+    }
+
+    private void updateVisuals() {
+        // ⭐ FIXED: No scaling animation, constant size
         bounds.set(currentX - scaledW/2, currentY - scaledH/2, scaledW, scaledH);
     }
 
     /**
-     * Estimasi waktu jatuh berdasarkan physics
-     */
-    private float getFallTime() {
-        // Waktu untuk mencapai puncak: t = v₀ / g
-        float timeToPeak = 150f / 500f; // velocityY / abs(gravity)
-
-        // Estimasi total waktu jatuh (simplified)
-        return timeToPeak * 2f; // Approximately time to go up and come down
-    }
-
-    /**
-     * Check apakah bomb siap meledak
+     * ⭐ INSTANT: Check apakah bomb siap meledak (immediately after landing)
      */
     public boolean shouldExplode() {
-        if (!isLanded) return false; // Belum bisa meledak kalau masih terbang
-
-        float landedTime = timer - getFallTime();
-        return landedTime >= EXPLODE_TIME && !hasExploded;
+        return isLanded && !hasExploded && !isShowingExplosion;
     }
 
     /**
-     * Ledakkan bomb dan berikan AOE damage ke towers
+     * ⭐ UPDATED: Ledakkan bomb (called by GameLogic)
      */
     public void explode(Array<Tower> towers) {
-        if (hasExploded) return;    // Prevent double explosion
+        if (hasExploded || isShowingExplosion) return;
 
-        hasExploded = true;
-        System.out.println("💣 BOMB EXPLODED at (" + currentX + ", " + currentY + ")!");
+        System.out.println("💣 BOMB EXPLODING - damaging towers in radius!");
 
         int hitCount = 0;
 
-        // Loop semua tower untuk cek damage
+        // Damage towers dalam radius
         for (Tower tower : towers) {
-            if (tower.isDestroyed()) continue; // Skip tower yang sudah hancur
+            if (tower.isDestroyed()) continue;
 
-            // Hitung jarak dari explosion center
             float distance = (float) Math.sqrt(
                 Math.pow(currentX - tower.x, 2) + Math.pow(currentY - tower.y, 2)
             );
 
-            // Jika dalam radius explosion
             if (distance <= EXPLOSION_RADIUS) {
                 int oldHp = tower.getHealth();
                 tower.takeDamage(DAMAGE);
                 int newHp = tower.getHealth();
                 hitCount++;
-                System.out.println("💥 Tower hit! HP: " + oldHp + " → " + newHp + " (distance: " + distance + ")");
+                System.out.println("💥 Tower hit! HP: " + oldHp + " → " + newHp);
 
                 if (tower.isDestroyed()) {
-                    System.out.println("🏗️ Tower destroyed by bomb explosion!");
+                    System.out.println("🏗️ Tower destroyed by bomb!");
                 }
             }
         }
 
-        System.out.println("💥 Bomb explosion hit " + hitCount + " towers within radius " + EXPLOSION_RADIUS);
+        System.out.println("💥 Bomb hit " + hitCount + " towers");
     }
 
     /**
-     * Render bomb dengan pickup-style visual effects (no rotation)
+     * ⭐ SIMPLIFIED: Render bomb atau explosion
      */
     public void drawBatch(SpriteBatch batch) {
-        if (tex == null || hasExploded) return; // Skip jika tidak ada texture atau sudah meledak
+        if (tex == null) return;
 
-        // ===== FLYING EFFECT =====
-        if (!isLanded) {
-            // Saat terbang: transparency berdasarkan altitude (NO SPINNING)
+        // ===== EXPLOSION RENDERING =====
+        if (isShowingExplosion) {
+            drawExplosion(batch);
+            return;
+        }
+
+        // ===== NORMAL BOMB RENDERING =====
+        if (hasExploded) return;
+
+        // ⭐ SIMPLE: No flashing, no scaling animation
+        if (falling) {
+            // Flying effect
             float altitude = currentY - GROUND_Y;
-            float alpha = 0.7f + (0.3f * Math.max(0, altitude / 100f)); // More opaque at higher altitude
+            float alpha = 0.7f + (0.3f * Math.max(0, altitude / 100f));
             batch.setColor(1f, 1f, 1f, alpha);
-
-            // Draw WITHOUT rotation - simple static bomb
-            batch.draw(tex, currentX - scaledW/2, currentY - scaledH/2, scaledW, scaledH);
-        }
-        // ===== LANDED FLASHING EFFECT =====
-        else {
-            applyFlashingEffect(batch);
-
-            // Draw normal (no rotation when landed)
-            batch.draw(tex, currentX - scaledW/2, currentY - scaledH/2, scaledW, scaledH);
+        } else {
+            // Normal color (no flashing since it explodes instantly)
+            batch.setColor(1f, 1f, 1f, 1f);
         }
 
-        // Reset color ke normal
+        batch.draw(tex, currentX - scaledW/2, currentY - scaledH/2, scaledW, scaledH);
         batch.setColor(1f, 1f, 1f, 1f);
     }
 
     /**
-     * Apply flashing effect ketika bomb sudah mendarat dan hampir meledak
+     * ⭐ EXPLOSION RENDERING
      */
-    private void applyFlashingEffect(SpriteBatch batch) {
-        float landedTime = timer - getFallTime();
-        float flashThreshold = EXPLODE_TIME * 0.5f; // Mulai flash di 50% countdown
+    private void drawExplosion(SpriteBatch batch) {
+        Texture explosionTex = getExplosionTexture();
 
-        if (landedTime > flashThreshold) {
-            // Hitung flash intensity berdasarkan sisa waktu
-            float timeLeft = EXPLODE_TIME - landedTime;
-            float flashSpeed = 8f + (12f * (1f - timeLeft / (EXPLODE_TIME - flashThreshold)));
+        if (explosionTex != null) {
+            // ⭐ EXPLOSION COLOR PROGRESSION
+            float progress = explosionTimer / EXPLOSION_DISPLAY_TIME;
 
-            // Oscillating flash effect
-            float flashValue = (float) Math.sin(landedTime * flashSpeed);
-            if (flashValue > 0) {
-                // Red warning flash
-                batch.setColor(1f, 0.3f, 0.3f, 0.8f + 0.2f * flashValue);
+            if (progress <= 0.2f) {
+                batch.setColor(1.3f, 1.3f, 1.3f, 1f); // Bright white flash
+            } else if (progress <= 0.5f) {
+                batch.setColor(1f, 0.8f, 0.3f, 1f); // Orange fire
             } else {
-                // Normal color
-                batch.setColor(1f, 1f, 1f, 1f);
+                float alpha = 1f - ((progress - 0.5f) / 0.5f) * 0.7f;
+                batch.setColor(1f, 0.4f, 0.1f, alpha); // Red fade
             }
+
+            // ⭐ CALCULATE EXPLOSION SIZE
+            float explosionW = scaledW * explosionScale;
+            float explosionH = scaledH * explosionScale;
+
+            batch.draw(explosionTex,
+                currentX - explosionW/2,
+                currentY - explosionH/2,
+                explosionW, explosionH);
+
         } else {
-            // Normal appearance setelah landing
-            batch.setColor(1f, 1f, 1f, 1f);
+            // ⭐ FALLBACK: Multi-layer bomb texture
+            drawFallbackExplosion(batch);
+        }
+
+        batch.setColor(1f, 1f, 1f, 1f);
+    }
+
+    private Texture getExplosionTexture() {
+        if (ImageLoader.explosionTex != null) {
+            return ImageLoader.explosionTex;
+        }
+        return tex; // Fallback
+    }
+
+    private void drawFallbackExplosion(SpriteBatch batch) {
+        float progress = explosionTimer / EXPLOSION_DISPLAY_TIME;
+
+        // ⭐ MULTI-LAYER FALLBACK
+        for (int i = 0; i < 3; i++) {
+            float layerScale = explosionScale * (1f + i * 0.4f);
+            float layerW = scaledW * layerScale;
+            float layerH = scaledH * layerScale;
+
+            switch(i) {
+                case 0: // Inner white core
+                    batch.setColor(1.2f, 1.2f, 1.2f, 0.9f);
+                    break;
+                case 1: // Middle orange
+                    batch.setColor(1f, 0.7f, 0.2f, 0.7f);
+                    break;
+                case 2: // Outer red
+                    float alpha = (1f - progress) * 0.5f;
+                    batch.setColor(1f, 0.3f, 0.1f, alpha);
+                    break;
+            }
+
+            batch.draw(tex,
+                currentX - layerW/2,
+                currentY - layerH/2,
+                layerW, layerH);
         }
     }
 
-    /**
-     * Check apakah bomb akan damage tower tanpa benar-benar explode
-     * @param tower Tower yang akan dicek
-     * @return true jika tower dalam radius explosion
-     */
     public boolean willDamageTower(Tower tower) {
-        if (!isLanded() || hasExploded()) {
-            return false;
-        }
-
+        if (hasExploded()) return false;
         float distance = (float) Math.sqrt(
             Math.pow(baseX - tower.x, 2) + Math.pow(baseY - tower.y, 2)
         );
-
         return distance <= EXPLOSION_RADIUS;
     }
 
-    /* ===== GETTERS - COMPATIBLE WITH EXISTING CODE ===== */
+    /* ===== GETTERS ===== */
     public float getX() { return currentX; }
     public float getY() { return currentY; }
     public boolean hasExploded() { return hasExploded; }
     public boolean isLanded() { return isLanded; }
-    public boolean isFlying() { return !isLanded && !hasExploded; }
+    public boolean isFlying() { return falling; }
+    public boolean isExploding() { return isShowingExplosion; }
 
-    /**
-     * Dapatkan sisa waktu sampai meledak
-     */
-    public float getTimeLeft() {
-        if (!isLanded) return EXPLODE_TIME; // Full countdown time
-        float landedTime = timer - getFallTime();
-        return Math.max(0, EXPLODE_TIME - landedTime);
-    }
-
-    /**
-     * Dapatkan current altitude dari ground level
-     */
-    public float getAltitude() {
-        return Math.max(0, currentY - GROUND_Y);
-    }
-
-    /**
-     * Check apakah bomb masih dalam proses jatuh
-     */
-    public boolean isFalling() {
-        return falling;
-    }
+    // ⭐ SIMPLIFIED: No timer since explosion is instant
+    public float getTimeLeft() { return falling ? 1f : 0f; }
+    public float getAltitude() { return Math.max(0, currentY - GROUND_Y); }
+    public boolean isFalling() { return falling; }
 }

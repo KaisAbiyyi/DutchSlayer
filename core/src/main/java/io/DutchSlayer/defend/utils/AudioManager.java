@@ -46,7 +46,9 @@ public class AudioManager {
     public enum MusicType {
         MAIN_MENU,
         TOWER_DEFENSE,
-        BOSS_BATTLE
+        BOSS_BATTLE,
+        VICTORY,
+        DEFEAT
     }
 
     /* ===== AUDIO STORAGE ===== */
@@ -103,6 +105,9 @@ public class AudioManager {
         musicPaths.put(MusicType.MAIN_MENU, "assets/Music/MainSound.mp3");
         musicPaths.put(MusicType.TOWER_DEFENSE, "assets/Music/Backsound.mp3");
         musicPaths.put(MusicType.BOSS_BATTLE, "assets/Music/BossMusic.mp3");
+        musicPaths.put(MusicType.VICTORY, "assets/Music/VictoryMusic.mp3");
+        musicPaths.put(MusicType.DEFEAT, "assets/Music/DefeatMusic.mp3");
+
 
         // Default volume multipliers
         defaultVolumes.put(SoundType.BUILDING, 1.0f);
@@ -306,6 +311,16 @@ public class AudioManager {
     public static void playMainMenuMusic() { playMusic(MusicType.MAIN_MENU); }
     public static void playTowerDefenseMusic() { playMusic(MusicType.TOWER_DEFENSE); }
     public static void playBossMusic() { playMusic(MusicType.BOSS_BATTLE); }
+
+    public static void playVictoryMusic() {
+        playMusic(MusicType.VICTORY);
+        System.out.println("🏆 Victory music started!");
+    }
+
+    public static void playDefeatMusic() {
+        playMusic(MusicType.DEFEAT);
+        System.out.println("💀 Defeat music started!");
+    }
 
     public static void stopMusic() {
         if (currentMusic != null && currentMusic.isPlaying()) {
