@@ -2,6 +2,7 @@ package io.DutchSlayer.attack.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -16,13 +17,19 @@ public class GameOverScreen implements Screen {
     private final Main game;
     private final Stage stage;
     private final Viewport viewport;
+    private final int stageNumber;
+    private final Music backgroundMusic;
 
-    public GameOverScreen(Main game) {
+    public GameOverScreen(Main game, int stageNumber) {
         this.game = game;
         this.viewport = new FitViewport(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT);
         this.stage = new Stage(viewport);
-
+        this.stageNumber = stageNumber;
         Skin skin = new Skin(Gdx.files.internal("uiskin/uiskin.json")); // pastikan ada uiskin.json
+
+        // Load music
+        backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("backgrounds/LoseMusic.mp3"));
+        backgroundMusic.setLooping(true);
 
         Table table = new Table();
         table.setFillParent(true);
@@ -33,7 +40,7 @@ public class GameOverScreen implements Screen {
 
         retryButton.addListener(event -> {
             if (retryButton.isPressed()) {
-                game.setScreen(new GameScreen(game));
+                game.setScreen(new GameScreen(game, stageNumber));
                 return true;
             }
             return false;
@@ -62,10 +69,14 @@ public class GameOverScreen implements Screen {
 
     @Override
     public void show() {
+        // Play music when the screen is shown
+        backgroundMusic.play();
     }
 
     @Override
     public void hide() {
+        // Stop music when the screen is hidden
+        backgroundMusic.stop();
     }
 
     @Override
@@ -78,6 +89,8 @@ public class GameOverScreen implements Screen {
 
     @Override
     public void dispose() {
+        // Dispose of resources
         stage.dispose();
+        backgroundMusic.dispose();
     }
 }

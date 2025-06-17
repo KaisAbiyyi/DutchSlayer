@@ -12,7 +12,7 @@ public class Constant {
     public static final float PLAYER_SPEED = 300f;
 
     // === Map ===
-    public static final float MAP_WIDTH = 3000f;         // Lebar total map
+    public static final float MAP_WIDTH = 5000f;         // Lebar total map
     public static final float WALL_WIDTH = 32f;          // Wall kiri
     public static final float TERRAIN_HEIGHT = 84f;      // Tinggi tanah di bawah
 
@@ -31,7 +31,7 @@ public class Constant {
     public static final float TREE4_HEIGHT = 260f; // Small Tree
 
     // === Bullet ===
-    public static final float BULLET_WIDTH = 24f;
+    public static final float BULLET_WIDTH = 20f;
     public static final float BULLET_HEIGHT = 10f;
     public static final float BULLET_SPEED = 1000f;
 

@@ -1,44 +1,53 @@
 package io.DutchSlayer.attack.objects;
 
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.RandomXS128;
 import io.DutchSlayer.utils.Constant;
 
+/**
+ * Tree adalah objek statis dekoratif di environment.
+ * Dapat digenerate secara random maupun deterministik.
+ */
 public class Tree {
 
     private final float x;
     private final float y;
-    private final float width;
-    private final float height;
+    private float width;
+    private float height;
+    private final Texture texture;
 
-    public Tree(float x, float width, float height) {
+    public Tree(float x, float y, float width, float height, Texture texture) {
         this.x = x;
+        this.y = y;
         this.width = width;
         this.height = height;
-        this.y = Constant.TERRAIN_HEIGHT + 8f;
+        this.texture = texture;
     }
 
-    public static Tree generateRandom(float mapWidth) {
-        float[] possibleHeights = {
-            Constant.TREE1_HEIGHT,
-            Constant.TREE2_HEIGHT,
-            Constant.TREE3_HEIGHT,
-            Constant.TREE4_HEIGHT
-        };
-
-        float height = possibleHeights[MathUtils.random(possibleHeights.length - 1)];
-        float width = height * 0.6f; // asumsi rasio w/h default
-
-        float x = MathUtils.random(Constant.WALL_WIDTH + 100, mapWidth - width);
-
-        return new Tree(x, width, height);
+    public void render(SpriteBatch batch, float offsetX) {
+        batch.draw(texture, x - offsetX, y, width, height);
     }
 
-    public void render(ShapeRenderer shapeRenderer) {
-        shapeRenderer.setColor(0.1f, 0.5f, 0.2f, 1f); // hijau daun
-        shapeRenderer.rect(x, y, width, height);
+    public void setSize(float newWidth, float newHeight) {
+        this.width = newWidth;
+        this.height = newHeight;
     }
 
+    public static Tree generateFixed(float mapWidth, RandomXS128 rng, Texture texture) {
+        float width = 200f;   // fixed size
+        float height = 350f; // fixed size
+        float x = rng.nextFloat() * (mapWidth - width);
+        float y = Constant.TERRAIN_HEIGHT + 8f;
+        return new Tree(x, y, width, height, texture);
+    }
+
+
+    /**
+     * Deteksi jika dua pohon saling tumpang tindih horizontal.
+     */
     public boolean overlaps(Tree other) {
         return this.x < other.x + other.width &&
             this.x + this.width > other.x;
@@ -50,5 +59,9 @@ public class Tree {
 
     public float getWidth() {
         return width;
+    }
+
+    public float getHeight() {
+        return height;
     }
 }
