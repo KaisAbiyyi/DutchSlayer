@@ -32,11 +32,11 @@ public class Enemy {
     private static final float ATTACK_COOLDOWN_DURATION = 1f;
 
     /* ===== OPTIMIZATIONS: CACHED VALUES ===== */
-    private final Vector2 reusableVector = new Vector2(); // ✅ Reusable untuk calculations
+    private final Vector2 reusableVector = new Vector2();
     private final float halfWidth;
-    private final float halfHeight; // ✅ Cache half dimensions
-    private Texture currentTexture; // ✅ Cache current texture
-    private boolean textureDirty = true; // ✅ Flag untuk texture updates
+    private final float halfHeight;
+    private Texture currentTexture;
+    private boolean textureDirty = true;
 
     /* ===== VISUAL COMPONENTS ===== */
     private final Texture tex;
@@ -105,7 +105,7 @@ public class Enemy {
         this.scaledWidth = tex.getWidth() * scale;
         this.scaledHeight = tex.getHeight() * scale;
 
-        // ✅ Cache half dimensions
+        // Cache half dimensions
         this.halfWidth = scaledWidth / 2f;
         this.halfHeight = scaledHeight / 2f;
 
@@ -119,7 +119,7 @@ public class Enemy {
     }
 
     /**
-     * ✅ OPTIMIZATION: Single method untuk enemy stats initialization
+     * Single method untuk enemy stats initialization
      */
     private static class EnemyStats {
         final Texture texture;
@@ -165,7 +165,7 @@ public class Enemy {
     }
 
     /**
-     * ✅ OPTIMIZED: Animation update dengan early exit
+     *  Animation update dengan early exit
      */
     private void updateAnimation(float delta) {
         // Early exit untuk non-animated types
@@ -183,7 +183,7 @@ public class Enemy {
                 animationTimer = 0f;
                 int oldFrame = currentFrame;
                 currentFrame = (currentFrame + 1) % 4;
-                textureDirty = (oldFrame != currentFrame); // ✅ Mark texture as dirty only if changed
+                textureDirty = (oldFrame != currentFrame);
             }
         } else {
             if (currentFrame != 0) {
@@ -199,7 +199,7 @@ public class Enemy {
      */
     public void update(float delta) {
         updateEffects(delta);
-        updateAI(delta); // ✅ Simplified AI dispatch
+        updateAI(delta);
         updatePosition(delta);
 
         if (type != EnemyType.BOSS) {
@@ -208,7 +208,7 @@ public class Enemy {
     }
 
     /**
-     * ✅ OPTIMIZATION: Simplified AI dispatch
+     *  Simplified AI dispatch
      */
     private void updateAI(float delta) {
         switch(type) {
@@ -302,7 +302,7 @@ public class Enemy {
     }
 
     /**
-     * ✅ OPTIMIZED: Position update dengan cached values
+     *  Position update dengan cached values
      */
     private void updatePosition(float delta) {
         if (currentSpeed != 0f) {
@@ -312,7 +312,6 @@ public class Enemy {
                 pos.x -= currentSpeed * delta;
             }
 
-            // ✅ Use cached half dimensions
             bounds.setPosition(pos.x - halfWidth, pos.y - halfHeight);
         }
     }
@@ -500,7 +499,6 @@ public class Enemy {
         return type == EnemyType.BOSS && (hasReachedTargetPosition || state == EnemyState.STATIONARY);
     }
 
-    // ===== GETTERS =====
     public float getX() { return pos.x; }
     public float getWidth() { return scaledWidth; }
     public Rectangle getBounds() { return bounds; }

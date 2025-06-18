@@ -283,12 +283,13 @@ public class InputHandler extends InputAdapter {
                     default -> 0;
                 };
                 gameState.gold += refund;
-                gameState.towers.removeIndex(i);
 
                 // Remove dari deployed zones juga
-                if (i - 1 < gameState.deployedTowerZones.size && i > 0) {
-                    gameState.deployedTowerZones.get(i - 1).occupied = false;
+                TowerDefenseScreen.Zone zoneToReset = t.getOccupiedZone();
+                if (zoneToReset != null) {
+                    zoneToReset.occupied = false;
                 }
+                gameState.towers.removeIndex(i);
 
                 gameState.selectedType = null;
                 return true;
@@ -384,6 +385,8 @@ public class InputHandler extends InputAdapter {
 
                     Tower tower = new Tower(texture, projTexture, cx, cy, towerScale, true, false,
                         type, getTowerHP(type), getProjectileScaleForTowerType(type));
+
+                    tower.setOccupiedZone(z);
                     gameState.towers.add(tower);
                     gameState.deployedTowerZones.add(z);
                     z.occupied = true;

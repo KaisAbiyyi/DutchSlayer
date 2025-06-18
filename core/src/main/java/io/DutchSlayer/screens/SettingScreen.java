@@ -342,6 +342,10 @@ public class SettingScreen implements Screen {
                 } else {
                     Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());
                 }
+                Gdx.app.postRunnable(() -> {
+                    viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
+                    Gdx.input.setInputProcessor(stage);
+                });
             }
         });
         contentTable.add(toggleBtn)
@@ -369,7 +373,20 @@ public class SettingScreen implements Screen {
                     TowerDefenseScreen tdScreen = (TowerDefenseScreen) gameOrPreviousScreen;
                     tdScreen.gameState.isPaused = true; // Ensure the game state remains paused
                     game.setScreen(tdScreen); // Go back to the specific TD screen instance
-                    Gdx.input.setInputProcessor(tdScreen.pauseMenu.getStage()); // Set input processor for its pause menu
+                    Gdx.app.postRunnable(() -> {
+                        // Update pause menu viewport
+                        Stage pauseStage = tdScreen.pauseMenu.getStage();
+                        pauseStage.getViewport().update(
+                            Gdx.graphics.getWidth(),
+                            Gdx.graphics.getHeight(),
+                            true
+                        );
+
+                        // Set input processor
+                        Gdx.input.setInputProcessor(pauseStage);
+                        tdScreen.pauseMenu.setPaused(true);
+
+                    }); // Set input processor for its pause menu
                 } else if (gameOrPreviousScreen instanceof GameScreen) { // NEW: Handle GameScreen
                     GameScreen gsScreen = (GameScreen) gameOrPreviousScreen;
                     // GameScreen's pause logic is handled internally in render(), so just setting the screen is usually enough
@@ -416,6 +433,9 @@ public class SettingScreen implements Screen {
     @Override
     public void resize(int w, int h) {
         viewport.update(w, h, true);
+        Gdx.app.postRunnable(() -> {
+            Gdx.input.setInputProcessor(stage);
+        });
     }
 
     @Override public void pause() {}

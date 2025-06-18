@@ -36,11 +36,8 @@ public class AudioManager {
         TRAP_EXPLOSION,
 
         // Tower destruction sounds
-        TOWER_BREAK,
+        TOWER_BREAK
 
-        // Optional sounds (dapat null)
-        EXPLOSION,
-        HIT
     }
 
     public enum MusicType {
@@ -131,11 +128,8 @@ public class AudioManager {
      */
     public static void initialize() {
         if (isInitialized) {
-            System.out.println("⚠️ AudioManager: Already initialized, skipping...");
             return;
         }
-
-        System.out.println("🎵 AudioManager: Initializing audio system...");
 
         try {
             // Load all sounds
@@ -151,7 +145,6 @@ public class AudioManager {
             }
 
             isInitialized = true;
-            System.out.println("✅ AudioManager: Audio system initialized successfully!");
 
         } catch (Exception e) {
             System.err.println("❌ AudioManager: Critical error during initialization - " + e.getMessage());
@@ -166,7 +159,6 @@ public class AudioManager {
     private static Sound loadSoundSafe(String filePath, String soundName) {
         try {
             Sound sound = Gdx.audio.newSound(Gdx.files.internal(filePath));
-            System.out.println("✅ Loaded: " + soundName + " from " + filePath);
             return sound;
         } catch (Exception e) {
             System.err.println("❌ Failed to load " + soundName + " from " + filePath + ": " + e.getMessage());
@@ -181,7 +173,6 @@ public class AudioManager {
         try {
             Music music = Gdx.audio.newMusic(Gdx.files.internal(filePath));
             music.setLooping(true);
-            System.out.println("✅ Loaded: " + musicName + " from " + filePath);
             return music;
         } catch (Exception e) {
             System.err.println("❌ Failed to load " + musicName + " from " + filePath + ": " + e.getMessage());
@@ -212,13 +203,10 @@ public class AudioManager {
                 float finalVolume = masterVolume * sfxVolume * volumeMultiplier;
                 if (finalVolume > 0.0f) {
                     sound.play(finalVolume);
-                    System.out.println("🔊 Playing: " + soundType.name() + " (Volume: " + String.format("%.2f", finalVolume) + ")");
                 }
             } catch (Exception e) {
                 System.err.println("❌ Error playing " + soundType.name() + ": " + e.getMessage());
             }
-        } else {
-            System.out.println("⚠️ " + soundType.name() + " sound is null - skipping playback");
         }
     }
 
@@ -274,14 +262,12 @@ public class AudioManager {
             try {
                 // Check jika musik yang diminta sama dengan yang sedang berjalan
                 if (currentMusic == music && currentMusic.isPlaying()) {
-                    System.out.println("🎵 " + musicType.name() + " already playing - skipping restart");
                     return;
                 }
 
                 // Stop current music if different
                 if (currentMusic != null && currentMusic.isPlaying() && currentMusic != music) {
                     currentMusic.stop();
-                    System.out.println("🛑 Stopped previous music to play: " + musicType.name());
                 }
 
                 currentMusic = music;
@@ -290,13 +276,10 @@ public class AudioManager {
 
                 if (!currentMusic.isPlaying() && finalVolume > 0.0f) {
                     currentMusic.play();
-                    System.out.println("🎵 Playing: " + musicType.name() + " (Volume: " + String.format("%.2f", finalVolume) + ")");
                 }
             } catch (Exception e) {
                 System.err.println("❌ Error playing " + musicType.name() + ": " + e.getMessage());
             }
-        } else {
-            System.out.println("⚠️ " + musicType.name() + " is null - skipping playback");
         }
     }
 
@@ -306,18 +289,15 @@ public class AudioManager {
 
     public static void playVictoryMusic() {
         playMusic(MusicType.VICTORY);
-        System.out.println("🏆 Victory music started!");
     }
 
     public static void playDefeatMusic() {
         playMusic(MusicType.DEFEAT);
-        System.out.println("💀 Defeat music started!");
     }
 
     public static void stopMusic() {
         if (currentMusic != null && currentMusic.isPlaying()) {
             currentMusic.stop();
-            System.out.println("🛑 Music stopped");
         }
         currentMusic = null;
     }
@@ -332,14 +312,12 @@ public class AudioManager {
             fadeDuration = duration;
             originalVolume = currentMusic.getVolume();
             nextMusic = null;
-            System.out.println("🔉 Starting music fade out over " + duration + " seconds...");
         }
     }
 
     public static void fadeToMusic(MusicType musicType, float fadeOutDuration) {
         Music newMusic = musics.get(musicType);
         if (newMusic == null) {
-            System.out.println("⚠️ Cannot fade to null music: " + musicType.name());
             return;
         }
 
@@ -350,7 +328,6 @@ public class AudioManager {
             fadeDuration = fadeOutDuration;
             originalVolume = currentMusic.getVolume();
             nextMusic = newMusic;
-            System.out.println("🔄 Starting music transition to " + musicType.name() + " over " + fadeOutDuration + " seconds...");
         } else {
             playMusic(musicType);
         }
@@ -380,9 +357,6 @@ public class AudioManager {
                     isFadingIn = true;
                     fadeTimer = 0f;
                     originalVolume = finalVolume;
-                    System.out.println("🔊 Starting fade in for new music...");
-                } else {
-                    System.out.println("🔇 Fade out completed - music stopped");
                 }
             } else {
                 float newVolume = originalVolume * (1f - progress);
@@ -397,7 +371,6 @@ public class AudioManager {
             if (progress >= 1f) {
                 currentMusic.setVolume(originalVolume);
                 isFadingIn = false;
-                System.out.println("✅ Music transition completed!");
             } else {
                 float newVolume = originalVolume * progress;
                 currentMusic.setVolume(newVolume);
@@ -409,12 +382,10 @@ public class AudioManager {
 
     public static void setMasterVolume(float volume) {
         masterVolume = Math.max(0.0f, Math.min(1.0f, volume));
-        System.out.println("🔊 Master volume set to: " + masterVolume);
     }
 
     public static void setSfxVolume(float volume) {
         sfxVolume = Math.max(0.0f, Math.min(1.0f, volume));
-        System.out.println("🔊 SFX volume set to: " + sfxVolume);
     }
 
     public static void setMusicVolume(float volume) {
@@ -422,7 +393,6 @@ public class AudioManager {
         if (currentMusic != null) {
             currentMusic.setVolume(masterVolume * musicVolume);
         }
-        System.out.println("🔊 Music volume set to: " + musicVolume);
     }
 
     // Volume getters
@@ -436,11 +406,9 @@ public class AudioManager {
 
     public static void shutdown() {
         if (!isInitialized) {
-            System.out.println("⚠️ AudioManager: Not initialized, nothing to shutdown");
             return;
         }
 
-        System.out.println("🔄 AudioManager: Shutting down audio system...");
 
         try {
             // Dispose all sounds
@@ -448,7 +416,6 @@ public class AudioManager {
                 if (sound != null) {
                     try {
                         sound.dispose();
-                        System.out.println("✅ Disposed: " + type.name());
                     } catch (Exception e) {
                         System.err.println("❌ Error disposing " + type.name() + ": " + e.getMessage());
                     }
@@ -464,7 +431,6 @@ public class AudioManager {
                             music.stop();
                         }
                         music.dispose();
-                        System.out.println("✅ Disposed: " + type.name());
                     } catch (Exception e) {
                         System.err.println("❌ Error disposing " + type.name() + ": " + e.getMessage());
                     }
@@ -474,7 +440,6 @@ public class AudioManager {
 
             currentMusic = null;
             isInitialized = false;
-            System.out.println("✅ AudioManager: Audio system shutdown successfully!");
 
         } catch (Exception e) {
             System.err.println("❌ AudioManager: Error during shutdown - " + e.getMessage());

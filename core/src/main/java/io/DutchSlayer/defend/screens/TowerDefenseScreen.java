@@ -60,13 +60,20 @@ public class TowerDefenseScreen implements Screen {
         uiManager = new UIManager(camera, font, layout);
         gameLogic = new GameLogic(gameState, uiManager);
         inputHandler = new InputHandler(this, gameState, uiManager, camera, game);
-        this.pauseMenu = new PauseMenu(game, new FitViewport(1280, 720), font);
+        // UBAH BARIS INI: Lewatkan 'this' (instance TowerDefenseScreen) ke PauseMenu
+        this.pauseMenu = new PauseMenu(game, new FitViewport(1280, 720), font, this); //
+
         // Initialize game world
         initializeGameWorld();
 
-        // Set input processor
+        // Set input processor (This is the initial set, and needs to be re-set after pause/resume from menu)
         Gdx.input.setInputProcessor(inputHandler);
     }
+
+    public InputHandler getInputHandler() { //
+        return inputHandler; //
+    }
+
 
     private void initializeGameWorld() {
         // Initialize main tower

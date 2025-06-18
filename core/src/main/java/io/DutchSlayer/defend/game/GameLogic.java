@@ -135,16 +135,15 @@ public class GameLogic {
 
             gameState.enemies.removeIndex(enemyIndex);
         } else if (e.canAttack()) {
-            int damage = (e.getType() == EnemyType.SHIELD) ? 0 : 1;
+            int damage = 1;
 
             if (damage > 0) {
                 t.takeDamage(damage);
-                System.out.println("⚔️ Enemy attacked tower! Tower HP: " + t.getHealth());
             }
             e.knockback();
 
             if (t.isDestroyed()) {
-                resetTowerZone(towerIndex);
+                resetTowerZone(t);
                 gameState.towers.removeIndex(towerIndex);
                 if (t.isMain) {
                     gameState.isGameOver = true;
@@ -170,7 +169,7 @@ public class GameLogic {
                     hit = true;
 
                     if (t.isDestroyed()) {
-                        resetTowerZone(j);
+                        resetTowerZone(t);
                         gameState.towers.removeIndex(j);
                         if (t.isMain){
                             gameState.isGameOver = true;
@@ -261,7 +260,7 @@ public class GameLogic {
             if (towerIndex < gameState.towers.size) {
                 Tower t = gameState.towers.get(towerIndex);
                 if (t.isDestroyed()) {
-                    resetTowerZone(towerIndex);
+                    resetTowerZone(t);
                     gameState.towers.removeIndex(towerIndex);
                     if (t.isMain) {
                         gameState.isGameOver = true;
@@ -541,20 +540,18 @@ public class GameLogic {
 
     /**
      * Reset zone ketika tower hancur
-     * @param towerIndex Index tower yang hancur
+     * param destroyedTower Objek Tower yang baru saja hancur
      */
-    private void resetTowerZone(int towerIndex) {
-        if (towerIndex == 0) {
-            System.out.println("🏰 Main tower destroyed - no zone to reset");
+    private void resetTowerZone(Tower destroyedTower) {
+        if (destroyedTower.isMain) {
             return;
         }
 
-        int deployedIndex = towerIndex - 1;
+        TowerDefenseScreen.Zone zoneToReset = destroyedTower.getOccupiedZone();
 
-        if (deployedIndex >= 0 && deployedIndex < gameState.deployedTowerZones.size) {
-            TowerDefenseScreen.Zone destroyedZone = gameState.deployedTowerZones.get(deployedIndex);
-            destroyedZone.occupied = false;
-            gameState.deployedTowerZones.removeIndex(deployedIndex);
+        if (zoneToReset != null) {
+            zoneToReset.occupied = false;
+            gameState.deployedTowerZones.removeValue(zoneToReset, true);
         }
     }
 

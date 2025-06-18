@@ -13,6 +13,7 @@ import io.DutchSlayer.defend.entities.projectiles.Projectile;
 import io.DutchSlayer.defend.entities.projectiles.SlowProjectile;
 import io.DutchSlayer.defend.ui.ImageLoader;
 import io.DutchSlayer.defend.utils.AudioManager;
+import io.DutchSlayer.defend.screens.TowerDefenseScreen;
 
 /**
  * Optimized Tower class dengan sistem upgrade dan berbagai type tower
@@ -107,6 +108,8 @@ public class Tower {
     private final Vector2 tempOrigin = new Vector2();
     private final Rectangle tempBounds = new Rectangle();
 
+    private TowerDefenseScreen.Zone occupiedZone;
+
     /* ===== TOWER TYPE CONFIGS ===== */
     private static final TowerConfig[] TOWER_CONFIGS = {
         new TowerConfig(5f, 1, false),      // BASIC
@@ -172,7 +175,7 @@ public class Tower {
     }
 
     /**
-     * Optimized projectile origin calculation dengan reusable Vector2
+     *  projectile origin calculation
      */
     private Vector2 getProjectileOrigin() {
         tempOrigin.set(0, 0);
@@ -196,7 +199,7 @@ public class Tower {
     }
 
     /**
-     * Optimized targeting system dengan caching
+     * targeting
      */
     private Enemy findBestTarget(Array<Enemy> enemies) {
         if (enemies.isEmpty()) return null;
@@ -211,7 +214,7 @@ public class Tower {
     }
 
     /**
-     * Optimized update method
+     * update method
      */
     public void update(float delta, Array<Enemy> enemies, Array<Projectile> projs) {
         updateAnimation(delta);
@@ -225,7 +228,6 @@ public class Tower {
         cooldown -= delta;
         if (cooldown > 0) return;
 
-        // Update target secara berkala, bukan setiap frame
         targetCheckCooldown -= delta;
         if (targetCheckCooldown <= 0f || currentTarget == null || currentTarget.isDestroyed()) {
             currentTarget = findBestTarget(enemies);
@@ -446,8 +448,6 @@ public class Tower {
         }
     }
 
-    /* ===== OPTIMIZED GETTERS ===== */
-
     public Rectangle getBounds() {
         // Update reusable bounds object
         tempBounds.set(x - scaledW / 2, y - scaledH / 2, scaledW, scaledH);
@@ -480,8 +480,15 @@ public class Tower {
         return speedLevel;
     }
 
-    // UI helpers
     public String getUpgradeRemaining() {
         return String.valueOf(getRemainingUpgrades());
+    }
+
+    public void setOccupiedZone(TowerDefenseScreen.Zone occupiedZone) {
+        this.occupiedZone = occupiedZone;
+    }
+
+    public TowerDefenseScreen.Zone getOccupiedZone() {
+        return occupiedZone;
     }
 }
