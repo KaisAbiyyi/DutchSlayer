@@ -57,24 +57,24 @@ public class GameScreen implements Screen {
 
     private final GameRenderer renderer;
     private final GameLogicHandler logicHandler;
-    private final PauseMenu pauseMenu; //
-    private VNManager vnManager; // NEW: Visual Novel Manager
+    private final PauseMenu pauseMenu;
+    private VNManager vnManager;
     private Texture vnScene1Bg, vnScene2Bg, vnScene3Bg;
     private Texture vnScene4Bg, vnScene5Bg, vnScene6Bg, vnScene7Bg;
 
-    private final int stageNumber; //
+    private final int stageNumber;
     private final RandomXS128 rng;
     private final float mapWidth;
 
     private Texture backgroundTexture, bgTreeTexture, bgMountainTexture, terrainTexture, terrain2Texture, wallTexture;
     private Rectangle leftWall, rightWall;
 
-    private boolean isPaused = false; //
-    private boolean isGameOver = false; //
-    private boolean isPlayerRespawning = false; //
-    private boolean triggerWallTrap = false; //
-    private boolean wallsAreRising = false; //
-    private boolean bossIntroPlayed = false; //
+    private boolean isPaused = false;
+    private boolean isGameOver = false;
+    private boolean isPlayerRespawning = false;
+    private boolean triggerWallTrap = false;
+    private boolean wallsAreRising = false;
+    private boolean bossIntroPlayed = false;
 
     private final float wallRiseSpeed = 350f;
     private final float wallTargetY = Constant.TERRAIN_HEIGHT;
@@ -92,7 +92,7 @@ public class GameScreen implements Screen {
 
     public GameScreen(Main game, int stageNumber) {
         this.game = game;
-        this.stageNumber = stageNumber; //
+        this.stageNumber = stageNumber;
         this.shapeRenderer = new ShapeRenderer();
         this.spriteBatch = new SpriteBatch();
         this.font = new BitmapFont();
@@ -125,7 +125,8 @@ public class GameScreen implements Screen {
         spawnEnemies();
         this.renderer = new GameRenderer();
         this.logicHandler = new GameLogicHandler();
-        this.pauseMenu = new PauseMenu(game, uiViewport, font); //
+        // Pass 'this' (GameScreen instance) to PauseMenu
+        this.pauseMenu = new PauseMenu(game, uiViewport, font, this);
 
         this.vnManager = new VNManager(font);
         setupVNScripts();
@@ -329,17 +330,21 @@ public class GameScreen implements Screen {
         ScreenUtils.clear(0.53f, 0.81f, 0.92f, 1);
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            isPaused = !isPaused; //
-            pauseMenu.setPaused(isPaused); //
+            // Toggle paused state in GameScreen
+            isPaused = !isPaused;
+            // Tell the PauseMenu about the new state
+            pauseMenu.setPaused(isPaused);
 
-            if (isPaused) { //
-                if (backgroundMusic.isPlaying()) backgroundMusic.pause(); //
-                if (bossMusic.isPlaying()) bossMusic.pause(); //
+            if (isPaused) {
+                // When pausing, stop both musics
+                if (backgroundMusic.isPlaying()) backgroundMusic.pause();
+                if (bossMusic.isPlaying()) bossMusic.pause();
             } else {
-                if (tankBoss != null && tankBoss.isAlive()) { //
-                    if (!bossMusic.isPlaying()) bossMusic.play(); //
+                // When unpausing via ESC, resume appropriate music
+                if (tankBoss != null && tankBoss.isAlive()) {
+                    if (!bossMusic.isPlaying()) bossMusic.play();
                 } else {
-                    if (!backgroundMusic.isPlaying()) backgroundMusic.play(); //
+                    if (!backgroundMusic.isPlaying()) backgroundMusic.play();
                 }
             }
         }
@@ -351,63 +356,78 @@ public class GameScreen implements Screen {
             }
         }
 
-        if (!isDefeatSequenceActive && !isVictorySequenceActive) { //
-            logicHandler.update(this, delta); //
-        }
-
+        // --- Logic for Player Defeat / Game Over ---
         if (isGameOver() && !isDefeatSequenceActive) {
+            // This condition checks if the player is dead and a defeat sequence hasn't started yet.
+            // If tankBoss is still alive, it means player lost to boss.
             if (tankBoss != null && tankBoss.isAlive()) {
-                isDefeatSequenceActive = true;
-                switchToBossMusic();
-                setupAndTriggerBossVictoryVN();
+                isDefeatSequenceActive = true; // Player is defeated by boss, trigger defeat VN
+                switchToBossMusic(); // Keep boss music for defeat VN
+                setupAndTriggerBossVictoryVN(); // NOTE: Function name is misleading, it triggers player DEFEAT VN.
             } else {
-                // Jika game over bukan karena bos, hentikan musik latar sebelum pindah ke layar GameOver
-                if(backgroundMusic.isPlaying()) { // Periksa apakah backgroundMusic sedang bermain
-                    backgroundMusic.stop(); // Hentikan backgroundMusic
+                // Player died not by boss, or boss was already defeated (shouldn't happen here if logic is clean)
+                if(backgroundMusic.isPlaying()) {
+                    backgroundMusic.stop();
                 }
-                if(bossMusic.isPlaying()) { // Periksa apakah bossMusic sedang bermain (jika ada)
-                    bossMusic.stop(); // Hentikan bossMusic
+                if(bossMusic.isPlaying()) {
+                    bossMusic.stop();
                 }
                 game.setScreen(new GameOverScreen(game, stageNumber));
                 return;
             }
         }
 
-        if (vnManager.isActive()) { //
-            vnManager.update(delta); //
+        // --- Logic for Boss Defeated (Player Victory) ---
+        // This block handles the moment the boss dies and initiates the victory sequence including VN.
+        if (tankBoss != null && !tankBoss.isAlive() && !isVictorySequenceActive) {
+            isVictorySequenceActive = true; // Player has defeated the boss
+            victoryDelayTimer = 2.0f; // Set initial delay before transitioning to victory screen
+            if(bossMusic.isPlaying()) bossMusic.stop(); // Stop boss music on victory
+            setupAndTriggerBossDefeatedVN(); // Trigger player victory VN
+        }
 
-            spriteBatch.setProjectionMatrix(uiViewport.getCamera().combined); //
-            spriteBatch.begin(); //
-            vnManager.render(spriteBatch); //
-            spriteBatch.end(); //
+        // --- Handle Visual Novel Display (Unified Block) ---
+        // This block must be placed BEFORE game logic updates if VN should pause the game.
+        if (vnManager.isActive()) {
+            vnManager.update(delta); // Update VN state
+            spriteBatch.setProjectionMatrix(uiViewport.getCamera().combined);
+            spriteBatch.begin();
+            vnManager.render(spriteBatch); // Render VN
+            spriteBatch.end();
 
-            if (isDefeatSequenceActive && !vnManager.isActive()) { //
-                if(bossMusic.isPlaying()) bossMusic.stop(); //
-                game.setScreen(new GameOverScreen(game, stageNumber)); //
-                return;
+            // Transition after Defeat VN (if active and VN has finished)
+            if (isDefeatSequenceActive && !vnManager.isActive()) {
+                if(bossMusic.isPlaying()) bossMusic.stop();
+                game.setScreen(new GameOverScreen(game, stageNumber));
+                return; // Return after setting new screen
             }
-
+            // If VN is active (either defeat or victory VN), prevent game logic and other transitions.
             return;
         }
 
-        if (tankBoss != null && !tankBoss.isAlive() && !isVictorySequenceActive) { //
-            isVictorySequenceActive = true; //
-            victoryDelayTimer = 2.0f; //
+        // --- Game Logic Update (only if not paused, no active sequences, and no VN active) ---
+        // This block is only reached if vnManager.isActive() is FALSE
+        if (!isPaused && !isDefeatSequenceActive && !isVictorySequenceActive) {
+            logicHandler.update(this, delta);
         }
 
-        if (isVictorySequenceActive) { //
-            victoryDelayTimer -= delta; //
-            if (victoryDelayTimer <= 0) { //
-                if(bossMusic.isPlaying()) bossMusic.stop(); //
-                game.setScreen(new GameVictoryScreen(game, stageNumber)); //
-                return;
+        // --- Handle Player Victory Transition (after VN if any) ---
+        // This block is only reached if vnManager.isActive() is FALSE (due to the 'return' above)
+        if (isVictorySequenceActive) {
+            victoryDelayTimer -= delta;
+            if (victoryDelayTimer <= 0) {
+                game.setScreen(new GameVictoryScreen(game, stageNumber));
+                return; // Return after setting new screen
             }
         }
 
-        if (pauseMenu.renderIfActive(delta)) { //
-            return;
+        // --- Render Pause Menu ---
+        // This block is only reached if no VNs or direct screen transitions occurred.
+        if (pauseMenu.renderIfActive(delta)) {
+            return; // If pause menu is active, don't render game elements
         }
 
+        // --- Render Game World ---
         renderer.render(this, delta);
     }
     @Override
@@ -418,24 +438,39 @@ public class GameScreen implements Screen {
 
     @Override
     public void pause() {
+        // Pause the game when the screen is paused (e.g., app goes to background)
+        isPaused = true;
+        pauseMenu.setPaused(true);
+        if (backgroundMusic.isPlaying()) backgroundMusic.pause();
+        if (bossMusic.isPlaying()) bossMusic.pause();
     }
 
     @Override
     public void resume() {
+        // This is called when the app comes back to foreground
+        // We don't necessarily want to unpause the game automatically here.
+        // The player should still resume manually via the pause menu.
     }
 
     @Override
     public void hide() {
+        // Stop all music when screen is hidden
+        if (backgroundMusic != null) backgroundMusic.stop();
+        if (bossMusic != null) bossMusic.stop();
     }
 
     @Override
     public void show() {
+        // Ensure input processor is null when GameScreen becomes active (not showing pause menu immediately)
         Gdx.input.setInputProcessor(null);
-        // Hentikan musik yang sedang berjalan dari layar sebelumnya (misal MainMenuScreen)
-        AudioManager.stopMusic(); // NEW: Pastikan ini menghentikan semua musik dari AudioManager
+        // Stop any music playing from AudioManager (e.g., MainMenuScreen music)
+        AudioManager.stopMusic();
 
-        if (backgroundMusic != null && !backgroundMusic.isPlaying()) {
-            backgroundMusic.play();
+        // Start background music if not already playing and not currently paused
+        if (!isPaused) { // Only play if the game isn't already set to paused (e.g., coming from SettingScreen)
+            if (backgroundMusic != null && !backgroundMusic.isPlaying()) {
+                backgroundMusic.play();
+            }
         }
     }
 
@@ -474,6 +509,15 @@ public class GameScreen implements Screen {
 
         if (backgroundMusic != null) backgroundMusic.dispose();
         if (bossMusic != null) bossMusic.dispose();
+    }
+
+    // Add getters for music objects
+    public Music getBackgroundMusic() {
+        return backgroundMusic;
+    }
+
+    public Music getBossMusic() {
+        return bossMusic;
     }
 
     public VNManager getVnManager() {
@@ -650,8 +694,8 @@ public class GameScreen implements Screen {
      * returning from the SettingScreen.
      * @return The PauseMenu instance.
      */
-    public PauseMenu getPauseMenu() { //
-        return pauseMenu; //
+    public PauseMenu getPauseMenu() {
+        return pauseMenu;
     }
 
     /**
@@ -660,5 +704,9 @@ public class GameScreen implements Screen {
      */
     public void setPaused(boolean value) {
         this.isPaused = value;
+        // When unpausing, ensure input processor is returned to null (default game input)
+        if (!value) {
+            Gdx.input.setInputProcessor(null);
+        }
     }
 }

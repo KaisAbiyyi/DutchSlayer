@@ -3,19 +3,20 @@ package io.DutchSlayer.attack.screens;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.audio.Music;
-import com.badlogic.gdx.graphics.Color; // Import Color
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.Pixmap; // Import Pixmap
-import com.badlogic.gdx.graphics.Texture; // Import Texture
-import com.badlogic.gdx.graphics.g2d.BitmapFont; // Import BitmapFont
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.*;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener; // Import ClickListener
-import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable; // Import TextureRegionDrawable
-import com.badlogic.gdx.utils.viewport.FitViewport; // Mengganti ScreenViewport ke FitViewport untuk konsistensi
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
+import com.badlogic.gdx.utils.viewport.FitViewport;
 import io.DutchSlayer.Main;
 import io.DutchSlayer.screens.MainMenuScreen;
-import io.DutchSlayer.utils.Constant; // Asumsi Anda punya Constant untuk SCREEN_WIDTH/HEIGHT
+import io.DutchSlayer.screens.ModeSelectionScreen; // Import ModeSelectionScreen
+import io.DutchSlayer.utils.Constant;
 
 public class GameVictoryScreen implements Screen {
 
@@ -23,77 +24,82 @@ public class GameVictoryScreen implements Screen {
     private Stage stage;
     private Skin skin;
     private Music backgroundMusic;
-    private Texture backgroundTexture; // NEW: Background texture
-    private TextButton.TextButtonStyle customButtonStyle; // NEW: Custom button style
-    private Texture buttonUpTexture; // NEW: Texture for button up state
-    private Texture buttonDownTexture; // NEW: Texture for button down state
+    private Texture backgroundTexture;
+    private TextButton.TextButtonStyle customButtonStyle;
+    private Texture buttonUpTexture;
+    private Texture buttonDownTexture;
 
-    // Constants for button styling (copied from SettingScreen for consistency)
-    private static final int BUTTON_WIDTH = 380; // Changed from 280 to match general button in SettingScreen
-    private static final int BUTTON_HEIGHT = 100; // Changed from 80 to match general button in SettingScreen
+    private static final int BUTTON_WIDTH = 380;
+    private static final int BUTTON_HEIGHT = 100;
     private static final int OUTER_BORDER = 5;
-    private static final int INNER_PADDING = 10; // Changed from 8 to match SettingScreen
+    private static final int INNER_PADDING = 10;
     private static final int INNER_BORDER = 3;
-    private static final float FONT_SCALE = 1.8f; // For general buttons, adjust if needed
+    private static final float FONT_SCALE = 1.8f;
 
-    private final int currentStage; // Simpan currentStage dari konstruktor
+    private final int currentStage;
+    private static final int MAX_STAGE = 3; // Define your maximum stage number here
 
     public GameVictoryScreen(Main game, int currentStage) {
         this.game = game;
-        this.currentStage = currentStage; // Inisialisasi currentStage
+        this.currentStage = currentStage;
 
-        // Menggunakan FitViewport agar tampilan konsisten dengan resolusi target
         stage = new Stage(new FitViewport(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT), game.batch);
         Gdx.input.setInputProcessor(stage);
         skin = new Skin(Gdx.files.internal("uiskin/uiskin.json"));
 
-        // Load background texture
-        backgroundTexture = new Texture(Gdx.files.internal("backgrounds/Main Menu.png")); // NEW
+        backgroundTexture = new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
 
-        // Initialize custom button style
-        initializeCustomButtonStyle(); // NEW
+        initializeCustomButtonStyle();
 
-        // Load music
         backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("backgrounds/WinMusic.mp3"));
         backgroundMusic.setLooping(true);
-        backgroundMusic.setVolume(0.5f); // Atur volume musik kemenangan
+        backgroundMusic.setVolume(0.5f);
 
         Table table = new Table();
         table.setFillParent(true);
         stage.addActor(table);
 
         Label congrats = new Label("CONGRATULATIONS!", skin);
-        congrats.setFontScale(2.5f); // Perkecil sedikit agar tidak terlalu besar dengan style baru
-        // Set color to match the dark brown used in buttons/labels
-        congrats.setColor(new Color(0.25f, 0.15f, 0.05f, 1.0f)); // NEW: Set warna teks
-
+        congrats.setFontScale(2.5f);
+        congrats.setColor(new Color(0.25f, 0.15f, 0.05f, 1.0f));
 
         // Main Menu Button
-        TextButton mainMenuButton = new TextButton("MAIN MENU", customButtonStyle); // Use custom style
-        mainMenuButton.getLabel().setFontScale(FONT_SCALE); // Apply font scale
-        mainMenuButton.addListener(new ClickListener() { // Use ClickListener for consistency
+        TextButton mainMenuButton = new TextButton("MAIN MENU", customButtonStyle);
+        mainMenuButton.getLabel().setFontScale(FONT_SCALE);
+        mainMenuButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 game.setScreen(new MainMenuScreen(game));
             }
         });
 
-        // Next Stage Button
-        TextButton nextStageButton = new TextButton("NEXT STAGE", customButtonStyle); // Use custom style
-        nextStageButton.getLabel().setFontScale(FONT_SCALE); // Apply font scale
-        nextStageButton.addListener(new ClickListener() { // Use ClickListener for consistency
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                game.setScreen(new GameScreen(game, currentStage + 1));
-            }
-        });
+        TextButton nextActionButton; // Renamed for clarity
+
+        if (currentStage < MAX_STAGE) { // If not the final stage
+            nextActionButton = new TextButton("NEXT STAGE", customButtonStyle);
+            nextActionButton.getLabel().setFontScale(FONT_SCALE);
+            nextActionButton.addListener(new ClickListener() {
+                @Override
+                public void clicked(InputEvent event, float x, float y) {
+                    game.setScreen(new GameScreen(game, currentStage + 1));
+                }
+            });
+        } else { // If it is the final stage
+            nextActionButton = new TextButton("MODE SELECTION", customButtonStyle); // Change text for final stage
+            nextActionButton.getLabel().setFontScale(FONT_SCALE);
+            nextActionButton.addListener(new ClickListener() {
+                @Override
+                public void clicked(InputEvent event, float x, float y) {
+                    game.setScreen(new ModeSelectionScreen(game)); // Go to ModeSelectionScreen
+                }
+            });
+        }
 
         table.add(congrats).padBottom(40).row();
-        table.add(nextStageButton).size(BUTTON_WIDTH, BUTTON_HEIGHT).pad(10).row(); // Apply size
-        table.add(mainMenuButton).size(BUTTON_WIDTH, BUTTON_HEIGHT).pad(10); // Apply size
+        table.add(nextActionButton).size(BUTTON_WIDTH, BUTTON_HEIGHT).pad(10).row(); // Use the dynamic button
+        table.add(mainMenuButton).size(BUTTON_WIDTH, BUTTON_HEIGHT).pad(10);
     }
 
-    // NEW: Method to initialize custom button style, copied from SettingScreen
     private void initializeCustomButtonStyle() {
         Color brownBorderOuter = new Color(0.3f, 0.15f, 0.05f, 1.0f);
         Color brownOuterFillUp = new Color(0.6f, 0.4f, 0.18f, 1.0f);
@@ -201,7 +207,6 @@ public class GameVictoryScreen implements Screen {
         Gdx.gl.glClearColor(0, 0, 0.1f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // NEW: Draw background before stage
         game.batch.begin();
         game.batch.draw(backgroundTexture, 0, 0, stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
         game.batch.end();
@@ -232,9 +237,9 @@ public class GameVictoryScreen implements Screen {
     public void dispose() {
         stage.dispose();
         backgroundMusic.dispose();
-        backgroundTexture.dispose(); // NEW: Dispose background texture
-        buttonUpTexture.dispose(); // NEW: Dispose button textures
-        buttonDownTexture.dispose(); // NEW: Dispose button textures
-        skin.dispose(); // Dispose skin
+        backgroundTexture.dispose();
+        buttonUpTexture.dispose();
+        buttonDownTexture.dispose();
+        skin.dispose();
     }
 }

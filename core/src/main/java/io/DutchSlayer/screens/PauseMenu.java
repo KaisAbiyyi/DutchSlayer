@@ -1,7 +1,7 @@
 package io.DutchSlayer.screens;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Screen; // Import Screen
+import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
@@ -25,6 +25,7 @@ public class PauseMenu {
     private final Stage stage;
     private final Main game;
     private boolean paused = false;
+    private GameScreen gameScreen; // Add a reference to GameScreen
 
     private static final int BUTTON_WIDTH = 280;
     private static final int BUTTON_HEIGHT = 80;
@@ -33,8 +34,14 @@ public class PauseMenu {
     private static final int INNER_BORDER = 3;
     private static final float FONT_SCALE = 1.8f;
 
+    // Modify constructor to accept GameScreen
     public PauseMenu(Main game, Viewport viewport, BitmapFont font) {
+        this(game, viewport, font, null); // Call overloaded constructor
+    }
+
+    public PauseMenu(Main game, Viewport viewport, BitmapFont font, GameScreen gameScreen) {
         this.game = game;
+        this.gameScreen = gameScreen; // Initialize GameScreen reference
         this.stage = new Stage(viewport);
 
         // Background image
@@ -60,17 +67,29 @@ public class PauseMenu {
         resumeButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                setPaused(false); // Ini menyembunyikan PauseMenu dan mengembalikan input processor ke null
+                setPaused(false); // This hides PauseMenu and sets input processor to null
 
                 // PENTING: Set isPaused di GameState TowerDefenseScreen menjadi false
                 // agar render loop di TowerDefenseScreen tidak langsung mempause ulang
                 if (game.getScreen() instanceof TowerDefenseScreen) {
                     ((TowerDefenseScreen) game.getScreen()).gameState.isPaused = false;
                 }
-                // Tambahkan juga untuk GameScreen jika diperlukan, meskipun GameScreen punya setPaused sendiri
-                // else if (game.getScreen() instanceof GameScreen) {
-                //     ((GameScreen) game.getScreen()).setPaused(false);
-                // }
+                // *** NEW: Handle GameScreen specific unpause logic ***
+                else if (game.getScreen() instanceof GameScreen) {
+                    GameScreen gs = (GameScreen) game.getScreen();
+                    gs.setPaused(false); // Synchronize GameScreen's paused state
+                    // Resume music based on game state (boss or background)
+                    if (gs.getTankBoss() != null && gs.getTankBoss().isAlive()) {
+                        gs.switchToBossMusic();
+                    } else {
+                        // Only play if not boss music or boss is defeated
+                        // Ensure background music is set to play after resume
+                        if (!gs.getBackgroundMusic().isPlaying()) { // Check if it's not already playing
+                            gs.getBackgroundMusic().play();
+                        }
+                    }
+                    Gdx.input.setInputProcessor(null); // Ensure game input is restored
+                }
             }
         });
 
@@ -81,12 +100,10 @@ public class PauseMenu {
                 if (currentScreen instanceof TowerDefenseScreen) {
                     TowerDefenseScreen current = (TowerDefenseScreen) currentScreen;
                     game.setScreen(new SettingScreen(game, current, current.gameState.currentStage));
-                } else if (currentScreen instanceof GameScreen) { // <--- ADD THIS BLOCK
+                } else if (currentScreen instanceof GameScreen) {
                     GameScreen current = (GameScreen) currentScreen;
-                    // Pass the current GameScreen and its stage number to SettingScreen
                     game.setScreen(new SettingScreen(game, current, current.getStageNumber()));
                 }
-                // You might want to handle other game screens here too if they can access settings.
             }
         });
 
@@ -130,7 +147,7 @@ public class PauseMenu {
         Color brownOuterDown = new Color(0.48f, 0.32f, 0.12f, 1.0f);
         Color brownBorderInner = new Color(0.3f, 0.15f, 0.05f, 1.0f);
         Color brownInnerFill = new Color(0.57f, 0.38f, 0.16f, 1.0f);
-        Color brownInnerDown = new Color(0.45f, 0.28f, 0.2f, 1.0f); // Slightly adjusted for better contrast
+        Color brownInnerDown = new Color(0.45f, 0.28f, 0.2f, 1.0f);
         Color textColor = new Color(0.25f, 0.15f, 0.05f, 1.0f);
 
         Texture upTex = createButtonTexture(brownBorderOuter, brownOuterFill, brownBorderInner, brownInnerFill);
