@@ -14,47 +14,36 @@ import io.DutchSlayer.defend.entities.enemies.Enemy;
  * Menghandle movement, collision, dan basic damage - OPTIMIZED VERSION
  */
 public class Projectile {
-    /* ===== VISUAL COMPONENTS ===== */
     public final Texture tex;
     private final float scaledW;
     private final float scaledH;
     public final Rectangle bounds;
 
-    /* ===== MOVEMENT - OPTIMIZED ===== */
     private final Vector2 pos;
     private final Vector2 vel;
-    private final float halfWidth;      // Pre-calculated untuk performa
-    private final float halfHeight;     // Pre-calculated untuk performa
+    private final float halfWidth;
+    private final float halfHeight;
 
-    /* ===== COMBAT ===== */
     protected float speed;
     protected int damage;
 
-    /* ===== POOLING SUPPORT ===== */
-    private boolean active = true;      // Untuk object pooling
+    private boolean active = true;
 
-    /**
-     * Constructor master - semua parameter - OPTIMIZED
-     */
     public Projectile(Texture tex, float startX, float startY, float targetX, float scale, float customSpeed, int damage) {
         this.tex = tex;
         this.speed = customSpeed;
         this.damage = damage;
         this.pos = new Vector2(startX, startY);
 
-        // Setup sprite scaling
         this.scaledW = tex.getWidth() * scale;
         this.scaledH = tex.getHeight() * scale;
 
-        // Pre-calculate half dimensions untuk performa
         this.halfWidth = scaledW / 2f;
         this.halfHeight = scaledH / 2f;
 
-        // OPTIMIZED: Langsung set velocity tanpa object temporary
         float direction = Math.signum(targetX - startX);
         this.vel = new Vector2(direction * speed, 0f);
 
-        // Setup collision bounds (centered) - hanya sekali
         this.bounds = new Rectangle(
             pos.x - halfWidth,
             pos.y - halfHeight,
@@ -63,29 +52,15 @@ public class Projectile {
         );
     }
 
-    // Constructor overloads tetap sama...
-    public Projectile(Texture tex, float startX, float startY, float targetX, float scale, float customSpeed) {
-        this(tex, startX, startY, targetX, scale, customSpeed, 1);
-    }
-
-    public Projectile(Texture tex, float startX, float startY, float targetX, float scale, int damage) {
-        this(tex, startX, startY, targetX, scale, 400f, damage);
-    }
-
-    public Projectile(Texture tex, float startX, float startY, float targetX, float scale) {
-        this(tex, startX, startY, targetX, scale, 400f, 1);
-    }
 
     /**
      * Update projectile position - OPTIMIZED
      */
     public void update(float delta) {
-        if (!active) return; // Early exit jika tidak aktif
+        if (!active) return;
 
-        // Update posisi berdasarkan velocity
         pos.mulAdd(vel, delta);
 
-        // OPTIMIZED: Update bounds position tanpa realokasi
         bounds.x = pos.x - halfWidth;
         bounds.y = pos.y - halfHeight;
     }
@@ -98,7 +73,7 @@ public class Projectile {
 
         batch.draw(
             tex,
-            pos.x - halfWidth,  // Menggunakan pre-calculated values
+            pos.x - halfWidth,
             pos.y - halfHeight,
             scaledW,
             scaledH
@@ -106,14 +81,14 @@ public class Projectile {
     }
 
     /**
-     * Render projectile menggunakan ShapeRenderer - OPTIMIZED
+     * Render projectile menggunakan ShapeRenderer
      */
     public void drawShape(ShapeRenderer shapes) {
-        if (!active) return; // Early exit
+        if (!active) return;
 
         if (tex == null) {
             shapes.setColor(Color.YELLOW);
-            shapes.circle(pos.x, pos.y, halfWidth); // Menggunakan pre-calculated
+            shapes.circle(pos.x, pos.y, halfWidth);
         }
     }
 
@@ -125,15 +100,14 @@ public class Projectile {
     public void onHit(Array<Enemy> enemies) {
         if (!active) return;
 
-        // OPTIMIZED: Loop dengan index untuk performa lebih baik
         for (int i = 0; i < enemies.size; i++) {
             Enemy e = enemies.get(i);
             if (e.isDestroyed()) continue;
 
             if (bounds.overlaps(e.getBounds())) {
-                e.takeDamage(this.damage); // Menggunakan damage yang benar
-                this.active = false; // Mark untuk removal/pooling
-                return; // Hit confirmed, exit early
+                e.takeDamage(this.damage);
+                this.active = false;
+                return;
             }
         }
     }
@@ -147,22 +121,16 @@ public class Projectile {
         this.damage = damage;
         this.active = true;
 
-        // Reset velocity
         float direction = Math.signum(targetX - startX);
         this.vel.set(direction * speed, 0f);
 
-        // Reset bounds
         bounds.setPosition(pos.x - halfWidth, pos.y - halfHeight);
     }
 
-    /* ===== GETTERS - OPTIMIZED ===== */
     public float getX() { return pos.x; }
     public float getY() { return pos.y; }
     public Rectangle getBounds() { return bounds; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
-
-    // BARU: Getter untuk damage (berguna untuk UI/debugging)
     public int getDamage() { return damage; }
-    public float getSpeed() { return speed; }
 }

@@ -42,7 +42,7 @@ public class GameLogic {
         updateEnemies(delta);
         updateEnemyProjectiles(delta);
         updateBombs(delta);
-        updateTrapCollisions(delta);
+        updateTrapCollisions();
         updateTowerShooting(delta);
         updateProjectiles(delta);
         cleanupDeadEnemies();
@@ -204,7 +204,7 @@ public class GameLogic {
         }
     }
 
-    private void updateTrapCollisions(float delta) {
+    private void updateTrapCollisions() {
         for (int i = gameState.enemies.size - 1; i >= 0; i--) {
             Enemy e = gameState.enemies.get(i);
 
@@ -375,14 +375,13 @@ public class GameLogic {
     }
 
     private int getGoldReward(EnemyType enemyType) {
-        switch(enemyType) {
-            case BASIC: return 10;
-            case SHOOTER: return 15;
-            case BOMBER: return 12;
-            case SHIELD: return 20;
-            case BOSS: return 50;
-            default: return 10;
-        }
+        return switch (enemyType) {
+            case BASIC -> 10;
+            case SHOOTER -> 15;
+            case BOMBER -> 12;
+            case SHIELD -> 20;
+            case BOSS -> 50;
+        };
     }
 
     private void updateWaveSpawning(float delta) {
@@ -514,7 +513,7 @@ public class GameLogic {
         for (Enemy enemy : gameState.enemies) {
             if (enemy.getType() == EnemyType.BOSS && !enemy.isDestroyed()) {
                 currentBoss = enemy;
-                gameState.currentBoss = enemy; // Update reference
+                gameState.currentBoss = enemy;
                 break;
             }
         }
@@ -522,82 +521,56 @@ public class GameLogic {
         // ===== TRIGGER 2: Boss Detection and Position Monitoring =====
         // ===== STEP 2: Jika ada boss, mulai music transition =====
         if (currentBoss != null) {
-            System.out.println("👑 Boss detected at X=" + currentBoss.getX() + ", State=" + currentBoss.getState());
-
-            // ===== TRIGGER FADE OUT: Boss masuk ke range tertentu =====
             if (!musicFadeStarted && currentBoss.getX() <= 1200f) {
-                System.out.println("🎵 Boss approaching! Starting fade out...");
-                AudioManager.fadeOutCurrentMusic(2f); // 3 detik fade out
+                AudioManager.fadeOutCurrentMusic(2f);
                 musicFadeStarted = true;
             }
 
-            // ===== TRIGGER BOSS MUSIC: Boss sudah sampai target position =====
             if (musicFadeStarted && !bossMusicTriggered) {
-                // Check multiple conditions untuk ensure boss sudah dalam "battle position"
                 boolean bossInPosition = currentBoss.getX() <= 1100f ||
                     currentBoss.hasReachedTarget() ||
                     currentBoss.getState().name().equals("STATIONARY");
 
                 if (bossInPosition) {
-                    System.out.println("👑 BOSS IN BATTLE POSITION! Starting Boss Music!");
-                    AudioManager.playBossMusicWithTransition(2f); // 2 detik transition ke boss music
+                    AudioManager.playBossMusicWithTransition(2f);
                     bossMusicTriggered = true;
-
-                    // Stop the waiting message
-                    System.out.println("🎵 Boss battle music activated!");
                 }
-            }
-        } else {
-            // ===== STEP 3: Boss tidak ada, tapi masih dalam wave 3 =====
-            if (gameState.currentWave == 3 && musicFadeStarted && !bossMusicTriggered) {
-                System.out.println("🔍 Waiting for boss to spawn...");
             }
         }
     }
 
     /**
-     * ⭐ NEW METHOD: Reset zone ketika tower hancur
+     * Reset zone ketika tower hancur
      * @param towerIndex Index tower yang hancur
      */
     private void resetTowerZone(int towerIndex) {
-        // Skip main tower (index 0)
         if (towerIndex == 0) {
             System.out.println("🏰 Main tower destroyed - no zone to reset");
             return;
         }
 
-        // Calculate deployed tower index (main tower tidak masuk deployedTowerZones)
         int deployedIndex = towerIndex - 1;
 
         if (deployedIndex >= 0 && deployedIndex < gameState.deployedTowerZones.size) {
             TowerDefenseScreen.Zone destroyedZone = gameState.deployedTowerZones.get(deployedIndex);
             destroyedZone.occupied = false;
             gameState.deployedTowerZones.removeIndex(deployedIndex);
-
-            System.out.println("🔄 Zone reset for tower index " + towerIndex + " (deployed index " + deployedIndex + ")");
-        } else {
-            System.out.println("⚠️ Could not find deployed zone for tower index " + towerIndex);
         }
     }
 
-    // ===== RESET BOSS MUSIC FLAGS SAAT RESTART =====
     public void resetBossMusicState() {
         musicFadeStarted = false;
         bossMusicTriggered = false;
         gameState.clearBossReference();
-        System.out.println("🔄 Boss music state reset");
     }
 
     /**
-     * ⭐ DEBUG: Method untuk validate victory music
+     * Method untuk validate victory music
      */
     private void validateVictoryMusic() {
         if (gameState.isGameWon) {
             if (!AudioManager.isMusicPlaying()) {
-                System.out.println("⚠️ WARNING: Game won but no music playing - triggering victory music");
                 AudioManager.playVictoryMusic();
-            } else {
-                System.out.println("✅ Victory music validation: Music is playing");
             }
         }
     }
@@ -621,27 +594,12 @@ public class GameLogic {
     }
 
     private float getEnemyYOffset(EnemyType enemyType) {
-        switch(enemyType) {
-            case BASIC:   return 40f;  // Normal height
-            case SHOOTER: return 45f;  // Slightly higher (better aim)
-            case BOMBER:  return 50f;  // Higher (diving attack)
-            case SHIELD:  return 70f;  // Lower (heavy armor)
-            case BOSS:    return 60f;  // Elevated (imposing)
-            default:      return 40f;
-        }
-    }
-
-    public void resetGameMusicState() {
-        resetBossMusicState();
-
-        // Stop any victory/defeat music and return to appropriate music
-        if (AudioManager.isMusicPlaying()) {
-            AudioManager.stopMusic();
-        }
-
-        // Start tower defense music for new game
-        AudioManager.playTowerDefenseMusic();
-
-        System.out.println("🔄 Game music state reset - returning to tower defense music");
+        return switch (enemyType) {
+            case BASIC -> 40f;
+            case SHOOTER -> 45f;
+            case BOMBER -> 50f;
+            case SHIELD -> 70f;
+            case BOSS -> 60f;
+        };
     }
 }

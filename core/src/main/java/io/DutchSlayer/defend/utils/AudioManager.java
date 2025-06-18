@@ -230,33 +230,26 @@ public class AudioManager {
 
     // UI sounds
     public static void PlayBtnSound() { playSound(SoundType.BUTTON_CLICK); }
-    public static void playRemoveButtonClick() { playSound(SoundType.BUTTON_CLICK); }
-    public static void playPauseButtonClick() { playSound(SoundType.BUTTON_CLICK); }
+
     public static void PlayBtnPaper() { playSound(SoundType.NAVBAR_SELECT); }
 
-    // Combat sounds
-    public static void playTowerShoot() { playSound(SoundType.TOWER_SHOOT); }
     public static void playTowerShootWithVolume(float volume) { playSound(SoundType.TOWER_SHOOT, volume); }
-    public static void playAOEShoot() { playSound(SoundType.AOE_SHOOT); }
+
     public static void playAOEShootWithVolume(float volume) { playSound(SoundType.AOE_SHOOT, volume); }
-    public static void playSlowProjectile() { playSound(SoundType.SLOW_SHOOT); }
+
     public static void playSlowProjectileWithVolume(float volume) { playSound(SoundType.SLOW_SHOOT, volume); }
     public static void playEnemyShoot() { playSound(SoundType.ENEMY_SHOOT); }
-    public static void playEnemyShootWithVolume(float volume) { playSound(SoundType.ENEMY_SHOOT, volume); }
+
     public static void playBossShoot() { playSound(SoundType.BOSS_SHOOT); }
-    public static void playBossShootWithVolume(float volume) { playSound(SoundType.BOSS_SHOOT, volume); }
+
     public static void playEnemyDeath() { playSound(SoundType.ENEMY_DEATH); }
-    public static void playEnemyDeathWithVolume(float volume) { playSound(SoundType.ENEMY_DEATH, volume); }
 
     // Trap collision sounds
     public static void playTrapAttackHit() { playSound(SoundType.TRAP_ATTACK); }
     public static void playTrapSlowHit() { playSound(SoundType.TRAP_SLOW); }
     public static void playTrapExplosionHit() { playSound(SoundType.TRAP_EXPLOSION); }
 
-    // Tower destruction sounds
-    public static void playTowerBreak() { playSound(SoundType.TOWER_BREAK); }
     public static void playTowerRemoval() { playSound(SoundType.TOWER_BREAK, 5.0f); }
-    public static void playMainTowerDestroy() { playSound(SoundType.TOWER_BREAK, 1.0f); }
 
     // Enemy death dengan type check
     public static void playEnemyDeath(io.DutchSlayer.defend.entities.enemies.EnemyType enemyType) {
@@ -310,7 +303,6 @@ public class AudioManager {
     // Music convenience methods
     public static void playMainMenuMusic() { playMusic(MusicType.MAIN_MENU); }
     public static void playTowerDefenseMusic() { playMusic(MusicType.TOWER_DEFENSE); }
-    public static void playBossMusic() { playMusic(MusicType.BOSS_BATTLE); }
 
     public static void playVictoryMusic() {
         playMusic(MusicType.VICTORY);
@@ -328,20 +320,6 @@ public class AudioManager {
             System.out.println("🛑 Music stopped");
         }
         currentMusic = null;
-    }
-
-    public static void pauseMusic() {
-        if (currentMusic != null && currentMusic.isPlaying()) {
-            currentMusic.pause();
-            System.out.println("⏸️ Music paused");
-        }
-    }
-
-    public static void resumeMusic() {
-        if (currentMusic != null && !currentMusic.isPlaying()) {
-            currentMusic.play();
-            System.out.println("▶️ Music resumed");
-        }
     }
 
     /* ===== MUSIC TRANSITION METHODS ===== */
@@ -452,18 +430,7 @@ public class AudioManager {
     public static float getSfxVolume() { return sfxVolume; }
     public static float getMusicVolume() { return musicVolume; }
 
-    // Volume utility methods
-    public static void muteAll() { setMasterVolume(0.0f); }
-    public static void unmuteAll() { setMasterVolume(1.0f); }
-    public static boolean isMuted() { return masterVolume == 0.0f; }
     public static boolean isMusicPlaying() { return currentMusic != null && currentMusic.isPlaying(); }
-    public static boolean isTransitioning() { return isFadingOut || isFadingIn; }
-    public static float getFadeProgress() {
-        if (isFadingOut || isFadingIn) {
-            return Math.min(1f, fadeTimer / fadeDuration);
-        }
-        return 0f;
-    }
 
     /* ===== CLEANUP METHODS ===== */
 
@@ -514,23 +481,4 @@ public class AudioManager {
         }
     }
 
-    /* ===== UTILITY METHODS ===== */
-
-    public static boolean isInitialized() {
-        return isInitialized;
-    }
-
-    public static void testAllSounds() {
-        System.out.println("🎵 AudioManager: Testing loaded sounds...");
-
-        sounds.forEach((type, sound) -> {
-            System.out.println((sound != null ? "✅" : "❌") + " " + type.name() + ": " + (sound != null ? "LOADED" : "NULL"));
-        });
-
-        musics.forEach((type, music) -> {
-            System.out.println((music != null ? "✅" : "❌") + " " + type.name() + ": " + (music != null ? "LOADED" : "NULL"));
-        });
-
-        System.out.println("🎵 Sound test complete. Initialization status: " + (isInitialized ? "READY" : "NOT READY"));
-    }
 }

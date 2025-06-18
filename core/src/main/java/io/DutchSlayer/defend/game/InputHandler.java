@@ -11,8 +11,8 @@ import io.DutchSlayer.defend.entities.towers.Tower;
 import io.DutchSlayer.defend.entities.towers.TowerType;
 import io.DutchSlayer.defend.entities.traps.Trap;
 import io.DutchSlayer.defend.entities.traps.TrapType;
-import io.DutchSlayer.defend.screens.ModeSelectionScreen;
-import io.DutchSlayer.defend.screens.SettingScreen;
+import io.DutchSlayer.screens.ModeSelectionScreen;
+import io.DutchSlayer.screens.SettingScreen;
 import io.DutchSlayer.screens.StageSelectionScreen;
 import io.DutchSlayer.defend.screens.TowerDefenseScreen;
 import io.DutchSlayer.defend.ui.ImageLoader;
@@ -94,15 +94,11 @@ public class InputHandler extends InputAdapter {
         // Tower selection for UI
         for (Tower t : gameState.towers) {
             if (t.getBounds().contains(x, y)) {
-                // ⭐ CHECK: Jangan tampilkan upgrade UI untuk main tower
                 if (t.isMain) {
-                    System.out.println("🏰 Main tower clicked - no upgrade available");
-                    gameState.selectedTowerUI = null; // Clear any existing selection
+                    gameState.selectedTowerUI = null;
                     return true;
                 } else {
-                    // Hanya set selectedTowerUI untuk tower yang bukan main
                     gameState.selectedTowerUI = t;
-                    System.out.println("🔧 Tower selected for upgrade: " + t.type);
                     return true;
                 }
             }
@@ -128,12 +124,10 @@ public class InputHandler extends InputAdapter {
             AudioManager.PlayBtnPaper();
             gameState.pressButton("menu");
             scheduleAction(() -> {
-                // ⭐ SELALU PLAY MAIN MENU MUSIC SAAT KEMBALI KE MENU
-                System.out.println("🎵 Win Screen: Going to menu - playing main menu music");
                 AudioManager.stopMusic();
                 AudioManager.playMainMenuMusic();
                 game.setScreen(new StageSelectionScreen(game, true));
-            }, 0.1f);
+            });
             return true;
         }
 
@@ -141,33 +135,28 @@ public class InputHandler extends InputAdapter {
             AudioManager.PlayBtnPaper();
             gameState.pressButton("mode");
             scheduleAction(() -> {
-                System.out.println("🏆 Final stage completed! Going to Mode Selection...");
                 AudioManager.stopMusic();
                 AudioManager.playMainMenuMusic();
                 game.setScreen(new ModeSelectionScreen(game));
-            }, 0.1f);
+            });
             return true;
         }
 
-        // ⭐ HANDLE NEXT STAGE BUTTON (STAGE 1-3)
+        // HANDLE NEXT STAGE BUTTON (STAGE 1-3)
         if (uiManager.btnNext != null && uiManager.btnNext.contains(x, y)) {
             AudioManager.PlayBtnPaper();
             gameState.pressButton("next");
 
             scheduleAction(() -> {
                 if (gameState.currentStage < GameConstants.FINAL_STAGE) {
-                    // Lanjut ke stage berikutnya - tetap tower defense music
-                    System.out.println("🎵 Win Screen: Going to next stage - keeping tower defense music");
                     AudioManager.stopMusic();
                     game.setScreen(new TowerDefenseScreen(game, gameState.currentStage + 1));
                 } else {
-                    // ⭐ BACKUP: Kalau somehow masuk sini di final stage, ke mode selection
-                    System.out.println("🎵 Win Screen: Final stage backup - playing main menu music");
                     AudioManager.stopMusic();
                     AudioManager.playMainMenuMusic();
                     game.setScreen(new ModeSelectionScreen(game));
                 }
-            }, 0.1f);
+            });
             return true;
         }
         return true;
@@ -175,27 +164,23 @@ public class InputHandler extends InputAdapter {
 
     private boolean handleLoseScreen(float x, float y) {
         if (uiManager.btnMenuLose != null && uiManager.btnMenuLose.contains(x, y)) {
-            System.out.println("Going to Main Menu...");
             AudioManager.PlayBtnPaper();
             gameState.pressButton("menu");
 
             scheduleAction(() -> {
-                System.out.println("Going to Main Menu...");
                 AudioManager.stopMusic();
                 game.setScreen(new StageSelectionScreen(game, true));
-            }, 0.1f);
+            });
             return true;
         }
         if (uiManager.btnRetryLose != null && uiManager.btnRetryLose.contains(x, y)) {
-            System.out.println("Restarting game...");
             AudioManager.PlayBtnPaper();
             gameState.pressButton("retry");
 
             scheduleAction(() -> {
-                System.out.println("Restarting game...");
                 AudioManager.stopMusic();
                 screen.restartGame();
-            }, 0.1f);
+            });
             return true;
         }
         return true;
@@ -206,22 +191,15 @@ public class InputHandler extends InputAdapter {
             AudioManager.PlayBtnSound();
             gameState.pressButton("resume");
 
-            scheduleAction(() -> {
-                gameState.isPaused = false;
-                System.out.println("🎮 Game resumed!");
-            }, 0.1f);
+            scheduleAction(() -> gameState.isPaused = false);
             return true;
         }
 
         if (uiManager.btnSetting != null && uiManager.btnSetting.contains(x, y)) {
-            System.out.println("✅ SETTING button clicked!");
             AudioManager.PlayBtnSound();
             gameState.pressButton("setting");
 
-            scheduleAction(() -> {
-                System.out.println("⚙️ Opening Settings from Pause Menu...");
-                game.setScreen(new SettingScreen(game, screen, gameState.currentStage));
-            }, 0.1f);
+            scheduleAction(() -> game.setScreen(new SettingScreen(game, screen, gameState.currentStage)));
             return true;
         }
 
@@ -230,10 +208,9 @@ public class InputHandler extends InputAdapter {
             gameState.pressButton("menu");
 
             scheduleAction(() -> {
-                System.out.println("🏠 Going to Stage Selection...");
                 AudioManager.playMainMenuMusic();
                 game.setScreen(new StageSelectionScreen(game, true));
-            }, 0.1f);
+            });
             return true;
         }
 
@@ -242,7 +219,6 @@ public class InputHandler extends InputAdapter {
 
     private boolean handleTowerUpgrade(float x, float y) {
         if (gameState.selectedTowerUI == null || gameState.selectedTowerUI.isMain) {
-            System.out.println("🚫 Cannot upgrade main tower");
             gameState.selectedTowerUI = null;
             return false;
         }
@@ -263,7 +239,6 @@ public class InputHandler extends InputAdapter {
                 if (gameState.selectedTowerUI.canUpgrade() && gameState.gold >= cost) {
                     gameState.gold -= cost;
                     gameState.selectedTowerUI.upgradeAttack();
-                    System.out.println("⚔️ Tower attack upgraded!");
                 }
                 return true;
             }
@@ -272,7 +247,6 @@ public class InputHandler extends InputAdapter {
                 if (gameState.selectedTowerUI.canUpgrade() && gameState.gold >= cost) {
                     gameState.gold -= cost;
                     gameState.selectedTowerUI.upgradeDefense();
-                    System.out.println("🛡️ Tower defense upgraded!");
                 }
                 return true;
             }
@@ -281,7 +255,6 @@ public class InputHandler extends InputAdapter {
                 if (gameState.selectedTowerUI.canUpgrade() && gameState.gold >= cost) {
                     gameState.gold -= cost;
                     gameState.selectedTowerUI.upgradeSpeed();
-                    System.out.println("⚡ Tower speed upgraded!");
                 }
                 return true;
             }
@@ -297,30 +270,26 @@ public class InputHandler extends InputAdapter {
         for (int i = gameState.towers.size - 1; i >= 0; i--) {
             Tower t = gameState.towers.get(i);
             if (t.getBounds().contains(x, y)) {
-                // ⭐ PROTECTION: Jangan bisa remove main tower
                 if (t.isMain) {
-                    System.out.println("🚫 Cannot remove main tower!");
-                    gameState.selectedType = null; // Clear remove mode
+                    gameState.selectedType = null;
                     return true;
                 }
 
                 AudioManager.playTowerRemoval();
-                // Remove tower biasa
-                int refund = 0;
-                switch(t.type) {
-                    case AOE:  refund = GameConstants.TOWER1_COST / 2; break;
-                    case FAST: refund = GameConstants.TOWER2_COST / 2; break;
-                    case SLOW: refund = GameConstants.TOWER3_COST / 2; break;
-                }
+                int refund = switch (t.type) {
+                    case AOE -> GameConstants.TOWER1_COST / 2;
+                    case FAST -> GameConstants.TOWER2_COST / 2;
+                    case SLOW -> GameConstants.TOWER3_COST / 2;
+                    default -> 0;
+                };
                 gameState.gold += refund;
                 gameState.towers.removeIndex(i);
 
                 // Remove dari deployed zones juga
                 if (i - 1 < gameState.deployedTowerZones.size && i > 0) {
-                    gameState.deployedTowerZones.get(i - 1).occupied = false; // i-1 karena main tower index 0
+                    gameState.deployedTowerZones.get(i - 1).occupied = false;
                 }
 
-                System.out.println("🗑️ Tower removed! Refund: " + refund + ", Gold: " + gameState.gold);
                 gameState.selectedType = null;
                 return true;
             }
@@ -332,16 +301,14 @@ public class InputHandler extends InputAdapter {
             if (Intersector.isPointInPolygon(gameState.trapVerts.get(i), 0, gameState.trapVerts.get(i).length, x, y)
                 && tz.occupied) {
 
-                int refund = 0;
-                switch(tz.getType()) {
-                    case ATTACK:    refund = GameConstants.TRAP_ATTACK_COST / 2; break;
-                    case SLOW:      refund = GameConstants.TRAP_SLOW_COST / 2; break;
-                    case EXPLOSION: refund = GameConstants.TRAP_EXPLOSION_COST / 2; break;
-                }
+                int refund = switch (tz.getType()) {
+                    case ATTACK -> GameConstants.TRAP_ATTACK_COST / 2;
+                    case SLOW -> GameConstants.TRAP_SLOW_COST / 2;
+                    case EXPLOSION -> GameConstants.TRAP_EXPLOSION_COST / 2;
+                };
 
                 gameState.gold += refund;
                 tz.occupied = false;
-                System.out.println("Trap removed! Refund: " + refund + ", Gold: " + gameState.gold);
                 gameState.selectedType = null;
                 return true;
             }
@@ -401,7 +368,6 @@ public class InputHandler extends InputAdapter {
                                 com.badlogic.gdx.graphics.Texture texture,
                                 com.badlogic.gdx.graphics.Texture projTexture) {
         if (!screen.canDeployTower(towerIndex)) {
-            System.out.println("Tower " + type + " masih cooldown!");
             return true;
         }
 
@@ -413,7 +379,6 @@ public class InputHandler extends InputAdapter {
                     gameState.gold -= cost;
                     float cx = (z.verts[0] + z.verts[2] + z.verts[4] + z.verts[6]) / 4f;
 
-                    float zoneY = (z.verts[1] + z.verts[3] + z.verts[5] + z.verts[7]) / 4f;
                     float cy = getProperTowerY(type);
                     float towerScale = getTowerScale(type);
 
@@ -426,8 +391,6 @@ public class InputHandler extends InputAdapter {
                     screen.startTowerCooldown(towerIndex);
                     AudioManager.playTowerDeploy();
                     return true;
-                } else {
-                    System.out.println("Not enough gold! Need " + cost + ", have " + gameState.gold);
                 }
                 return true;
             }
@@ -438,8 +401,7 @@ public class InputHandler extends InputAdapter {
     private boolean deployTrap(float x, float y, TrapType trapType) {
         int trapIndex = screen.getTrapIndex(gameState.selectedType);
         if (!screen.canDeployTrap(trapIndex)) {
-            System.out.println("Trap " + trapType + " masih cooldown!");
-            return true; // Consume input tapi don't clear selection
+            return true;
         }
 
         int cost = screen.getTrapCost(gameState.selectedType);
@@ -458,7 +420,6 @@ public class InputHandler extends InputAdapter {
                 gameState.selectedType = null;
                 screen.startTrapCooldown(trapIndex);
                 AudioManager.playTrapDeploy();
-                System.out.println(trapType + " trap deployed!");
                 return true;
             }
         }
@@ -466,49 +427,46 @@ public class InputHandler extends InputAdapter {
     }
 
     private int getTowerHP(TowerType type) {
-        switch(type) {
-            case AOE: return 5;
-            case FAST: return 3;
-            case SLOW: return 10;
-            default: return 5;
-        }
+        return switch (type) {
+            case AOE -> 5;
+            case FAST -> 3;
+            case SLOW -> 10;
+            default -> 5;
+        };
     }
 
     private float getProjectileScaleForTowerType(TowerType type) {
-        switch(type) {
-            case AOE: return 0.05f;
-            case FAST: return 0.015f;
-            case SLOW: return 0.5f;
-            default: return 0.1f;
-        }
+        return switch (type) {
+            case AOE -> 0.05f;
+            case FAST -> 0.015f;
+            case SLOW -> 0.5f;
+            default -> 0.1f;
+        };
     }
 
     private float getTowerScale(TowerType type) {
-        switch(type) {
-            case AOE:   return 0.45f;  // Sedikit lebih besar karena AOE
-            case FAST:  return 0.55f;  // Kecil, karena fast attack
-            case SLOW:  return 0.2f;  // Sedang
-            case BASIC: return 0.20f;  // Main tower
-            default:    return 0.15f;
-        }
+        return switch (type) {
+            case AOE -> 0.45f;
+            case FAST -> 0.55f;
+            case SLOW -> 0.2f;
+            case BASIC -> 0.20f;
+        };
     }
 
     private float getProperTowerY(TowerType type) {
         float baseY = GameConstants.GROUND_Y + 15f;  // 15px di atas ground
-        switch(type) {
-            case AOE:   return baseY + 15f;        // AOE tower di ground level
-            case FAST:  return baseY + 5f;   // Fast tower sedikit lebih rendah
-            case SLOW:  return baseY + 40f;   // Slow tower sedikit lebih tinggi
-            default:    return baseY;
-        }
+        return switch (type) {
+            case AOE -> baseY + 15f;
+            case FAST -> baseY + 5f;
+            case SLOW -> baseY + 40f;
+            default -> baseY;
+        };
     }
 
-    private void scheduleAction(Runnable action, float delay) {
-        // Simple timer-based delayed action
+    private void scheduleAction(Runnable action) {
         new Thread(() -> {
             try {
-                Thread.sleep((int)(delay * 1000));
-                // Execute on main thread
+                Thread.sleep((int)((float) 0.1 * 1000));
                 Gdx.app.postRunnable(action);
             } catch (InterruptedException e) {
                 e.printStackTrace();

@@ -9,7 +9,6 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import io.DutchSlayer.defend.ui.ImageLoader;
-import io.DutchSlayer.defend.utils.AudioManager;
 
 /**
  * Manages all UI elements and rendering
@@ -31,8 +30,6 @@ public class UIManager {
     public final float[] navTowerW = new float[3];
     public final float[] navTrapX = new float[3];
     public final float[] navTrapW = new float[3];
-
-    public boolean upgradeButtonsValid = false;
 
     public UIManager(OrthographicCamera camera, BitmapFont font, GlyphLayout layout) {
         this.camera = camera;
@@ -79,12 +76,9 @@ public class UIManager {
     }
 
     public void setupWinUI(int currentStage) {
-        System.out.println("🔧 DEBUG setupWinUI called with stage: " + currentStage);
-        System.out.println("🔧 DEBUG FINAL_STAGE constant: " + GameConstants.FINAL_STAGE);
-
         float centerX = camera.viewportWidth / 2f;
         float centerY = camera.viewportHeight / 2f;
-        // ===== UKURAN BUTTON BERDASARKAN TEXTURE ASLI =====
+
         float buttonWidth = 203f;   // Sesuaikan dengan proporsi texture
         float buttonHeight = 132f;   // Sesuaikan dengan proporsi texture
         float buttonSpacing = 150f;  // Jarak antar button
@@ -99,13 +93,11 @@ public class UIManager {
         if (currentStage == GameConstants.FINAL_STAGE) {
             // ===== STAGE 4 (FINAL): Mode Selection Button =====
             btnMode = new Rectangle(rightButtonX, buttonY, buttonWidth, buttonHeight);
-            btnNext = null; // Clear next button
-            System.out.println("🏆 Final stage completed! Mode button setup.");
+            btnNext = null;
         } else {
             // ===== STAGE 1-3: Next Stage Button =====
             btnNext = new Rectangle(rightButtonX, buttonY, buttonWidth, buttonHeight);
             btnMode = null; // Clear mode button
-            System.out.println("🎉 Stage " + currentStage + " completed! Next button setup.");
         }
     }
 
@@ -113,14 +105,12 @@ public class UIManager {
         float centerX = camera.viewportWidth / 2f;
         float centerY = camera.viewportHeight / 2f;
 
-        // ===== UKURAN BUTTON BERDASARKAN TEXTURE ASLI =====
-        float buttonWidth = 203f;   // Sesuaikan dengan proporsi texture
-        float buttonHeight = 132f;   // Sesuaikan dengan proporsi texture
-        float buttonSpacing = 150f;  // Jarak antar button
+        float buttonWidth = 203f;
+        float buttonHeight = 132f;
+        float buttonSpacing = 150f;
 
-        float buttonY = centerY - GameConstants.UI_HEIGHT / 2f + 60f; // Posisi vertikal
+        float buttonY = centerY - GameConstants.UI_HEIGHT / 2f + 60f;
 
-        // Posisi horizontal
         float leftButtonX = centerX - buttonWidth - buttonSpacing / 2f;
         float rightButtonX = centerX + buttonSpacing / 2f;
 
@@ -129,38 +119,29 @@ public class UIManager {
     }
 
     public void setupPauseMenu(OrthographicCamera camera) {
-        float panelWidth = 590f;  // Sesuaikan dengan ukuran PauseUI.png
-        float panelHeight = 500f; // Sesuaikan dengan ukuran PauseUI.png
+        float panelWidth = 590f;
+        float panelHeight = 500f;
         float panelX = (camera.viewportWidth - panelWidth) / 2f;
         float panelY = (camera.viewportHeight - panelHeight) / 2f;
 
         pausePanel = new Rectangle(panelX, panelY, panelWidth, panelHeight);
 
-        // ===== BUTTON SPECIFICATIONS =====
-        float buttonWidth = 200f;   // Lebih lebar untuk sesuai gambar
-        float buttonHeight = 90f;   // Sesuaikan dengan tinggi button
-        float buttonSpacing = 20f;  // Jarak antar button
+        float buttonWidth = 200f;
+        float buttonHeight = 90f;
+        float buttonSpacing = 20f;
 
-        // ===== BUTTON POSITIONS (Center dan lebih ke bawah) =====
-        float buttonX = panelX + (panelWidth - buttonWidth) / 2f; // Center horizontal
+        float buttonX = panelX + (panelWidth - buttonWidth) / 2f;
 
-        // Mulai dari tengah panel, beri space untuk "Game Pause" title
         float centerY = panelY + panelHeight / 2f;
         float totalButtonsHeight = (buttonHeight * 3) + (buttonSpacing * 2);
-        float startY = centerY + (totalButtonsHeight / 2f) - 40f; // Sedikit ke atas dari center - 20f; // Sedikit ke atas dari center
+        float startY = centerY + (totalButtonsHeight / 2f) - 40f;
 
-        // Resume Button (paling atas)
         btnResume = new Rectangle(buttonX, startY - buttonHeight, buttonWidth, buttonHeight);
-
-        // Setting Button (tengah)
         btnSetting = new Rectangle(buttonX, startY - (buttonHeight * 2) - buttonSpacing, buttonWidth, buttonHeight);
-
-        // Main Menu Button (paling bawah)
         btnMenuPause = new Rectangle(buttonX, startY - (buttonHeight * 3) - (buttonSpacing * 2), buttonWidth, buttonHeight);
     }
 
     public void drawGoldUI(SpriteBatch batch, GameState gameState) {
-        float vw = camera.viewportWidth;
         float vy = camera.viewportHeight;
         float yNav = vy - GameConstants.NAVBAR_HEIGHT / 2 + 10f;
 
@@ -183,12 +164,10 @@ public class UIManager {
     }
 
     public void drawNavbarButtons(SpriteBatch batch, ShapeRenderer shapes, GameState gameState) {
-        float vw = camera.viewportWidth;
         float yNav = camera.viewportHeight - GameConstants.NAVBAR_HEIGHT / 2 + 10f;
         float buttonSize = 80f;
         float buttonY = yNav - buttonSize / 2 - 5f;
 
-        // Tower and trap textures and costs
         Texture[] towerTextures = {
             ImageLoader.UITowerAOE,
             ImageLoader.UITowerSpeed,
@@ -204,7 +183,6 @@ public class UIManager {
         int[] towerCosts = {GameConstants.TOWER1_COST, GameConstants.TOWER2_COST, GameConstants.TOWER3_COST};
         int[] trapCosts = {GameConstants.TRAP_ATTACK_COST, GameConstants.TRAP_SLOW_COST, GameConstants.TRAP_EXPLOSION_COST};
 
-        // Draw tower buttons
         for (int i = 0; i < 3; i++) {
             float x = navTowerX[i];
             boolean isOnCooldown = gameState.towerCooldownActive[i];
@@ -397,49 +375,4 @@ public class UIManager {
         batch.end();
     }
 
-    // ===== TAMBAHAN: Method untuk mengatur ukuran button secara dinamis =====
-    public void setupDynamicButtonSize() {
-        // Jika ingin ukuran button berdasarkan texture asli
-        if (ImageLoader.BtnMenu != null) {
-            float originalWidth = ImageLoader.BtnMenu.getWidth();
-            float originalHeight = ImageLoader.BtnMenu.getHeight();
-
-            // Scale factor untuk menyesuaikan dengan layar
-            float scaleFactor = 0.8f; // Sesuaikan sesuai kebutuhan
-
-            float buttonWidth = originalWidth * scaleFactor;
-            float buttonHeight = originalHeight * scaleFactor;
-
-            System.out.println("🔧 Dynamic button size: " + buttonWidth + "x" + buttonHeight);
-
-            // Update semua button size
-            updateButtonSizes(buttonWidth, buttonHeight);
-        }
-    }
-
-    private void updateButtonSizes(float buttonWidth, float buttonHeight) {
-        float centerX = camera.viewportWidth / 2f;
-        float centerY = camera.viewportHeight / 2f;
-        float buttonSpacing = 30f;
-        float buttonY = centerY - GameConstants.UI_HEIGHT / 2f + 60f;
-
-        float leftButtonX = centerX - buttonWidth - buttonSpacing / 2f;
-        float rightButtonX = centerX + buttonSpacing / 2f;
-
-        // Update Win UI buttons
-        if (btnMenuWin != null) {
-            btnMenuWin.set(leftButtonX, buttonY, buttonWidth, buttonHeight);
-        }
-        if (btnNext != null) {
-            btnNext.set(rightButtonX, buttonY, buttonWidth, buttonHeight);
-        }
-
-        // Update Lose UI buttons
-        if (btnMenuLose != null) {
-            btnMenuLose.set(leftButtonX, buttonY, buttonWidth, buttonHeight);
-        }
-        if (btnRetryLose != null) {
-            btnRetryLose.set(rightButtonX, buttonY, buttonWidth, buttonHeight);
-        }
-    }
 }

@@ -1,59 +1,74 @@
-package io.DutchSlayer.screens; // Pastikan package ini sesuai dengan struktur proyek Anda
+package io.DutchSlayer.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont; // Import BitmapFont
+import com.badlogic.gdx.graphics.Color; // Import Color
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import io.DutchSlayer.Main;
 
-// --- PERUBAHAN ---
-// Impor kedua kelas layar permainan yang relevan.
-// Pastikan path impor ini benar sesuai lokasi file Anda.
 import io.DutchSlayer.attack.screens.GameScreen;
 import io.DutchSlayer.defend.screens.TowerDefenseScreen;
 
-// Asumsi Anda memiliki kelas Constant untuk ukuran layar
 import io.DutchSlayer.utils.Constant;
 
 public class LoadingScreen implements Screen {
 
     private final Main game;
     private final int stageNumber;
-    // --- PERUBAHAN ---
-    // Tambahkan variabel untuk menyimpan mode permainan
     private final boolean isDefendMode;
 
     private Stage stage;
     private Skin skin;
     private Label loadingLabel;
+    private Texture backgroundTexture;
 
-    // Flag untuk memastikan layar permainan hanya diinisialisasi sekali
     private boolean gameScreenInitialized = false;
 
-    // --- PERUBAHAN ---
-    // Konstruktor diperbarui untuk menerima flag isDefendMode
     public LoadingScreen(Main game, int stageNumber, boolean isDefendMode) {
         this.game = game;
         this.stageNumber = stageNumber;
-        this.isDefendMode = isDefendMode; // Simpan flag-nya
+        this.isDefendMode = isDefendMode;
     }
 
     @Override
     public void show() {
         FitViewport viewport = new FitViewport(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT);
-        stage = new Stage(viewport, game.batch); // Gunakan batch dari Main jika ada
+        stage = new Stage(viewport, game.batch);
         Gdx.input.setInputProcessor(stage);
 
         skin = new Skin(Gdx.files.internal("uiskin/uiskin.json"));
+        backgroundTexture = new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
 
-        loadingLabel = new Label("Loading...", skin);
-        loadingLabel.setFontScale(2.0f);
+        // Mengambil font default dari skin untuk diubah warnanya
+        BitmapFont defaultFont = skin.getFont("default-font");
+        if (defaultFont == null) {
+            Gdx.app.error("LoadingScreen", "Default font not found in uiskin.json. Using fallback.");
+            defaultFont = new BitmapFont(); // Fallback if not found
+        }
+        // Pastikan font difilter untuk kualitas yang lebih baik saat diskalakan
+        defaultFont.getRegion().getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+
+
+        // Definisikan warna coklat gelap yang konsisten dengan tema tombol Anda
+        Color darkBrown = new Color(0.25f, 0.15f, 0.05f, 1.0f); // Warna yang sama dengan textColor di PauseMenu/SettingScreen
+
+        // Buat LabelStyle baru dengan font dan warna yang diinginkan
+        Label.LabelStyle loadingLabelStyle = new Label.LabelStyle(defaultFont, darkBrown);
+
+        // Ubah teks menjadi uppercase dan terapkan gaya baru
+        loadingLabel = new Label("LOADING...", loadingLabelStyle); // Teks UPPERCASE
+        loadingLabel.setFontScale(3.0f); // Perbesar ukuran font (sesuaikan sesuai kebutuhan Anda)
+
+        // Kembalikan posisi ke tengah layar
         loadingLabel.setPosition(
-            Constant.SCREEN_WIDTH / 2 - loadingLabel.getWidth(), // Disesuaikan agar lebih ke tengah
-            Constant.SCREEN_HEIGHT / 2 - loadingLabel.getHeight() / 2
+            (Constant.SCREEN_WIDTH - loadingLabel.getWidth()) / 2, // Tengah horizontal
+            (Constant.SCREEN_HEIGHT - loadingLabel.getHeight()) / 2 // Tengah vertikal
         );
         stage.addActor(loadingLabel);
 
@@ -65,22 +80,21 @@ public class LoadingScreen implements Screen {
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.15f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        game.batch.begin();
+        game.batch.draw(backgroundTexture, 0, 0, Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT);
+        game.batch.end();
+
         stage.act(delta);
         stage.draw();
 
         if (!gameScreenInitialized) {
             gameScreenInitialized = true;
             Gdx.app.postRunnable(() -> {
-                // --- PERUBAHAN UTAMA DI SINI ---
-                // Gunakan flag isDefendMode untuk menentukan layar mana yang akan dibuat
                 if (isDefendMode) {
-                    // Jika mode bertahan, muat TowerDefenseScreen
                     game.setScreen(new TowerDefenseScreen(game, stageNumber));
                 } else {
-                    // Jika bukan, muat GameScreen (untuk mode attack/lainnya)
                     game.setScreen(new GameScreen(game, stageNumber));
                 }
-                // Panggil dispose setelah layar baru di-set untuk membersihkan resource LoadingScreen
                 dispose();
             });
         }
@@ -107,6 +121,9 @@ public class LoadingScreen implements Screen {
         }
         if (skin != null) {
             skin.dispose();
+        }
+        if (backgroundTexture != null) {
+            backgroundTexture.dispose();
         }
     }
 }

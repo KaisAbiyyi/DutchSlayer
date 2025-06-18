@@ -1,7 +1,6 @@
 package io.DutchSlayer.defend.ui;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.Cursor;
 import com.badlogic.gdx.graphics.Texture;
 import io.DutchSlayer.defend.entities.towers.TowerType;
 
@@ -180,45 +179,12 @@ public class ImageLoader {
      * Helper methods untuk mendapatkan tower animation frames
      */
     public static Texture[] getTowerAnimationFrames(TowerType type) {
-        switch(type) {
-            case AOE:
-                return towerAOEFrames;
-            case FAST:
-                return towerSpeedFrames;
-            case SLOW:
-                return towerDefensifFrames;
-            default:
-                return null; // No animation for other types
-        }
-    }
-
-    /**
-     * Get shooting frame untuk tower type tertentu
-     */
-    public static Texture getTowerShootingFrame(TowerType type) {
-        Texture[] frames = getTowerAnimationFrames(type);
-        if (frames != null && frames.length > 1 && frames[1] != null) {
-            return frames[1];
-        }
-        return null; // Fallback to normal texture
-    }
-
-    /**
-     * Get normal frame untuk tower type tertentu
-     */
-    public static Texture getTowerNormalFrame(TowerType type) {
-        Texture[] frames = getTowerAnimationFrames(type);
-        if (frames != null && frames.length > 0 && frames[0] != null) {
-            return frames[0];
-        }
-
-        // Fallback ke basic textures
-        switch(type) {
-            case AOE: return tower1Tex;
-            case FAST: return tower2Tex;
-            case SLOW: return tower3Tex;
-            default: return null;
-        }
+        return switch (type) {
+            case AOE -> towerAOEFrames;
+            case FAST -> towerSpeedFrames;
+            case SLOW -> towerDefensifFrames;
+            default -> null; // No animation for other types
+        };
     }
 
 
@@ -271,46 +237,46 @@ public class ImageLoader {
         if (SettingBtn != null) SettingBtn.dispose();
         if (BtnMode != null) BtnMode.dispose();
 
-        for (int i = 0; i < enemyBasicFrames.length; i++) {
-            if (enemyBasicFrames[i] != null) {
-                enemyBasicFrames[i].dispose();
+        for (Texture enemyBasicFrame : enemyBasicFrames) {
+            if (enemyBasicFrame != null) {
+                enemyBasicFrame.dispose();
             }
         }
 
-        for (int i = 0; i < enemyShieldFrames.length; i++) {
-            if (enemyShieldFrames[i] != null) {
-                enemyShieldFrames[i].dispose();
+        for (Texture enemyShieldFrame : enemyShieldFrames) {
+            if (enemyShieldFrame != null) {
+                enemyShieldFrame.dispose();
             }
         }
 
-        for (int i = 0; i < enemyShooterFrames.length; i++) {
-            if (enemyShooterFrames[i] != null) {
-                enemyShooterFrames[i].dispose();
+        for (Texture enemyShooterFrame : enemyShooterFrames) {
+            if (enemyShooterFrame != null) {
+                enemyShooterFrame.dispose();
             }
         }
 
-        for (int i = 0; i < enemyBomberFrames.length; i++) {
-            if (enemyBomberFrames[i] != null) {
-                enemyBomberFrames[i].dispose();
+        for (Texture enemyBomberFrame : enemyBomberFrames) {
+            if (enemyBomberFrame != null) {
+                enemyBomberFrame.dispose();
             }
         }
 
-        for (int i = 0; i < towerAOEFrames.length; i++) {
-            if (towerAOEFrames[i] != null) {
-                towerAOEFrames[i].dispose();
+        for (Texture towerAOEFrame : towerAOEFrames) {
+            if (towerAOEFrame != null) {
+                towerAOEFrame.dispose();
             }
         }
 
-        for (int i = 0; i < towerSpeedFrames.length; i++) {
-            if (towerSpeedFrames[i] != null) {
-                towerSpeedFrames[i].dispose();
+        for (Texture towerSpeedFrame : towerSpeedFrames) {
+            if (towerSpeedFrame != null) {
+                towerSpeedFrame.dispose();
             }
         }
 
         // ⭐ ADD DISPOSAL UNTUK DEFENSIF FRAMES
-        for (int i = 0; i < towerDefensifFrames.length; i++) {
-            if (towerDefensifFrames[i] != null) {
-                towerDefensifFrames[i].dispose();
+        for (Texture towerDefensifFrame : towerDefensifFrames) {
+            if (towerDefensifFrame != null) {
+                towerDefensifFrame.dispose();
             }
         }
     }

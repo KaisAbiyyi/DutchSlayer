@@ -92,7 +92,7 @@ public class Enemy {
         this.currentFrame = 0;
 
         // ===== OPTIMIZED INITIALIZATION =====
-        EnemyStats stats = getEnemyStats(type); // ✅ Single method untuk stats
+        EnemyStats stats = getEnemyStats(type);
         this.tex = stats.texture;
         this.health = stats.health;
         this.baseSpeed = stats.speed;
@@ -318,13 +318,13 @@ public class Enemy {
     }
 
     /**
-     * ✅ OPTIMIZED: Shooting dengan reusable vector
+     * Shooting dengan reusable vector
      */
     private void shoot() {
         if (towersRef == null || towersRef.isEmpty() || enemyProjectilesRef == null) return;
 
         AudioManager.playEnemyShoot();
-        getProjectileOrigin(reusableVector); // ✅ Reuse vector instead of creating new
+        getProjectileOrigin(reusableVector);
 
         EnemyProjectile projectile = EnemyProjectile.createShooterProjectile(
             ImageLoader.enemyProjectileTex,
@@ -333,14 +333,12 @@ public class Enemy {
             1
         );
         enemyProjectilesRef.add(projectile);
-        // ✅ Removed debug print untuk performance
     }
 
     private void shootBoss() {
         if (towersRef == null || towersRef.isEmpty() || enemyProjectilesRef == null) return;
 
         AudioManager.playBossShoot();
-        getProjectileOrigin(reusableVector); // ✅ Reuse vector
 
         EnemyProjectile projectile = EnemyProjectile.createBossProjectile(
             ImageLoader.enemyProjectileTex != null ? ImageLoader.enemyProjectileTex : ImageLoader.projTex,
@@ -349,11 +347,10 @@ public class Enemy {
             3
         );
         enemyProjectilesRef.add(projectile);
-        // ✅ Removed debug print
     }
 
     /**
-     * ✅ OPTIMIZED: No object creation, use passed vector
+     *  No object creation, use passed vector
      */
     private void getProjectileOrigin(Vector2 result) {
         switch(type) {
@@ -370,11 +367,11 @@ public class Enemy {
     }
 
     /**
-     * ✅ OPTIMIZED: Texture caching sistem
+     *  Texture caching sistem
      */
     private Texture getCurrentTexture() {
         if (!textureDirty && currentTexture != null) {
-            return currentTexture; // ✅ Return cached texture
+            return currentTexture;
         }
 
         // Update texture only when dirty
@@ -397,7 +394,7 @@ public class Enemy {
     }
 
     /**
-     * ✅ OPTIMIZATION: Single method untuk frame arrays
+     *  Single method untuk frame arrays
      */
     private Texture[] getFramesArray() {
         return switch (type) {
@@ -410,7 +407,7 @@ public class Enemy {
     }
 
     /**
-     * ✅ OPTIMIZED: Rendering dengan cached values
+     *  Rendering dengan cached values
      */
     public void drawBatch(SpriteBatch batch) {
         if (tex != null) {
@@ -423,7 +420,6 @@ public class Enemy {
                 batch.setColor(1f, 1f, 1f, 1f);
             }
 
-            // ✅ Use cached half dimensions
             batch.draw(
                 getCurrentTexture(),
                 pos.x - halfWidth,
@@ -446,7 +442,6 @@ public class Enemy {
                 shapes.setColor(Color.RED);
             }
 
-            // ✅ Use cached half width as radius
             shapes.circle(pos.x, pos.y, halfWidth);
         }
     }
@@ -469,7 +464,6 @@ public class Enemy {
 
         if (nearestShield != null && pos.x < nearestShield.pos.x) {
             pos.x = nearestShield.pos.x + 30f;
-            // ✅ Removed debug print
         }
     }
 

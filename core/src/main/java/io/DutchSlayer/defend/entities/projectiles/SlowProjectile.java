@@ -1,4 +1,3 @@
-// SlowProjectile.java - OPTIMIZED VERSION
 package io.DutchSlayer.defend.entities.projectiles;
 
 import com.badlogic.gdx.graphics.Texture;
@@ -10,8 +9,8 @@ import io.DutchSlayer.defend.entities.enemies.Enemy;
  * Bisa juga memberikan damage (opsional) - OPTIMIZED VERSION
  */
 public class SlowProjectile extends Projectile {
-    private final float slowDuration;   // Durasi slow effect (detik)
-    private final int slowDamage;       // Damage tambahan (opsional)
+    private final float slowDuration;
+    private final int slowDamage;
 
     /**
      * Constructor lengkap dengan damage - OPTIMIZED
@@ -37,30 +36,26 @@ public class SlowProjectile extends Projectile {
     }
 
     /**
-     * Override method dari parent class - OPTIMIZED
+     * Override method dari parent class
      * Return type VOID untuk compatibility, dengan optimasi performa
      */
     @Override
     public void onHit(Array<Enemy> enemies) {
-        if (!isActive()) return; // Early exit jika tidak aktif
+        if (!isActive()) return;
 
-        // OPTIMIZED: Loop dengan index untuk performa lebih baik
         for (int i = 0; i < enemies.size; i++) {
             Enemy e = enemies.get(i);
             if (e.isDestroyed()) continue;
 
             if (getBounds().overlaps(e.getBounds())) {
-                // Berikan efek slow
                 e.slow(slowDuration);
 
-                // Berikan damage jika ada
                 if (slowDamage > 0) {
                     e.takeDamage(slowDamage);
                 }
 
-                // Mark projectile sebagai tidak aktif untuk removal/pooling
                 setActive(false);
-                return; // Hit confirmed, exit early
+                return;
             }
         }
     }
@@ -71,8 +66,6 @@ public class SlowProjectile extends Projectile {
     public void reset(float startX, float startY, float targetX,
                       float customSpeed, int damage) {
         super.reset(startX, startY, targetX, customSpeed, damage);
-        // slowDuration adalah final, jadi tidak bisa direset
-        // Untuk full pooling, perlu refactor menjadi non-final
     }
 
 }

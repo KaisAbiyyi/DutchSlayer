@@ -116,7 +116,6 @@ public class GameState {
         currentBoss = null;
         isBossIntroduction = false;
         bossIntroTimer = 0f;
-        System.out.println("🔄 Boss reference cleared");
     }
 
     // Method untuk reset semua button states
@@ -172,6 +171,5 @@ public class GameState {
         }
 
         buttonPressTimer = BUTTON_PRESS_DURATION;
-        System.out.println("🔘 Button pressed: " + buttonType);
     }
 }

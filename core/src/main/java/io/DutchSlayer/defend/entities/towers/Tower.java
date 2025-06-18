@@ -27,7 +27,6 @@ import io.DutchSlayer.defend.utils.AudioManager;
 public class Tower {
 
     /* ===== STATIC CONSTANTS & PRE-CALCULATED VALUES ===== */
-    private static final boolean DEBUG_MODE = false;
     private static final int MAX_TOTAL_UPGRADES = 10;
     private static final float ANIMATION_DURATION = 0.2f;
     private static final float IDLE_ANIMATION_SPEED = 0.6f;
@@ -290,7 +289,6 @@ public class Tower {
             isAnimating = true;
             animationTimer = 0f;
             textureNeedsUpdate = true;
-            debugPrint("🎬 " + type + " tower shooting animation!");
         }
     }
 
@@ -386,8 +384,6 @@ public class Tower {
 
         int damageBonus = (type == TowerType.AOE) ? 2 : 1;
         damage = baseDamage + (attackLevel * damageBonus);
-
-        debugPrint("⚔️ Attack upgraded! Level: " + attackLevel + ", Damage: " + damage);
     }
 
     /**
@@ -402,8 +398,6 @@ public class Tower {
         int healthIncrease = defenseLevel * 2;
         int newMaxHealth = baseHealth + healthIncrease;
         health = Math.min(health + 2, newMaxHealth);
-
-        debugPrint("🛡️ Defense upgraded! Level: " + defenseLevel + ", Health: " + health + "/" + newMaxHealth);
     }
 
     /**
@@ -422,8 +416,6 @@ public class Tower {
         };
 
         fireRate = Math.max(MIN_FIRE_RATE, baseFireRate - (speedLevel * speedBonus));
-
-        debugPrint("⚡ Speed upgraded! Level: " + speedLevel + ", Fire rate: " + fireRate + "s");
     }
 
     /**
@@ -491,13 +483,5 @@ public class Tower {
     // UI helpers
     public String getUpgradeRemaining() {
         return String.valueOf(getRemainingUpgrades());
-    }
-
-    /* ===== DEBUG UTILITY ===== */
-
-    private void debugPrint(String message) {
-        if (DEBUG_MODE) {
-            System.out.println(message);
-        }
     }
 }

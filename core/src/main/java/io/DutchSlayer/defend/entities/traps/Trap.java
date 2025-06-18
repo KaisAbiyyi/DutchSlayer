@@ -23,13 +23,6 @@ public class Trap {
 
     private static final boolean SINGLE_USE = true;     // Trap hilang setelah sekali pakai
 
-    // ===== TRAP STATS PER TYPE =====
-    // Attack Trap: Damage + Light Slow
-
-    // Slow Trap: Heavy Slow (almost freeze)
-    // 90% speed reduction
-
-
     /**
      * Constructor untuk membuat trap dengan type tertentu
      * @param verts Vertex array untuk hit-zone polygon
@@ -109,11 +102,8 @@ public class Trap {
      * Render trap dengan visual effects
      */
     public void drawBatch(SpriteBatch batch) {
-        // Hanya draw jika occupied dan belum used (untuk single-use)
-        // Sudah digunakan (single-use system)
         boolean isUsed = false;
         if (occupied && !(SINGLE_USE && isUsed)) {
-            // ===== VISUAL EFFECT BERDASARKAN STATE =====
             if (isOnCooldown()) {
                 // Trap on cooldown - warna agak redup
                 batch.setColor(0.5f, 0.5f, 0.5f, 0.8f);
@@ -124,11 +114,10 @@ public class Trap {
 
             // Calculate sprite position
             float spriteX = centerX - w/2f;
-            float spriteY = getTowerAlignedY();  // Special alignment method
+            float spriteY = getTowerAlignedY();
 
             batch.draw(tex, spriteX, spriteY, w, h);
 
-            // Reset color untuk sprites berikutnya
             batch.setColor(1f, 1f, 1f, 1f);
         }
     }
@@ -138,19 +127,14 @@ public class Trap {
      * Formula sama dengan tower deployment di GameScreen
      */
     private float getTowerAlignedY() {
-        // verts format: [x0,y0, x1,y1, x2,y2, x3,y3]
-        // Ambil semua Y coordinates: verts[1], verts[3], verts[5], verts[7]
-        float y0 = verts[1];  // Y coordinate vertex 0
-        float y1 = verts[3];  // Y coordinate vertex 1
-        float y2 = verts[5];  // Y coordinate vertex 2
-        float y3 = verts[7];  // Y coordinate vertex 3
-
-        // Formula PERSIS SAMA dengan tower deployment
+        float y0 = verts[1];
+        float y1 = verts[3];
+        float y2 = verts[5];
+        float y3 = verts[7];
 
         return (y0 + y1 + y2 + y3) / 4.4f;
     }
 
-    /* ===== GETTERS ===== */
     public boolean isOnCooldown() {
         return cooldown > 0;
     }

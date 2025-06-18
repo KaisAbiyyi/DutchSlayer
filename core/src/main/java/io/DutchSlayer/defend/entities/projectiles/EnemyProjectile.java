@@ -14,27 +14,22 @@ import com.badlogic.gdx.math.Vector2;
  * untuk menyerang tower. Bergerak horizontal ke kiri (menuju tower)
  */
 public class EnemyProjectile {
-    /* ===== VISUAL COMPONENTS ===== */
-    private final Texture tex;          // Texture sprite
-    private final float scaledW;        // Lebar sprite setelah scaling
-    private final float scaledH;        // Tinggi sprite setelah scaling
-    private final Rectangle bounds;     // Collision box
+    private final Texture tex;
+    private final float scaledW;
+    private final float scaledH;
+    private final Rectangle bounds;
 
-    /* ===== MOVEMENT ===== */
-    private final Vector2 pos;          // Posisi saat ini
-    private final Vector2 vel;          // Velocity (kecepatan + arah)
+    private final Vector2 pos;
+    private final Vector2 vel;
 
-    /* ===== COMBAT ===== */
-    private final int damage;           // Damage yang diberikan ke tower
+    private final int damage;
 
-    /* ===== CONFIGURATION CONSTANTS ===== */
-    // Speed configurations per enemy type
-    private static final float SHOOTER_SPEED = 1200f;    // Medium speed
-    private static final float BOSS_SPEED = 700f;       // Slower but powerful
+    private static final float SHOOTER_SPEED = 1200f;
+    private static final float BOSS_SPEED = 700f;
 
     // Scale configurations per enemy type
-    private static final float SHOOTER_SCALE = 0.01f;   // Small projectile
-    private static final float BOSS_SCALE = 0.07f;      // Large projectile
+    private static final float SHOOTER_SCALE = 0.01f;
+    private static final float BOSS_SCALE = 0.07f;
 
     /**
      * Constructor utama dengan custom speed
@@ -44,14 +39,11 @@ public class EnemyProjectile {
         this.damage = damage;
         this.pos = new Vector2(startX, startY);
 
-        // Setup sprite scaling
         this.scaledW = tex.getWidth() * scale;
         this.scaledH = tex.getHeight() * scale;
 
-        // Set velocity: bergerak horizontal ke kiri (menuju tower)
-        this.vel = new Vector2(-speed, 0f);  // Hanya bergerak horizontal ke kiri
+        this.vel = new Vector2(-speed, 0f);
 
-        // Setup collision bounds
         this.bounds = new Rectangle(
             pos.x - scaledW/2,
             pos.y - scaledH/2,
@@ -60,7 +52,6 @@ public class EnemyProjectile {
         );
     }
 
-    /* ===== FACTORY METHODS ===== */
 
     /**
      * Buat projectile untuk SHOOTER enemy
@@ -80,10 +71,8 @@ public class EnemyProjectile {
      * Update posisi projectile setiap frame
      */
     public void update(float delta) {
-        // Update posisi berdasarkan velocity
         pos.mulAdd(vel, delta);
 
-        // Update collision bounds
         bounds.setPosition(pos.x - scaledW/2, pos.y - scaledH/2);
     }
 
@@ -106,7 +95,6 @@ public class EnemyProjectile {
         }
     }
 
-    /* ===== GETTERS ===== */
     public float getX() { return pos.x; }
     public Rectangle getBounds() { return bounds; }
     public int getDamage() { return damage; }
