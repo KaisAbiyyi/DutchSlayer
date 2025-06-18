@@ -190,7 +190,7 @@ public class InputHandler extends InputAdapter {
         if (uiManager.btnResume != null && uiManager.btnResume.contains(x, y)) {
             AudioManager.PlayBtnSound();
             gameState.pressButton("resume");
-
+            screen.pauseMenu.setPaused(false);
             scheduleAction(() -> gameState.isPaused = false);
             return true;
         }
@@ -198,7 +198,7 @@ public class InputHandler extends InputAdapter {
         if (uiManager.btnSetting != null && uiManager.btnSetting.contains(x, y)) {
             AudioManager.PlayBtnSound();
             gameState.pressButton("setting");
-
+            screen.pauseMenu.setPaused(false);
             scheduleAction(() -> game.setScreen(new SettingScreen(game, screen, gameState.currentStage)));
             return true;
         }
@@ -206,7 +206,7 @@ public class InputHandler extends InputAdapter {
         if (uiManager.btnMenuPause != null && uiManager.btnMenuPause.contains(x, y)) {
             AudioManager.PlayBtnSound();
             gameState.pressButton("menu");
-
+            screen.pauseMenu.setPaused(false);
             scheduleAction(() -> {
                 AudioManager.playMainMenuMusic();
                 game.setScreen(new StageSelectionScreen(game, true));
