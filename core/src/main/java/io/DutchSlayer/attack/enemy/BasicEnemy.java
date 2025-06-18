@@ -40,14 +40,15 @@ public class BasicEnemy {
     private boolean movingRight = true;
 
     private Sound throwGrenadeSound;
-    private Sound deathSound; // Tambahkan Sound untuk suara kematian
+    private Sound deathSound;
+    private Sound shootSound; // Deklarasi shootSound di sini
 
     private final float awarenessRadius = Constant.SCREEN_WIDTH / 2f;
     private final float attackDistance = 800f;
     public static final float FIXED_DELTA = 1f / 60f;
     private Vector2 playerRef;
 
-    private float reloadTime;      // Waktu reload setelah beberapa tembakan
+    private float reloadTime;
     private float reloadTimer = 0f;
     private int shotsFired = 0;
     private int maxShotsBeforeReload;
@@ -55,16 +56,16 @@ public class BasicEnemy {
     private float chaseDelay = 2.0f;
     private float chaseDelayTimer = 0f;
     private boolean isChasePrepared = false;
-    private Sound shootSound;
+
 
     private EnemyVisuals visuals;
 
-    private AttackType[] additionalAttackTypes; // NEW: Jenis serangan tambahan yang bisa dilakukan
+    private AttackType[] additionalAttackTypes;
     private GameScreen gameScreenRef;
     private float deathTimer = 0f;
-    private int currentAttackPhaseIndex = 0; // Melacak fase saat ini dalam pola
-    private float attackPhaseTimer = 0f;     // Timer untuk delay antar aksi dalam satu fase
-    private int shotsInPhase = 0;            // Melacak tembakan/lemparan dalam satu fase
+    private int currentAttackPhaseIndex = 0;
+    private float attackPhaseTimer = 0f;
+    private int shotsInPhase = 0;
     private float enemyBurstTimer = 0f;
     private int enemyBurstIndex = 0;
     private static final float ENEMY_BURST_DELAY = 0.08f;
@@ -85,7 +86,10 @@ public class BasicEnemy {
         this.fsm = new EnemyFSM(this);
         configureWeaponByType();
 
-        if (attackType == AttackType.STRAIGHT_SHOOT || attackType == AttackType.BURST_FIRE) {
+        // --- PERBAIKAN: INISIALISASI shootSound UNTUK SEMUA TIPE YANG MUNGKIN MENEMBAK ---
+        // Jika AttackType adalah STRAIGHT_SHOOT, BURST_FIRE, ATAU ARC_GRENADE
+        // Karena ARC_GRENADE juga melakukan STRAIGHT_SHOOT dalam polanya
+        if (attackType == AttackType.STRAIGHT_SHOOT || attackType == AttackType.BURST_FIRE || attackType == AttackType.ARC_GRENADE) {
             shootSound = Gdx.audio.newSound(Gdx.files.internal("player/pistol.mp3"));
         }
 
@@ -93,7 +97,6 @@ public class BasicEnemy {
             this.throwGrenadeSound = Gdx.audio.newSound(Gdx.files.internal("player/grenade_throw.mp3"));
         }
 
-        // Inisialisasi suara kematian
         deathSound = Gdx.audio.newSound(Gdx.files.internal("enemy/enemy_death.mp3"));
 
         this.visuals = new EnemyVisuals(this.attackType);
@@ -108,22 +111,21 @@ public class BasicEnemy {
                 this.additionalAttackTypes = new AttackType[]{};
             }
             case BURST_FIRE -> {
-                fireCooldown = 0.5f; // Ini akan jadi interval antar burst
+                fireCooldown = 0.5f;
                 reloadTime = 3.0f;
                 maxShotsBeforeReload = 2;
                 this.additionalAttackTypes = new AttackType[]{AttackType.ARC_GRENADE};
             }
             case ARC_GRENADE -> {
-                fireCooldown = 2.5f;
+                fireCooldown = 2.5f; // Ini adalah cooldown utama untuk memulai pola granat
                 reloadTime = 3.0f;
-                maxShotsBeforeReload = 2;
+                maxShotsBeforeReload = 2; // Ini mungkin tidak relevan untuk pola yang lebih kompleks
                 this.additionalAttackTypes = new AttackType[]{AttackType.STRAIGHT_SHOOT};
             }
         }
         currentAttackPhaseIndex = 0;
         attackPhaseTimer = 0f;
         shotsInPhase = 0;
-        // NEW: Reset burst fire musuh
         enemyBurstIndex = 0;
         enemyBurstTimer = 0f;
     }
@@ -134,9 +136,9 @@ public class BasicEnemy {
         fsm.update();
 
         if (fsm.getCurrentState() == EnemyState.DYING) {
-            deathTimer -= delta; // Kurangi timer
+            deathTimer -= delta;
             if (deathTimer <= 0) {
-                isAlive = false; // Setelah timer habis, baru benar-benar "mati"
+                isAlive = false;
                 if (visuals != null) {
                     visuals.dispose();
                     visuals = null;
@@ -144,7 +146,6 @@ public class BasicEnemy {
             }
         }
 
-        // Update bullet logic
         for (Bullet bullet : bullets) {
             bullet.update(delta, -Float.MAX_VALUE, Float.MAX_VALUE);
         }
@@ -161,7 +162,6 @@ public class BasicEnemy {
         this.dropChecked = value;
     }
 
-    // FSM: PATROL
     public void updatePatrol() {
         float patrolSpeed = baseSpeed;
         if (movingRight) {
@@ -178,13 +178,11 @@ public class BasicEnemy {
             }
         }
 
-        // Transisi jika player dekat
         if (playerRef != null && Math.abs(playerRef.x - x) <= Constant.PLAYER_WIDTH * 10f) {
             fsm.changeState(EnemyState.CHASE);
         }
     }
 
-    // FSM: CHASEs
     public void updateChase() {
         if (playerRef == null) return;
 
@@ -199,12 +197,11 @@ public class BasicEnemy {
         }
 
         if (distance <= width * 8f) {
-            fsm.changeState(EnemyState.SHOOT); // baru nembak saat cukup dekat
+            fsm.changeState(EnemyState.SHOOT);
         } else if (distance > width * 15f) {
-            fsm.changeState(EnemyState.PATROL); // terlalu jauh
+            fsm.changeState(EnemyState.PATROL);
         }
     }
-
 
     public void setChasePrepared(boolean b) {
         this.isChasePrepared = b;
@@ -218,7 +215,6 @@ public class BasicEnemy {
         return fsm.getCurrentState();
     }
 
-    // FSM: SHOOT
     public void updateShoot() {
         if (playerRef == null) return;
 
@@ -241,19 +237,18 @@ public class BasicEnemy {
             return;
         }
 
-        // NEW: Kelola Burst Fire Musuh secara terpisah
         if (attackType == AttackType.BURST_FIRE && enemyBurstIndex > 0 && enemyBurstIndex <= 3) {
             enemyBurstTimer += lastDelta;
             if (enemyBurstTimer >= ENEMY_BURST_DELAY) {
                 enemyBurstTimer -= ENEMY_BURST_DELAY;
-                shootStraight(); // Gunakan shootStraight untuk menembak 1 peluru
-                enemyBurstIndex++; // Tingkatkan index peluru dalam burst
+                shootStraight();
+                enemyBurstIndex++;
             }
-            if (enemyBurstIndex > 3) { // Burst selesai
-                enemyBurstIndex = 0; // Reset
-                attackPhaseTimer = fireCooldown; // Set cooldown antar burst
+            if (enemyBurstIndex > 3) {
+                enemyBurstIndex = 0;
+                attackPhaseTimer = fireCooldown;
             }
-            return; // Penting: Jangan lanjutkan ke logika performAttack() jika sedang dalam burst
+            return;
         }
 
         attackPhaseTimer -= lastDelta;
@@ -262,70 +257,59 @@ public class BasicEnemy {
         }
     }
 
-
-    // NEW: Metode untuk memilih dan melakukan serangan berdasarkan pola
     private void performAttack() {
         switch (attackType) {
             case STRAIGHT_SHOOT -> {
-                // Pola: 3x STRAIGHT_SHOOT (0.5s interval), lalu 3s delay
                 if (shotsInPhase < 3) {
                     shootStraight();
                     shotsInPhase++;
-                    attackPhaseTimer = 0.5f; // Interval antar tembakan
+                    attackPhaseTimer = 0.5f;
                 } else {
-                    // Selesai 3 tembakan, mulai delay penuh (reload)
                     reloadTimer = 3.0f;
-                    shotsInPhase = 0; // Reset untuk pola berikutnya
-                    attackPhaseTimer = 0f; // Pastikan timer tidak negatif
+                    shotsInPhase = 0;
+                    attackPhaseTimer = 0f;
                 }
             }
             case ARC_GRENADE -> {
-                // Pola: 2x ARC_GRENADE (2.5s interval) -> 3x STRAIGHT_SHOOT (1s interval) -> 3s delay
-                if (currentAttackPhaseIndex == 0) { // Fase 1: Granat
+                if (currentAttackPhaseIndex == 0) {
                     if (shotsInPhase < 2) {
                         throwArcGrenade();
                         shotsInPhase++;
-                        attackPhaseTimer = 2.5f; // Interval antar granat
+                        attackPhaseTimer = 2.5f;
                     } else {
-                        // Selesai 2 granat, pindah ke fase 2 (Straight Shoot)
                         currentAttackPhaseIndex = 1;
-                        shotsInPhase = 0; // Reset untuk fase baru
-                        attackPhaseTimer = 0f; // Langsung mulai fase berikutnya
+                        shotsInPhase = 0;
+                        attackPhaseTimer = 0f;
                     }
                 } else if (currentAttackPhaseIndex == 1) { // Fase 2: Straight Shoot
                     if (shotsInPhase < 3) {
-                        shootStraight();
+                        shootStraight(); // Panggil shootStraight di sini
                         shotsInPhase++;
-                        attackPhaseTimer = 1.0f; // Interval antar tembakan lurus
+                        attackPhaseTimer = 1.0f;
                     } else {
-                        // Selesai 3 tembakan lurus, kembali ke awal pola (reload)
-                        reloadTimer = 3.0f; // Delay penuh
-                        currentAttackPhaseIndex = 0; // Kembali ke fase granat
-                        shotsInPhase = 0; // Reset untuk pola berikutnya
+                        reloadTimer = 3.0f;
+                        currentAttackPhaseIndex = 0;
+                        shotsInPhase = 0;
                         attackPhaseTimer = 0f;
                     }
                 }
             }
             case BURST_FIRE -> {
-                // Pola: 2x BURST_FIRE (0.5s interval) -> 1s delay -> 1x ARC_GRENADE -> 3s delay
-                if (currentAttackPhaseIndex == 0) { // Fase 1: Burst Fire
+                if (currentAttackPhaseIndex == 0) {
                     if (shotsInPhase < 2) {
-                        // NEW: Mulai burst (akan ditangani di updateShoot())
-                        enemyBurstIndex = 1; // Set ke 1 untuk memulai burst
-                        enemyBurstTimer = 0f; // Reset timer burst
+                        enemyBurstIndex = 1;
+                        enemyBurstTimer = 0f;
                         shotsInPhase++;
-                        // attackPhaseTimer akan diatur setelah burst selesai (di updateShoot)
                     } else {
-                        // Selesai 2 burst, pindah ke fase 2 (delay sebelum granat)
                         currentAttackPhaseIndex = 1;
-                        shotsInPhase = 0; // Reset
-                        attackPhaseTimer = 1.0f; // Delay 1 detik sebelum granat
+                        shotsInPhase = 0;
+                        attackPhaseTimer = 1.0f;
                     }
-                } else if (currentAttackPhaseIndex == 1) { // Fase 2: Lempar Granat
+                } else if (currentAttackPhaseIndex == 1) {
                     throwArcGrenade();
-                    currentAttackPhaseIndex = 0; // Kembali ke fase 0 untuk pola berikutnya
-                    shotsInPhase = 0; // Reset
-                    reloadTimer = 3.0f; // Delay penuh setelah granat
+                    currentAttackPhaseIndex = 0;
+                    shotsInPhase = 0;
+                    reloadTimer = 3.0f;
                     attackPhaseTimer = 0f;
                 }
             }
@@ -348,7 +332,6 @@ public class BasicEnemy {
     }
 
     private void takeExplosionDamage(float dmg) {
-        // --- MODIFIKASI: Logika saat terkena ledakan ---
         if (fsm.getCurrentState() == EnemyState.DYING || !isAlive) return;
 
         int damage = Math.round(dmg);
@@ -356,15 +339,15 @@ public class BasicEnemy {
 
         if (currentHealth <= 0) {
             currentHealth = 0;
-            fsm.changeState(EnemyState.DYING); // Ubah state, jangan langsung set isAlive = false
-            deathSound.play(0.35f); // Mainkan suara kematian dengan volume 50% lebih kecil (0.7 * 0.5 = 0.35)
+            fsm.changeState(EnemyState.DYING);
+            deathSound.play(0.35f);
             System.out.println("Enemy killed by explosion!");
         }
     }
 
-
     private void shootStraight() {
-        if (shootSound != null) { // Mainkan suara jika sudah dimuat
+        // --- PERBAIKAN: Pastikan shootSound dimainkan di sini ---
+        if (shootSound != null) {
             shootSound.play(0.5f); // Volume 0.5f (opsional, sesuaikan)
         }
         float cx = x + width / 2f;
@@ -376,7 +359,7 @@ public class BasicEnemy {
         TextureRegion region = new TextureRegion(bulletTex);
 
         if (!shootRight) {
-            region.flip(true, false); // flip horizontal jika ke kiri
+            region.flip(true, false);
         }
 
         Bullet bullet = new Bullet(cx, cy, angle, true);
@@ -384,27 +367,12 @@ public class BasicEnemy {
         bullets.add(bullet);
     }
 
-
     private void burstFire() {
-        float cx = x + width / 2f;
-        float cy = y + height / 2f;
-        boolean shootRight = playerRef.x > x;
-        float angle = shootRight ? 0f : (float) Math.PI;
-
-        Texture bulletTex = new Texture(Gdx.files.internal("player/bullet.png"));
-        TextureRegion region = new TextureRegion(bulletTex);
-
-        if (!shootRight) {
-            region.flip(true, false);
-        }
-
-        for (int i = 0; i < 3; i++) {
-            Bullet bullet = new Bullet(cx, cy, angle, true);
-            bullet.setTextureRegion(region);
-            bullets.add(bullet);
-        }
+        // This method is not called directly in performAttack anymore for BURST_FIRE
+        // The individual shoots are handled by shootStraight() in updateShoot() loop.
+        // So, the sound should primarily be in shootStraight().
+        // If you want a *different* sound for the *start* of a burst, you'd add it where enemyBurstIndex is set to 1.
     }
-
 
     private void throwArcGrenade() {
         if (gameScreenRef == null) {
@@ -415,38 +383,27 @@ public class BasicEnemy {
         Texture grenadeTex = gameScreenRef.getGrenadeTexture();
         Texture explosionTex = gameScreenRef.getExplosionTexture();
 
-        if (throwGrenadeSound != null) { // <-- BARU
-            throwGrenadeSound.play(0.6f); // Mainkan suara dengan volume lebih rendah untuk musuh
+        if (throwGrenadeSound != null) {
+            throwGrenadeSound.play(0.6f);
         }
 
-        // Tentukan posisi awal granat
         float startX = x + width / 2f;
-        float startY = y + height * 0.75f; // Sedikit di atas musuh
+        float startY = y + height * 0.75f;
 
-        // Tentukan arah lemparan granat berdasarkan arah hadap musuh
-        // Anda perlu menentukan sudut dan kekuatan. Ini bisa disesuaikan.
-        // Contoh: Melempar ke arah player dengan sudut tertentu (misal, 45 derajat)
         float targetX = playerRef.x;
         float targetY = playerRef.y;
 
-        // Hitung sudut awal dan kekuatan
-        // Ini adalah contoh sederhana, Anda mungkin ingin menggunakan fisika parabola yang lebih akurat
-        // Untuk "arc", Anda bisa menggunakan sudut tetap (misal, 45 derajat) dan menyesuaikan kekuatan
         float angleRad;
-        float power = 600f; // Kekuatan lemparan, sesuaikan
+        float power = 600f;
 
         if (movingRight) {
-            // Lempar ke kanan dengan sudut ke atas
             angleRad = MathUtils.degreesToRadians * 45f;
         } else {
-            // Lempar ke kiri dengan sudut ke atas
             angleRad = MathUtils.degreesToRadians * (180f - 45f);
         }
 
-        // Buat objek Grenade baru
         Grenade grenade = new Grenade(startX, startY, angleRad, power, true, grenadeTex, explosionTex);
 
-        // Tambahkan granat ke daftar granat di GameScreen
         gameScreenRef.getGrenades().add(grenade);
 
         System.out.println("Enemy throwing arc grenade!");
@@ -459,25 +416,21 @@ public class BasicEnemy {
     }
 
     private void jumpSmash() {
-        // Placeholder: lompat dan AoE smash
         System.out.println("Performing jump attack");
     }
 
     public void takeHit() {
-        // --- MODIFIKASI: Logika saat terkena tembakan ---
         if (fsm.getCurrentState() == EnemyState.DYING || !isAlive) return;
 
         currentHealth--;
         if (currentHealth <= 0) {
             currentHealth = 0;
-            fsm.changeState(EnemyState.DYING); // Ubah state ke DYING
-            deathSound.play(0.35f); // Mainkan suara kematian dengan volume 50% lebih kecil (0.7 * 0.5 = 0.35)
+            fsm.changeState(EnemyState.DYING);
+            deathSound.play(0.35f);
         }
     }
 
-
     public void render(ShapeRenderer shapeRenderer) {
-        // --- MODIFIKASI: Jangan render health bar jika sudah mati/sekarat ---
         if (isAlive && fsm.getCurrentState() != EnemyState.DYING) {
             float barY = y + height + 4f;
             shapeRenderer.setColor(0.5f, 0, 0, 1);
@@ -488,36 +441,23 @@ public class BasicEnemy {
     }
 
     public void render(SpriteBatch spriteBatch, float delta) {
-        // Render peluru di belakang musuh jika diinginkan, atau di depan (setelahnya)
         for (Bullet bullet : bullets) {
             bullet.render(spriteBatch);
         }
 
-        // Hanya render musuh jika isAlive (termasuk selama animasi kematian)
         if (isAlive) {
             TextureRegion frame = visuals.getFrameToRender(fsm.getCurrentState(), movingRight, delta);
 
-            // --- KODE BARU DIMULAI DI SINI ---
-
-            // Tentukan dimensi render default
             float renderWidth = this.width;
             float renderHeight = this.height;
 
-            // Jika musuh dalam state DYING, sesuaikan tinggi rendernya
-            // agar tidak terentang secara vertikal.
-            // Nilai this.height / 2f adalah titik awal yang baik,
-            // Anda bisa menyesuaikannya agar pas dengan aset Anda.
             if (fsm.getCurrentState() == EnemyState.DYING) {
                 renderHeight = this.height / 2f;
             }
 
-            // Gunakan dimensi render yang sudah disesuaikan
             spriteBatch.draw(frame, x, (y - 20f), renderWidth, renderHeight);
-
-            // --- KODE BARU BERAKHIR DI SINI ---
         }
     }
-
 
     public void setDeathTimer(float duration) {
         this.deathTimer = duration;
@@ -536,15 +476,13 @@ public class BasicEnemy {
             throwGrenadeSound.dispose();
         }
 
-        if (deathSound != null) { // Buang suara kematian
+        if (deathSound != null) {
             deathSound.dispose();
         }
 
         if (visuals != null) {
             visuals.dispose();
         }
-        // Dispose bullet textures jika ada yang dibuat di shootStraight/burstFire
-        // Saat ini, Bullet membuat Texture-nya sendiri, jadi pastikan Bullet dispose dirinya.
     }
 
     public Array<Bullet> getBullets() {

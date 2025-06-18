@@ -30,9 +30,10 @@ import io.DutchSlayer.attack.player.weapon.Grenade;
 import io.DutchSlayer.attack.objects.PickupType;
 import io.DutchSlayer.attack.screens.logic.GameLogicHandler;
 import io.DutchSlayer.attack.screens.render.GameRenderer;
-import io.DutchSlayer.attack.screens.ui.PauseMenu;
 import io.DutchSlayer.attack.screens.ui.VNManager;
 import io.DutchSlayer.attack.screens.ui.VNScene;
+import io.DutchSlayer.defend.utils.AudioManager;
+import io.DutchSlayer.screens.PauseMenu;
 import io.DutchSlayer.utils.Constant;
 import io.DutchSlayer.assets.AssetLoader;
 
@@ -40,7 +41,7 @@ public class GameScreen implements Screen {
     private final Main game;
     private final OrthographicCamera camera;
     private final Viewport viewport;
-    private final OrthographicCamera uiCamera; // <--- TAMBAHKAN INI
+    private final OrthographicCamera uiCamera;
     private final Viewport uiViewport;
     private final ShapeRenderer shapeRenderer;
     private final SpriteBatch spriteBatch;
@@ -56,24 +57,24 @@ public class GameScreen implements Screen {
 
     private final GameRenderer renderer;
     private final GameLogicHandler logicHandler;
-    private final PauseMenu pauseMenu;
-    private VNManager vnManager; // // NEW: Visual Novel Manager
+    private final PauseMenu pauseMenu; //
+    private VNManager vnManager; // NEW: Visual Novel Manager
     private Texture vnScene1Bg, vnScene2Bg, vnScene3Bg;
     private Texture vnScene4Bg, vnScene5Bg, vnScene6Bg, vnScene7Bg;
 
-    private final int stageNumber;
+    private final int stageNumber; //
     private final RandomXS128 rng;
     private final float mapWidth;
 
     private Texture backgroundTexture, bgTreeTexture, bgMountainTexture, terrainTexture, terrain2Texture, wallTexture;
     private Rectangle leftWall, rightWall;
 
-    private boolean isPaused = false;
-    private boolean isGameOver = false;
-    private boolean isPlayerRespawning = false;
-    private boolean triggerWallTrap = false;
-    private boolean wallsAreRising = false;
-    private boolean bossIntroPlayed = false;
+    private boolean isPaused = false; //
+    private boolean isGameOver = false; //
+    private boolean isPlayerRespawning = false; //
+    private boolean triggerWallTrap = false; //
+    private boolean wallsAreRising = false; //
+    private boolean bossIntroPlayed = false; //
 
     private final float wallRiseSpeed = 350f;
     private final float wallTargetY = Constant.TERRAIN_HEIGHT;
@@ -84,14 +85,14 @@ public class GameScreen implements Screen {
     private float victoryDelayTimer = 0f;
     private float cameraTriggerX;
 
-    private Music backgroundMusic; // <--- TAMBAHKAN INI
+    private Music backgroundMusic;
     private Music bossMusic;
 
-    private Texture grenadeTexture, explosionTexture; // <-- TAMBAHKAN INI
+    private Texture grenadeTexture, explosionTexture;
 
     public GameScreen(Main game, int stageNumber) {
         this.game = game;
-        this.stageNumber = stageNumber;
+        this.stageNumber = stageNumber; //
         this.shapeRenderer = new ShapeRenderer();
         this.spriteBatch = new SpriteBatch();
         this.font = new BitmapFont();
@@ -108,7 +109,6 @@ public class GameScreen implements Screen {
         this.player = new Player(camera);
         this.player.setGameScreen(this);
 
-
         loadTextures();
 
         this.backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("backgrounds/background.mp3"));
@@ -117,22 +117,15 @@ public class GameScreen implements Screen {
         this.backgroundMusic.setLooping(true);
         this.bossMusic.setLooping(true);
 
-// --- UBAH ANGKA DI BAWAH INI ---
-
-// Contoh: Mengubah volume musik latar menjadi 20% (sangat pelan)
         this.backgroundMusic.setVolume(0.2f);
-
-// Contoh: Mengubah volume musik bos menjadi 75% (sedikit lebih pelan dari maksimal)
         this.bossMusic.setVolume(0.5f);
-
 
         generateTrees();
         generateBuildings();
         spawnEnemies();
-
         this.renderer = new GameRenderer();
         this.logicHandler = new GameLogicHandler();
-        this.pauseMenu = new PauseMenu(game, game.uiSkin, uiViewport);
+        this.pauseMenu = new PauseMenu(game, uiViewport, font); //
 
         this.vnManager = new VNManager(font);
         setupVNScripts();
@@ -166,7 +159,7 @@ public class GameScreen implements Screen {
     }
 
     public void setupAndTriggerBossVictoryVN() {
-        vnManager.clearScenes(); // Bersihkan adegan lain yang mungkin ada
+        vnManager.clearScenes();
 
         Array<String> dialogues = new Array<>();
         dialogues.add("COMMANDER: Hah... and they called you a 'hero'. Pathetic.");
@@ -174,13 +167,11 @@ public class GameScreen implements Screen {
         dialogues.add("COMMANDER: Everything I've done... was to forge an era of strength and order. You were just a fool who stood in the way.");
         dialogues.add("COMMANDER: Now, be forgotten.");
 
-        // Gunakan background scene 2 yang sudah ada (vnScene2Bg)
         VNScene defeatScene = new VNScene(vnScene2Bg, dialogues);
         vnManager.addScene(defeatScene);
 
         vnManager.start();
     }
-
 
     private void setupVNScripts() {
         // === SCENE 1: THE STARE DOWN ===
@@ -209,19 +200,15 @@ public class GameScreen implements Screen {
     }
 
     public void setupAndTriggerBossDefeatedVN() {
-        // Kosongkan adegan sebelumnya untuk memastikan tidak ada sisa dari VN intro
-        vnManager.clearScenes(); // Anda mungkin perlu menambahkan metode clearScenes() ke VNManager
+        vnManager.clearScenes();
 
         if (stageNumber < 3) {
             // --- Skenario A: Bos Kabur (Stage 1-2) ---
-
-            // Scene 1: Disbelief
             Array<String> scene4Dialogues = new Array<>();
             scene4Dialogues.add("COMMANDER: No... NO! This can't be happening!");
             scene4Dialogues.add("COMMANDER: My beautiful war machine... destroyed by a single soldier?! Impossible!");
             vnManager.addScene(new VNScene(vnScene4Bg, scene4Dialogues));
 
-            // Scene 2: The Escape
             Array<String> scene5Dialogues = new Array<>();
             scene5Dialogues.add("COMMANDER: This isn't the end! You haven't won!");
             scene5Dialogues.add("COMMANDER: I'll be back... and you will pay for this! YOU WILL PAY!");
@@ -229,30 +216,24 @@ public class GameScreen implements Screen {
 
         } else {
             // --- Skenario B: Kekalahan Mutlak (Stage 3+) ---
-
-            // Scene 1: Acceptance
             Array<String> scene4Dialogues = new Array<>();
             scene4Dialogues.add("COMMANDER: Heh... so this is it. The end of the line.");
             scene4Dialogues.add("COMMANDER: You really are something else, kid... You actually did it.");
             vnManager.addScene(new VNScene(vnScene4Bg, scene4Dialogues));
 
-            // Scene 2: The End
             Array<String> scene6Dialogues = new Array<>();
             scene6Dialogues.add("NARRATOR: And so, the tyrant's reign of terror finally came to an end.");
             vnManager.addScene(new VNScene(vnScene6Bg, scene6Dialogues));
 
-            // Scene 3: Reflection
             Array<String> scene1Dialogues = new Array<>();
             scene1Dialogues.add("YOU: It's over... It's finally... over.");
             vnManager.addScene(new VNScene(vnScene1Bg, scene1Dialogues));
 
-            // Scene 4: Relief
             Array<String> scene7Dialogues = new Array<>();
             scene7Dialogues.add("YOU: (Now... I can finally rest.)");
             vnManager.addScene(new VNScene(vnScene7Bg, scene7Dialogues));
         }
 
-        // Mulai Visual Novel
         if (vnManager.getSceneCount() > 0) {
             vnManager.start();
         }
@@ -269,34 +250,23 @@ public class GameScreen implements Screen {
         int placed = 0;
         int attempts = 0;
 
-        // Saran: Muat tekstur sekali saja di luar loop untuk performa yang lebih baik (lihat di bawah)
         Texture treeTexture = new Texture(Gdx.files.internal("trees/tree.png"));
 
         while (placed < targetCount && attempts < maxAttempts) {
-            // Gunakan tekstur yang sudah dimuat
             Tree candidate = Tree.generateFixed(mapWidth, rng, treeTexture);
 
-            // --- AWAL PERUBAHAN UNTUK VARIASI UKURAN ---
-
-            // 1. Dapatkan ukuran asli pohon
             float originalWidth = candidate.getWidth();
             float originalHeight = candidate.getHeight();
 
-            // 2. Buat faktor skala acak yang sedikit bervariasi (misal: antara 0.9f hingga 1.15f)
-            // Ini berarti ukuran pohon akan bervariasi dari 90% hingga 115% dari ukuran asli.
             float scale = 0.9f + rng.nextFloat() * 0.25f;
 
-            // 3. Hitung dan atur ukuran baru dengan menjaga rasio aspek
             float newWidth = originalWidth * scale;
             float newHeight = originalHeight * scale;
-            candidate.setSize(newWidth, newHeight); // Asumsi ada metode setSize(w, h) di kelas Tree
-
-            // --- AKHIR PERUBAHAN ---
+            candidate.setSize(newWidth, newHeight);
 
             boolean tooClose = false;
             for (Tree existing : trees) {
                 float dx = candidate.getX() - existing.getX();
-                // Pengecekan jarak sekarang menggunakan ukuran pohon yang sudah bervariasi
                 float dw = (candidate.getWidth() + existing.getWidth()) / 2f;
                 if (candidate.getWidth() < existing.getWidth() * 0.75f) continue;
                 if (Math.abs(dx) < dw + 10f) {
@@ -312,16 +282,12 @@ public class GameScreen implements Screen {
 
             attempts++;
         }
-        // Sebaiknya dispose tekstur ini di metode dispose() GameScreen
-        // treeTexture.dispose(); // Jangan dispose di sini jika dipakai di tempat lain
     }
-
 
     private void generateBuildings() {
         buildings.clear();
         buildings.addAll(BuildingGenerator.generate(mapWidth, stageNumber));
     }
-
 
     private void spawnEnemies() {
         AttackType[] allowedTypes;
@@ -339,7 +305,7 @@ public class GameScreen implements Screen {
             case 3:
                 allowedTypes = new AttackType[]{AttackType.BURST_FIRE, AttackType.ARC_GRENADE};
                 break;
-            default: // Untuk stage 4 dan seterusnya, atau jika stageNumber tidak ada dalam case di atas
+            default:
                 allowedTypes = new AttackType[]{AttackType.STRAIGHT_SHOOT, AttackType.BURST_FIRE, AttackType.ARC_GRENADE};
                 break;
         }
@@ -347,37 +313,33 @@ public class GameScreen implements Screen {
         enemies.addAll(EnemyFactory.spawnDeterministicEnemies(stageNumber, numberOfEnemy, Constant.TERRAIN_HEIGHT, allowedTypes, this));
     }
 
-
     public void spawnTankBoss() {
         if (this.tankBoss == null || !this.tankBoss.isAlive()) {
-            // Tentukan posisi spawn boss, di luar layar kanan
-            float spawnX = camera.position.x + Constant.SCREEN_WIDTH / 2f + 100f; // 100f adalah offset agar benar-benar di luar
+            float spawnX = camera.position.x + Constant.SCREEN_WIDTH / 2f + 100f;
             float spawnY = Constant.TERRAIN_HEIGHT;
 
-            this.tankBoss = new TankBoss(spawnX, spawnY, player, camera, this); // <--- Teruskan objek kamera
-            this.player.setBoss(this.tankBoss); // Pastikan player tahu tentang boss yang baru
+            this.tankBoss = new TankBoss(spawnX, spawnY, player, camera, this);
+            this.player.setBoss(this.tankBoss);
             System.out.println("GameScreen: TankBoss spawned!");
         }
     }
-
 
     @Override
     public void render(float delta) {
         ScreenUtils.clear(0.53f, 0.81f, 0.92f, 1);
 
-        // Proses input global seperti pause dan fullscreen terlebih dahulu
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            isPaused = !isPaused;
-            pauseMenu.setPaused(isPaused);
+            isPaused = !isPaused; //
+            pauseMenu.setPaused(isPaused); //
 
-            if (isPaused) {
-                if (backgroundMusic.isPlaying()) backgroundMusic.pause();
-                if (bossMusic.isPlaying()) bossMusic.pause();
+            if (isPaused) { //
+                if (backgroundMusic.isPlaying()) backgroundMusic.pause(); //
+                if (bossMusic.isPlaying()) bossMusic.pause(); //
             } else {
-                if (tankBoss != null && tankBoss.isAlive()) {
-                    if (!bossMusic.isPlaying()) bossMusic.play();
+                if (tankBoss != null && tankBoss.isAlive()) { //
+                    if (!bossMusic.isPlaying()) bossMusic.play(); //
                 } else {
-                    if (!backgroundMusic.isPlaying()) backgroundMusic.play();
+                    if (!backgroundMusic.isPlaying()) backgroundMusic.play(); //
                 }
             }
         }
@@ -389,66 +351,60 @@ public class GameScreen implements Screen {
             }
         }
 
-        // --- LOGIKA UTAMA PERENDERAN (BAGIAN YANG DIMODIFIKASI) ---
-
-        // 1. Jalankan logika game (pergerakan, kolisi, AI, dll)
-        // Jangan jalankan logika jika sekuens kekalahan atau kemenangan sudah aktif.
-        if (!isDefeatSequenceActive && !isVictorySequenceActive) {
-            logicHandler.update(this, delta);
+        if (!isDefeatSequenceActive && !isVictorySequenceActive) { //
+            logicHandler.update(this, delta); //
         }
 
-        // --- BARU: Logika untuk memicu VN kekalahan ---
-        // Cek jika game over, belum ada sekuens kekalahan, dan bos masih hidup
         if (isGameOver() && !isDefeatSequenceActive) {
             if (tankBoss != null && tankBoss.isAlive()) {
-                isDefeatSequenceActive = true; // Tandai sekuens kekalahan aktif
-                switchToBossMusic(); // Pastikan musik bos tetap berjalan
-                setupAndTriggerBossVictoryVN(); // Mulai adegan VN
+                isDefeatSequenceActive = true;
+                switchToBossMusic();
+                setupAndTriggerBossVictoryVN();
             } else {
-                // Jika game over bukan karena bos, langsung ke layar GameOver
+                // Jika game over bukan karena bos, hentikan musik latar sebelum pindah ke layar GameOver
+                if(backgroundMusic.isPlaying()) { // Periksa apakah backgroundMusic sedang bermain
+                    backgroundMusic.stop(); // Hentikan backgroundMusic
+                }
+                if(bossMusic.isPlaying()) { // Periksa apakah bossMusic sedang bermain (jika ada)
+                    bossMusic.stop(); // Hentikan bossMusic
+                }
                 game.setScreen(new GameOverScreen(game, stageNumber));
                 return;
             }
         }
 
-        // 2. Cek apakah ada VN yang sedang aktif (baik intro, kemenangan, atau kekalahan)
-        if (vnManager.isActive()) {
-            vnManager.update(delta); // Update logika VN (efek ketik, input)
+        if (vnManager.isActive()) { //
+            vnManager.update(delta); //
 
-            // Render VN di atas segalanya
-            spriteBatch.setProjectionMatrix(uiViewport.getCamera().combined);
-            spriteBatch.begin();
-            vnManager.render(spriteBatch);
-            spriteBatch.end();
+            spriteBatch.setProjectionMatrix(uiViewport.getCamera().combined); //
+            spriteBatch.begin(); //
+            vnManager.render(spriteBatch); //
+            spriteBatch.end(); //
 
-            // --- BARU: Cek jika sekuens kekalahan baru saja selesai ---
-            if (isDefeatSequenceActive && !vnManager.isActive()) {
-                // Jika VN selesai, hentikan musik dan pindah ke layar GameOver
-                if(bossMusic.isPlaying()) bossMusic.stop();
-                game.setScreen(new GameOverScreen(game, stageNumber));
-                return; // Penting untuk menghentikan frame ini
+            if (isDefeatSequenceActive && !vnManager.isActive()) { //
+                if(bossMusic.isPlaying()) bossMusic.stop(); //
+                game.setScreen(new GameOverScreen(game, stageNumber)); //
+                return;
             }
 
-            return; // Hentikan render di sini, jangan render dunia game saat VN berjalan.
+            return;
         }
 
-        // 3. Logika kemenangan (setelah bos dikalahkan dan VN kemenangan selesai)
-        if (tankBoss != null && !tankBoss.isAlive() && !isVictorySequenceActive) {
-            isVictorySequenceActive = true;
-            victoryDelayTimer = 2.0f;
+        if (tankBoss != null && !tankBoss.isAlive() && !isVictorySequenceActive) { //
+            isVictorySequenceActive = true; //
+            victoryDelayTimer = 2.0f; //
         }
 
-        if (isVictorySequenceActive) {
-            victoryDelayTimer -= delta;
-            if (victoryDelayTimer <= 0) {
-                if(bossMusic.isPlaying()) bossMusic.stop();
-                game.setScreen(new GameVictoryScreen(game, stageNumber));
+        if (isVictorySequenceActive) { //
+            victoryDelayTimer -= delta; //
+            if (victoryDelayTimer <= 0) { //
+                if(bossMusic.isPlaying()) bossMusic.stop(); //
+                game.setScreen(new GameVictoryScreen(game, stageNumber)); //
                 return;
             }
         }
 
-        // 4. Jika tidak ada sekuens atau VN yang aktif, render menu pause atau dunia game
-        if (pauseMenu.renderIfActive(delta)) {
+        if (pauseMenu.renderIfActive(delta)) { //
             return;
         }
 
@@ -475,6 +431,9 @@ public class GameScreen implements Screen {
     @Override
     public void show() {
         Gdx.input.setInputProcessor(null);
+        // Hentikan musik yang sedang berjalan dari layar sebelumnya (misal MainMenuScreen)
+        AudioManager.stopMusic(); // NEW: Pastikan ini menghentikan semua musik dari AudioManager
+
         if (backgroundMusic != null && !backgroundMusic.isPlaying()) {
             backgroundMusic.play();
         }
@@ -491,39 +450,36 @@ public class GameScreen implements Screen {
 
     @Override
     public void dispose() {
-        shapeRenderer.dispose(); //
-        spriteBatch.dispose(); //
-        font.dispose(); //
-        backgroundTexture.dispose(); //
-        bgTreeTexture.dispose(); //
-        bgMountainTexture.dispose(); //
-        terrainTexture.dispose(); //
-        terrain2Texture.dispose(); //
-        wallTexture.dispose(); //
-        if (grenadeTexture != null) grenadeTexture.dispose(); //
-        if (explosionTexture != null) explosionTexture.dispose(); //
+        shapeRenderer.dispose();
+        spriteBatch.dispose();
+        font.dispose();
+        backgroundTexture.dispose();
+        bgTreeTexture.dispose();
+        bgMountainTexture.dispose();
+        terrainTexture.dispose();
+        terrain2Texture.dispose();
+        wallTexture.dispose();
+        if (grenadeTexture != null) grenadeTexture.dispose();
+        if (explosionTexture != null) explosionTexture.dispose();
         if (vnScene1Bg != null) vnScene1Bg.dispose();
         if (vnScene2Bg != null) vnScene2Bg.dispose();
-        if (vnScene3Bg != null) vnScene3Bg.dispose(); // if (vnScene4Bg != null) vnScene4Bg.dispose();
+        if (vnScene3Bg != null) vnScene3Bg.dispose();
+        if (vnScene4Bg != null) vnScene4Bg.dispose();
         if (vnScene5Bg != null) vnScene5Bg.dispose();
         if (vnScene6Bg != null) vnScene6Bg.dispose();
         if (vnScene7Bg != null) vnScene7Bg.dispose();
-        // NEW: Dispose VN background
-        player.dispose(); //
-        AssetLoader.dispose(); //
-        vnManager.dispose(); // // NEW: Dispose VNManager
+        player.dispose();
+        AssetLoader.dispose();
+        vnManager.dispose();
 
         if (backgroundMusic != null) backgroundMusic.dispose();
         if (bossMusic != null) bossMusic.dispose();
-
-
     }
 
     public VNManager getVnManager() {
         return vnManager;
     }
 
-    // NEW: Getter and Setter for bossIntroPlayed flag
     public boolean isBossIntroPlayed() {
         return bossIntroPlayed;
     }
@@ -531,8 +487,6 @@ public class GameScreen implements Screen {
     public void setBossIntroPlayed(boolean bossIntroPlayed) {
         this.bossIntroPlayed = bossIntroPlayed;
     }
-
-    // === Getter untuk komponen yang dibutuhkan oleh renderer dan logic ===
 
     public Main getGame() {
         return game;
@@ -561,7 +515,6 @@ public class GameScreen implements Screen {
     public TankBoss getTankBoss() {
         return tankBoss;
     }
-
 
     public Player getPlayer() {
         return player;
@@ -627,18 +580,17 @@ public class GameScreen implements Screen {
         return leftWall;
     }
 
-    public Rectangle getRightWall() { // <--- Kembali tambahkan getter untuk rightWall
+    public Rectangle getRightWall() {
         return rightWall;
     }
 
-    public float getCameraTriggerX() { // <--- Getter baru untuk cameraTriggerX
+    public float getCameraTriggerX() {
         return cameraTriggerX;
     }
 
-    public void setCameraTriggerX(float cameraTriggerX) { // <--- Setter baru untuk cameraTriggerX
+    public void setCameraTriggerX(float cameraTriggerX) {
         this.cameraTriggerX = cameraTriggerX;
     }
-
 
     public boolean isGameOver() {
         return isGameOver;
@@ -661,7 +613,7 @@ public class GameScreen implements Screen {
     }
 
     public void setTriggerWallTrap(boolean value) {
-        triggerWallTrap = value;
+        this.triggerWallTrap = value;
     }
 
     public boolean isWallsAreRising() {
@@ -669,7 +621,7 @@ public class GameScreen implements Screen {
     }
 
     public void setWallsAreRising(boolean value) {
-        wallsAreRising = value;
+        this.wallsAreRising = value;
     }
 
     public float getWallRiseSpeed() {
@@ -692,5 +644,21 @@ public class GameScreen implements Screen {
         pickupItems.add(new PickupItem(x, y, type));
     }
 
+    /**
+     * Returns the PauseMenu instance associated with this GameScreen.
+     * This is crucial for setting the input processor back correctly when
+     * returning from the SettingScreen.
+     * @return The PauseMenu instance.
+     */
+    public PauseMenu getPauseMenu() { //
+        return pauseMenu; //
+    }
 
+    /**
+     * Sets the paused state of the game screen.
+     * @param value true to pause the game, false to unpause.
+     */
+    public void setPaused(boolean value) {
+        this.isPaused = value;
+    }
 }

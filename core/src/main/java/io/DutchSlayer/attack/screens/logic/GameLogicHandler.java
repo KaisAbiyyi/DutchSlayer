@@ -12,7 +12,6 @@ import io.DutchSlayer.attack.player.PlayerState;
 import io.DutchSlayer.attack.player.weapon.Bullet;
 import io.DutchSlayer.attack.player.weapon.Grenade;
 import io.DutchSlayer.attack.objects.PickupType;
-import io.DutchSlayer.attack.screens.GameOverScreen;
 import io.DutchSlayer.attack.screens.GameScreen;
 import io.DutchSlayer.attack.screens.ui.VNManager;
 import io.DutchSlayer.utils.Constant;

@@ -12,6 +12,8 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.utils.viewport.FitViewport;
 import io.DutchSlayer.Main;
 import io.DutchSlayer.defend.entities.enemies.Enemy;
 import io.DutchSlayer.defend.entities.enemies.EnemyType;
@@ -24,6 +26,7 @@ import io.DutchSlayer.defend.entities.traps.TrapType;
 import io.DutchSlayer.defend.game.*;
 import io.DutchSlayer.defend.ui.ImageLoader;
 import io.DutchSlayer.defend.utils.AudioManager;
+import io.DutchSlayer.screens.PauseMenu;
 
 /**
  * Refactored TowerDefenseScreen with separated concerns
@@ -50,8 +53,7 @@ public class TowerDefenseScreen implements Screen {
 //    private Vector2 targetCameraPosition = new Vector2();
 
     // Tambahkan flag untuk track apakah sedang ke settings
-    private boolean isGoingToSettings = false;
-
+    public final PauseMenu pauseMenu;
     public TowerDefenseScreen(final Main game, int stage) {
         this.game = game;
 
@@ -69,7 +71,7 @@ public class TowerDefenseScreen implements Screen {
         uiManager = new UIManager(camera, font, layout);
         gameLogic = new GameLogic(gameState, uiManager);
         inputHandler = new InputHandler(this, gameState, uiManager, camera, game);
-
+        this.pauseMenu = new PauseMenu(game, new FitViewport(1280, 720), font);
         // Initialize game world
         initializeGameWorld();
 
@@ -144,28 +146,57 @@ public class TowerDefenseScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        gameLogic.update(delta);
+        // Handle global ESC key for pausing
+        if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.ESCAPE)) { //
+            // Toggle the paused state in both gameState and pauseMenu.
+            // This ensures they are always in sync.
+            gameState.isPaused = !gameState.isPaused; //
+            pauseMenu.setPaused(gameState.isPaused); //
+        }
+
+        // --- Core Render Logic ---
+        // If the pause menu is active, only render it and return.
+        // The pauseMenu.setPaused() method already handles setting the InputProcessor.
+        if (pauseMenu.isPaused()) { //
+            pauseMenu.renderIfActive(delta); //
+            return; // Crucial: Stop processing game logic and rendering if paused
+        }
+
+        // If not paused, proceed with game logic and rendering
+        gameLogic.update(delta); //
 
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
-        renderBackground();
-        renderGameWorld();
-        renderUI();
+        renderBackground(); //
+        renderGameWorld(); //
+        renderUI(); //
 
-        if (gameState.isGameOver || gameState.isGameWon) {
-            renderGameOverScreen();
+        if (gameState.isGameOver) {
+            // Hentikan musik TowerDefenseScreen sebelum beralih
+            AudioManager.stopMusic(); // Pastikan AudioManager.stopMusic() menghentikan semua musik aktif
+            game.setScreen(new TowerDefenseGameOverScreen(game, gameState.currentStage, false)); // Kalah
+            return;
+        } else if (gameState.isGameWon) {
+            // Hentikan musik TowerDefenseScreen sebelum beralih
+            AudioManager.stopMusic(); // Pastikan AudioManager.stopMusic() menghentikan semua musik aktif
+            game.setScreen(new TowerDefenseGameOverScreen(game, gameState.currentStage, true)); // Menang
             return;
         }
 
+        // REMOVE THE FOLLOWING BLOCK. It's causing the re-pausing.
+        /*
         if (gameState.isPaused) {
-            renderPauseMenu();
+            pauseMenu.setPaused(true); // Aktifkan pause menu jika gameState mendeteksi pause
             return;
+        } else {
+            pauseMenu.setPaused(false);
         }
+        */
 
-        renderTowerUpgradePanel();
+        renderTowerUpgradePanel(); //
     }
 
     private void renderBackground() {
@@ -436,6 +467,17 @@ public class TowerDefenseScreen implements Screen {
             }
             game.batch.draw(ImageLoader.PauseBtntex, pauseX, pauseY, pauseSize, pauseSize);
             game.batch.setColor(Color.WHITE);
+            if (Gdx.input.justTouched()) {
+                Vector3 touch = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+                camera.unproject(touch);
+                if (touch.x >= pauseX && touch.x <= pauseX + pauseSize &&
+                    touch.y >= pauseY && touch.y <= pauseY + pauseSize) {
+                    // Ketika tombol pause UI ditekan, lakukan tindakan yang sama seperti tombol ESC
+                    // yaitu, toggle state pause dan minta pauseMenu untuk menampilkan dirinya
+                    gameState.isPaused = true; // Set to true since it's a pause button
+                    pauseMenu.setPaused(true); // Memastikan pauseMenu ditampilkan dan mengambil input
+                }
+            }
         }
 
         // Remove button
@@ -465,180 +507,7 @@ public class TowerDefenseScreen implements Screen {
 //        }
     }
 
-    private void renderGameOverScreen() {
-        shapes.setProjectionMatrix(camera.combined);
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
-        shapes.setColor(0f, 0f, 0f, 0.7f);
-        shapes.rect(0, 0, camera.viewportWidth, camera.viewportHeight);
-        shapes.end();
 
-        game.batch.setProjectionMatrix(camera.combined);
-        game.batch.begin();
-
-        float centerX = camera.viewportWidth / 2f;
-        float centerY = camera.viewportHeight / 2f;
-        float uiX = centerX - GameConstants.UI_WIDTH / 2f;
-        float uiY = centerY - GameConstants.UI_HEIGHT / 2f;
-
-        if (gameState.isGameWon) {
-            if (ImageLoader.WinUI != null) {
-                game.batch.draw(ImageLoader.WinUI, uiX, uiY, GameConstants.UI_WIDTH, GameConstants.UI_HEIGHT);
-            }
-
-            if (uiManager.btnMenuWin == null || uiManager.btnNext == null) {
-                uiManager.setupWinUI(gameState.currentStage);
-            }
-
-            if (ImageLoader.BtnMenu != null && uiManager.btnMenuWin != null) {
-                // ⭐ KUNCI: Gunakan ukuran Rectangle yang sudah diperbaiki
-                game.batch.draw(ImageLoader.BtnMenu,
-                    uiManager.btnMenuWin.x, uiManager.btnMenuWin.y,
-                    uiManager.btnMenuWin.width, uiManager.btnMenuWin.height);
-
-                game.batch.setColor(Color.WHITE);
-            }
-
-            if (gameState.currentStage == GameConstants.FINAL_STAGE) {
-                // Draw Mode button for final stage
-                if (ImageLoader.BtnMode != null && uiManager.btnMode != null) {
-                    System.out.println("✅ DEBUG Drawing Mode button at: " + uiManager.btnMode);
-                    if (gameState.isNextButtonPressed) {
-                        game.batch.setColor(0.7f, 0.7f, 0.7f, 1f);
-                    } else {
-                        game.batch.setColor(Color.WHITE);
-                    }
-
-                    game.batch.draw(ImageLoader.BtnMode,
-                        uiManager.btnMode.x, uiManager.btnMode.y,
-                        uiManager.btnMode.width, uiManager.btnMode.height);
-                    game.batch.setColor(Color.WHITE);
-                } else {
-                    System.out.println("❌ DEBUG Mode button NOT drawn - texture: " +
-                        (ImageLoader.BtnMode != null ? "OK" : "NULL") + ", rect: " + uiManager.btnMode);
-
-                    // ⭐ FALLBACK: Draw green rectangle as Mode button
-                    game.batch.end();
-                    shapes.begin(ShapeRenderer.ShapeType.Filled);
-                    shapes.setColor(Color.GREEN);
-                    if (uiManager.btnMode != null) {
-                        shapes.rect(uiManager.btnMode.x, uiManager.btnMode.y,
-                            uiManager.btnMode.width, uiManager.btnMode.height);
-                    }
-                    shapes.end();
-                    game.batch.begin();
-
-                    // Draw "MODE" text
-                    if (uiManager.btnMode != null) {
-                        font.setColor(Color.WHITE);
-                        font.draw(game.batch, "MODE",
-                            uiManager.btnMode.x + 70, uiManager.btnMode.y + 70);
-                    }
-                }
-            } else {
-                // Draw Next button for stages 1-3
-                if (ImageLoader.BtnNext != null && uiManager.btnNext != null) {
-                    System.out.println("✅ DEBUG Drawing Next button at: " + uiManager.btnNext);
-                    if (gameState.isNextButtonPressed) {
-                        game.batch.setColor(0.7f, 0.7f, 0.7f, 1f);
-                    } else {
-                        game.batch.setColor(Color.WHITE);
-                    }
-
-                    game.batch.draw(ImageLoader.BtnNext,
-                        uiManager.btnNext.x, uiManager.btnNext.y,
-                        uiManager.btnNext.width, uiManager.btnNext.height);
-                    game.batch.setColor(Color.WHITE);
-                } else {
-                    System.out.println("❌ DEBUG Next button NOT drawn - texture: " +
-                        (ImageLoader.BtnNext != null ? "OK" : "NULL") + ", rect: " + uiManager.btnNext);
-
-                    // ⭐ FALLBACK: Draw blue rectangle as Next button
-                    game.batch.end();
-                    shapes.begin(ShapeRenderer.ShapeType.Filled);
-                    shapes.setColor(Color.BLUE);
-                    if (uiManager.btnNext != null) {
-                        shapes.rect(uiManager.btnNext.x, uiManager.btnNext.y,
-                            uiManager.btnNext.width, uiManager.btnNext.height);
-                    }
-                    shapes.end();
-                    game.batch.begin();
-
-                    // Draw "NEXT" text
-                    if (uiManager.btnNext != null) {
-                        font.setColor(Color.WHITE);
-                        font.draw(game.batch, "NEXT STAGE",
-                            uiManager.btnNext.x + 50, uiManager.btnNext.y + 70);
-                    }
-                }
-            }if (gameState.currentStage == GameConstants.FINAL_STAGE) {
-                // Draw Mode button for final stage
-                if (ImageLoader.BtnMode != null && uiManager.btnMode != null) {
-                    System.out.println("✅ DEBUG Drawing Mode button at: " + uiManager.btnMode);
-                    if (gameState.isNextButtonPressed) {
-                        game.batch.setColor(0.7f, 0.7f, 0.7f, 1f);
-                    } else {
-                        game.batch.setColor(Color.WHITE);
-                    }
-
-                    game.batch.draw(ImageLoader.BtnMode,
-                        uiManager.btnMode.x, uiManager.btnMode.y,
-                        uiManager.btnMode.width, uiManager.btnMode.height);
-                    game.batch.setColor(Color.WHITE);
-                }
-            } else {
-                // Draw Next button for stages 1-3
-                if (ImageLoader.BtnNext != null && uiManager.btnNext != null) {
-                    System.out.println("✅ DEBUG Drawing Next button at: " + uiManager.btnNext);
-                    if (gameState.isNextButtonPressed) {
-                        game.batch.setColor(0.7f, 0.7f, 0.7f, 1f);
-                    } else {
-                        game.batch.setColor(Color.WHITE);
-                    }
-
-                    game.batch.draw(ImageLoader.BtnNext,
-                        uiManager.btnNext.x, uiManager.btnNext.y,
-                        uiManager.btnNext.width, uiManager.btnNext.height);
-                    game.batch.setColor(Color.WHITE);
-                }
-            }
-        } else {
-            if (ImageLoader.LoseUI != null) {
-                game.batch.draw(ImageLoader.LoseUI, uiX, uiY, GameConstants.UI_WIDTH, GameConstants.UI_HEIGHT);
-            }
-
-            if (uiManager.btnMenuLose == null || uiManager.btnRetryLose == null) {
-                uiManager.setupLoseUI();
-            }
-
-            if (ImageLoader.BtnMenu != null && uiManager.btnMenuLose != null) {
-                if (gameState.isMenuButtonPressed) {
-                    game.batch.setColor(0.7f, 0.7f, 0.7f, 1f); // Gelap 30%
-                } else {
-                    game.batch.setColor(Color.WHITE); // Normal
-                }
-                game.batch.draw(ImageLoader.BtnMenu,
-                    uiManager.btnMenuLose.x, uiManager.btnMenuLose.y,
-                    uiManager.btnMenuLose.width, uiManager.btnMenuLose.height);
-
-                game.batch.setColor(Color.WHITE);
-            }
-
-            if (ImageLoader.BtnRetry != null && uiManager.btnRetryLose != null) {
-                if (gameState.isNextButtonPressed) {
-                    game.batch.setColor(0.7f, 0.7f, 0.7f, 1f); // Gelap 30%
-                } else {
-                    game.batch.setColor(Color.WHITE); // Normal
-                }
-                game.batch.draw(ImageLoader.BtnRetry,
-                    uiManager.btnRetryLose.x, uiManager.btnRetryLose.y,
-                    uiManager.btnRetryLose.width, uiManager.btnRetryLose.height);
-
-                game.batch.setColor(Color.WHITE);
-            }
-        }
-
-        game.batch.end();
-    }
 
     private void renderPauseMenu() {
         shapes.setProjectionMatrix(camera.combined);
@@ -981,50 +850,12 @@ public class TowerDefenseScreen implements Screen {
     }
 
     @Override public void resize(int w, int h) {}
-    @Override public void show() {
-        // ⭐ CRITICAL: Set input processor
+    @Override
+    public void show() {
         Gdx.input.setInputProcessor(inputHandler);
-        System.out.println("🔧 Input processor set to: " + inputHandler);
-
-        // Jika game sebelumnya paused, tetap paused saat kembali dari settings
-        if (gameState.isPaused) {
-            System.out.println("⏸️ Game remains paused after returning from settings");
-
-            // ⭐ FORCE SETUP PAUSE MENU
-            uiManager.setupPauseMenu(camera);
-            System.out.println("🔧 Pause menu re-setup completed");
-
-            // Debug button positions
-            System.out.println("🔍 Debug - btnResume: " + uiManager.btnResume);
-            System.out.println("🔍 Debug - btnSetting: " + uiManager.btnSetting);
-            System.out.println("🔍 Debug - btnMenuPause: " + uiManager.btnMenuPause);
-        }
-
-        // Jika game sebelumnya paused, tetap paused saat kembali dari settings
-        if (gameState.isPaused) {
-            System.out.println("⏸️ Game remains paused after returning from settings");
-
-            // ⭐ FORCE SETUP PAUSE MENU
-            uiManager.setupPauseMenu(camera);
-            System.out.println("🔧 Pause menu re-setup completed");
-
-            // Debug button positions
-            System.out.println("🔍 Debug - btnResume: " + uiManager.btnResume);
-            System.out.println("🔍 Debug - btnSetting: " + uiManager.btnSetting);
-            System.out.println("🔍 Debug - btnMenuPause: " + uiManager.btnMenuPause);
-
-            // ⭐ JIKA PAUSED (kembali dari settings), JANGAN RESTART MUSIK
-            System.out.println("🎵 TowerDefenseScreen: Game paused - preserving current music");
-        } else {
-            // ⭐ HANYA PLAY MUSIK JIKA GAME TIDAK PAUSED (first time masuk atau resume)
-            System.out.println("🎵 TowerDefenseScreen: Game not paused - ensuring tower defense music");
+        if (!gameState.isPaused) {
             AudioManager.playTowerDefenseMusic();
         }
-    }
-
-    public void setGoingToSettings(boolean goingToSettings) {
-        this.isGoingToSettings = goingToSettings;
-        System.out.println("🔧 TowerDefenseScreen: Going to settings flag set to " + goingToSettings);
     }
 
     // ===== EXISTING TOWER METHODS =====
@@ -1065,17 +896,9 @@ public class TowerDefenseScreen implements Screen {
         }
     }
 
-    @Override public void hide() {
-        if (isGoingToSettings) {
-            System.out.println("🎵 TowerDefenseScreen: Going to settings - preserving tower defense music");
-            // Reset flag
-            isGoingToSettings = false;
-            // JANGAN stop musik
-        } else if (gameState.isPaused) {
-            System.out.println("🎵 TowerDefenseScreen: Game paused - preserving tower defense music");
-            // Jangan stop musik saat pause
-        } else {
-            System.out.println("🛑 TowerDefenseScreen: Normal hide - stopping tower defense music");
+    @Override
+    public void hide() {
+        if (!gameState.isPaused) {
             AudioManager.stopMusic();
         }
     }
@@ -1088,5 +911,6 @@ public class TowerDefenseScreen implements Screen {
         shapes.dispose();
         font.dispose();
         ImageLoader.dispose();
+        pauseMenu.getStage().dispose();
     }
 }
