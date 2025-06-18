@@ -77,7 +77,7 @@ public class ImageLoader {
     /** Panggil sekali di create() sebelum digunakan */
     public static void load() {
         grassTex = loadOrNull("Defend/Grass1.png");
-        terratex = loadOrNull("backgrounds/terrain.png");
+        terratex = loadOrNull("backgrounds/terrain3.png");
         skytex = loadOrNull("backgrounds/Background1.png");
 
         enemyTex = loadOrNull("Defend/Enemy/Enemy.png");
