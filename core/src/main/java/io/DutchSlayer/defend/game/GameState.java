@@ -119,13 +119,6 @@ public class GameState {
         System.out.println("🔄 Boss reference cleared");
     }
 
-    /**
-     * Check apakah boss masih hidup dan ada di game
-     */
-    public boolean hasBossAlive() {
-        return currentBoss != null && !currentBoss.isDestroyed();
-    }
-
     // Method untuk reset semua button states
     public void resetButtonStates() {
         isMenuButtonPressed = false;

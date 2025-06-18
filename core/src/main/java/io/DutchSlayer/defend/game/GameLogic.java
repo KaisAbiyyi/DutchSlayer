@@ -1,6 +1,5 @@
 package io.DutchSlayer.defend.game;
 
-import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.utils.Array;
 import io.DutchSlayer.defend.entities.enemies.Enemy;
 import io.DutchSlayer.defend.entities.enemies.EnemyType;
@@ -312,8 +311,7 @@ public class GameLogic {
             boolean shouldRemove = false;
 
             // ===== SPECIAL HANDLING UNTUK AOE PROJECTILE =====
-            if (p instanceof AoeProjectile) {
-                AoeProjectile aoeProj = (AoeProjectile) p;
+            if (p instanceof AoeProjectile aoeProj) {
 
                 // Check jika AOE sudah exploded
                 if (aoeProj.hasExploded()) {
@@ -442,7 +440,7 @@ public class GameLogic {
         EnemyType enemyType = determineEnemyType();
         float enemyY = GameConstants.GROUND_Y + getEnemyYOffset(enemyType);
         Enemy newEnemy = new Enemy(enemyType, 1280, enemyY);
-        newEnemy.setReferences(gameState.towers, gameState.enemyProjectiles, gameState.bombs);
+        newEnemy.setReferences(gameState.towers, gameState.enemyProjectiles);
         gameState.enemies.add(newEnemy);
 
         if (enemyType == EnemyType.BOSS) {

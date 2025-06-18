@@ -16,17 +16,18 @@ import io.DutchSlayer.defend.utils.AudioManager;
 public class BombAsset {
     /* ===== VISUAL COMPONENTS ===== */
     private final Texture tex;
-    private float scaledW, scaledH;
+    private final float scaledW;
+    private final float scaledH;
     private final Rectangle bounds;
 
     /* ===== POSITION & PHYSICS ===== */
     private final float baseX, baseY;
-    private float currentX, currentY;
+    private final float currentX;
+    private float currentY;
     private float offsetY = 0f;
 
     /* ===== PHYSICS ===== */
     private float velocityY = 150f;
-    private float gravity = -500f;
     private boolean falling = true;
     private boolean isLanded = false;
 
@@ -34,17 +35,14 @@ public class BombAsset {
     private boolean hasExploded = false;
     private boolean isShowingExplosion = false;
     private float explosionTimer = 0f;
-    private float explosionScale = 1.0f;
-
-    /* ===== VISUAL SCALING ===== */
-    private final float bombScale = 0.1f;  // ⭐ FIXED: Constant scale untuk bomb
+    private float explosionScale = 2.0f;
 
     /* ===== CONSTANTS - INSTANT EXPLOSION ===== */
     private static final int DAMAGE = 2;
     private static final float EXPLOSION_RADIUS = 250f;
     private static final float GROUND_Y = 150f;
     private static final float EXPLOSION_DISPLAY_TIME = 0.3f;
-    private static final float EXPLOSION_MAX_SCALE = 2.0f;
+    private static final float EXPLOSION_MAX_SCALE = 5.0f;
 
     public BombAsset(Texture tex, float dropX, float dropY) {
         this.tex = tex;
@@ -54,6 +52,9 @@ public class BombAsset {
         this.currentY = dropY;
 
         // ⭐ FIXED SCALING: No animation scaling
+        /* ===== VISUAL SCALING ===== */
+        // ⭐ FIXED: Constant scale untuk bomb
+        float bombScale = 0.1f;
         this.scaledW = tex.getWidth() * bombScale;
         this.scaledH = tex.getHeight() * bombScale;
 
@@ -64,10 +65,6 @@ public class BombAsset {
         );
 
         System.out.println("💣 Bomb created with INSTANT explosion on ground contact!");
-    }
-
-    public BombAsset(Texture tex, float startX, float startY, float targetX, float targetY) {
-        this(tex, targetX, targetY);
     }
 
     /**
@@ -86,6 +83,7 @@ public class BombAsset {
 
         // ===== PHYSICS UPDATE =====
         if (falling && !isLanded) {
+            float gravity = -500f;
             velocityY += gravity * delta;
             offsetY += velocityY * delta;
 
@@ -146,7 +144,7 @@ public class BombAsset {
         if (progress <= 0.3f) {
             // Phase 1: Rapid expansion
             float expandProgress = progress / 0.3f;
-            explosionScale = 1.0f + (EXPLOSION_MAX_SCALE - 1.0f) * expandProgress;
+            explosionScale = 1.0f + expandProgress;
         } else if (progress <= 0.7f) {
             // Phase 2: Hold at max
             explosionScale = EXPLOSION_MAX_SCALE;
@@ -325,8 +323,6 @@ public class BombAsset {
     public float getY() { return currentY; }
     public boolean hasExploded() { return hasExploded; }
     public boolean isLanded() { return isLanded; }
-    public boolean isFlying() { return falling; }
-    public boolean isExploding() { return isShowingExplosion; }
 
     // ⭐ SIMPLIFIED: No timer since explosion is instant
     public float getTimeLeft() { return falling ? 1f : 0f; }

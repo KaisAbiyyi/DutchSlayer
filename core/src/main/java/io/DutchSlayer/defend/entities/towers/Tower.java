@@ -17,7 +17,6 @@ import io.DutchSlayer.defend.utils.AudioManager;
 /**
  * Optimized Tower class dengan sistem upgrade dan berbagai type tower
  * Support 4 type: BASIC, AOE, FAST, SLOW dengan stats dan projectile berbeda
- *
  * OPTIMIZATIONS:
  * - Pre-calculated upgrade costs
  * - Cached textures and targeting
@@ -55,9 +54,9 @@ public class Tower {
     static {
         // Pre-calculate semua upgrade costs
         for (int i = 0; i <= MAX_TOTAL_UPGRADES; i++) {
-            ATTACK_UPGRADE_COSTS[i] = (int)(20 * Math.pow(1.5f, i));
-            DEFENSE_UPGRADE_COSTS[i] = (int)(15 * Math.pow(1.5f, i));
-            SPEED_UPGRADE_COSTS[i] = (int)(25 * Math.pow(1.5f, i));
+            ATTACK_UPGRADE_COSTS[i] = (int) (20 * Math.pow(1.5f, i));
+            DEFENSE_UPGRADE_COSTS[i] = (int) (15 * Math.pow(1.5f, i));
+            SPEED_UPGRADE_COSTS[i] = (int) (25 * Math.pow(1.5f, i));
         }
     }
 
@@ -69,18 +68,17 @@ public class Tower {
     /* ===== POSITION & VISUAL ===== */
     public final float x, y;
     public final float scaledW, scaledH;
-    private final float scale;
     private final Texture towerTex;
     private final Texture projTex;
     private final float projScale;
 
     /* ===== COMBAT STATS ===== */
     private int health;
-    private int baseHealth;
+    private final int baseHealth;
     private int damage;
-    private int baseDamage;
+    private final int baseDamage;
     private float fireRate;
-    private float baseFireRate;
+    private final float baseFireRate;
     private float slowDuration;
 
     /* ===== SHOOTING MECHANICS ===== */
@@ -98,7 +96,7 @@ public class Tower {
 
     /* ===== ANIMATION SYSTEM OPTIMIZATION ===== */
     private boolean isAnimating = false;
-    private boolean hasIdleAnimation = false;
+    private final boolean hasIdleAnimation;
     private int currentFrame = 0;
     private float animationTimer = 0f;
 
@@ -109,8 +107,6 @@ public class Tower {
     /* ===== REUSABLE OBJECTS (menghindari garbage collection) ===== */
     private final Vector2 tempOrigin = new Vector2();
     private final Rectangle tempBounds = new Rectangle();
-
-    private Array<Enemy> enemiesRef = null;
 
     /* ===== TOWER TYPE CONFIGS ===== */
     private static final TowerConfig[] TOWER_CONFIGS = {
@@ -141,7 +137,6 @@ public class Tower {
 
         this.towerTex = towerTex;
         this.projTex = projTex;
-        this.scale = scale;
         this.canShoot = canShoot;
         this.isMain = isMain;
         this.type = type;
@@ -156,7 +151,7 @@ public class Tower {
         this.y = yCenter;
 
         // Initialize bounds
-        tempBounds.set(x - scaledW/2, y - scaledH/2, scaledW, scaledH);
+        tempBounds.set(x - scaledW / 2, y - scaledH / 2, scaledW, scaledH);
 
         // Set stats berdasarkan tower type menggunakan config array
         TowerConfig config = TOWER_CONFIGS[type.ordinal()];
@@ -220,7 +215,6 @@ public class Tower {
      * Optimized update method
      */
     public void update(float delta, Array<Enemy> enemies, Array<Projectile> projs) {
-        this.enemiesRef = enemies;
         updateAnimation(delta);
 
         // Early return untuk kondisi yang tidak bisa shoot
@@ -260,9 +254,9 @@ public class Tower {
      */
     private void createProjectile(Array<Projectile> projs, float originX, float originY,
                                   float targetX, float targetY) {
-        switch(type) {
+        switch (type) {
             case BASIC:
-                projs.add(new Projectile(projTex, originX, originY, targetX, targetY,
+                projs.add(new Projectile(projTex, originX, originY, targetX,
                     projScale, 900f, damage));
                 break;
 
@@ -276,13 +270,13 @@ public class Tower {
             case FAST:
                 AudioManager.playTowerShootWithVolume(0.5f);
                 triggerShootAnimation();
-                projs.add(new Projectile(projTex, originX, originY, targetX, targetY,
+                projs.add(new Projectile(projTex, originX, originY, targetX,
                     projScale, 1500f, damage));
                 break;
 
             case SLOW:
                 AudioManager.playSlowProjectileWithVolume(1f);
-                projs.add(new SlowProjectile(projTex, originX, originY, targetX, targetY,
+                projs.add(new SlowProjectile(projTex, originX, originY, targetX,
                     slowDuration, projScale, 500f));
                 break;
         }
@@ -384,8 +378,8 @@ public class Tower {
     /**
      * Upgrade attack dengan pre-calculated costs
      */
-    public boolean upgradeAttack() {
-        if (totalUpgradeCount >= MAX_TOTAL_UPGRADES) return false;
+    public void upgradeAttack() {
+        if (totalUpgradeCount >= MAX_TOTAL_UPGRADES) return;
 
         attackLevel++;
         totalUpgradeCount++;
@@ -394,14 +388,13 @@ public class Tower {
         damage = baseDamage + (attackLevel * damageBonus);
 
         debugPrint("⚔️ Attack upgraded! Level: " + attackLevel + ", Damage: " + damage);
-        return true;
     }
 
     /**
      * Upgrade defense dengan pre-calculated costs
      */
-    public boolean upgradeDefense() {
-        if (totalUpgradeCount >= MAX_TOTAL_UPGRADES) return false;
+    public void upgradeDefense() {
+        if (totalUpgradeCount >= MAX_TOTAL_UPGRADES) return;
 
         defenseLevel++;
         totalUpgradeCount++;
@@ -411,86 +404,27 @@ public class Tower {
         health = Math.min(health + 2, newMaxHealth);
 
         debugPrint("🛡️ Defense upgraded! Level: " + defenseLevel + ", Health: " + health + "/" + newMaxHealth);
-        return true;
     }
 
     /**
      * Upgrade speed dengan pre-calculated costs
      */
-    public boolean upgradeSpeed() {
-        if (totalUpgradeCount >= MAX_TOTAL_UPGRADES) return false;
+    public void upgradeSpeed() {
+        if (totalUpgradeCount >= MAX_TOTAL_UPGRADES) return;
 
         speedLevel++;
         totalUpgradeCount++;
 
-        float speedBonus;
-        switch(type) {
-            case FAST: speedBonus = 0.05f; break;
-            case SLOW: speedBonus = 0.25f; break;
-            default: speedBonus = 0.15f; break;
-        }
+        float speedBonus = switch (type) {
+            case FAST -> 0.05f;
+            case SLOW -> 0.25f;
+            default -> 0.15f;
+        };
 
         fireRate = Math.max(MIN_FIRE_RATE, baseFireRate - (speedLevel * speedBonus));
 
         debugPrint("⚡ Speed upgraded! Level: " + speedLevel + ", Fire rate: " + fireRate + "s");
-        return true;
     }
-
-    /* ===== PRE-CALCULATED UPGRADE COSTS ===== */
-
-    public int getAttackUpgradeCost() {
-        return ATTACK_UPGRADE_COSTS[Math.min(attackLevel, MAX_TOTAL_UPGRADES)];
-    }
-
-    public int getDefenseUpgradeCost() {
-        return DEFENSE_UPGRADE_COSTS[Math.min(defenseLevel, MAX_TOTAL_UPGRADES)];
-    }
-
-    public int getSpeedUpgradeCost() {
-        return SPEED_UPGRADE_COSTS[Math.min(speedLevel, MAX_TOTAL_UPGRADES)];
-    }
-
-    /* ===== UPGRADE VALIDATION ===== */
-
-    public boolean canUpgradeAttack(int currentGold) {
-        return totalUpgradeCount < MAX_TOTAL_UPGRADES &&
-            currentGold >= getAttackUpgradeCost();
-    }
-
-    public boolean canUpgradeDefense(int currentGold) {
-        return totalUpgradeCount < MAX_TOTAL_UPGRADES &&
-            currentGold >= getDefenseUpgradeCost();
-    }
-
-    public boolean canUpgradeSpeed(int currentGold) {
-        return totalUpgradeCount < MAX_TOTAL_UPGRADES &&
-            currentGold >= getSpeedUpgradeCost();
-    }
-
-    /**
-     * Get upgrade info dengan optimized string building
-     */
-    public String getUpgradeInfo(String upgradeType) {
-        switch(upgradeType.toLowerCase()) {
-            case "attack":
-                int nextDamage = damage + (type == TowerType.AOE ? 2 : 1);
-                return "DMG: " + damage + " → " + nextDamage;
-
-            case "defense":
-                int maxHealth = getMaxHealth();
-                return "HP: " + health + "/" + maxHealth + " → " + (health + 2) + "/" + (maxHealth + 2);
-
-            case "speed":
-                float speedBonus = (type == TowerType.FAST) ? 0.05f : 0.15f;
-                float nextFireRate = Math.max(MIN_FIRE_RATE, fireRate - speedBonus);
-                return String.format("Rate: %.2fs → %.2fs", fireRate, nextFireRate);
-
-            default:
-                return "";
-        }
-    }
-
-    /* ===== OPTIMIZED RENDERING ===== */
 
     /**
      * Optimized batch drawing dengan cached texture
@@ -504,7 +438,7 @@ public class Tower {
             batch.setColor(1.2f, 1.2f, 1.2f, 1f);
         }
 
-        batch.draw(cachedCurrentTexture, x - scaledW/2, y - scaledH/2, scaledW, scaledH);
+        batch.draw(cachedCurrentTexture, x - scaledW / 2, y - scaledH / 2, scaledW, scaledH);
 
         // Reset color
         batch.setColor(1f, 1f, 1f, 1f);
@@ -516,7 +450,7 @@ public class Tower {
     public void drawShape(ShapeRenderer shapes) {
         if (towerTex == null) {
             shapes.setColor(canShoot ? Color.CYAN : Color.BLUE);
-            shapes.rect(x - scaledW/2, y - scaledH/2, scaledW, scaledH);
+            shapes.rect(x - scaledW / 2, y - scaledH / 2, scaledW, scaledH);
         }
     }
 
@@ -524,29 +458,40 @@ public class Tower {
 
     public Rectangle getBounds() {
         // Update reusable bounds object
-        tempBounds.set(x - scaledW/2, y - scaledH/2, scaledW, scaledH);
+        tempBounds.set(x - scaledW / 2, y - scaledH / 2, scaledW, scaledH);
         return tempBounds;
     }
 
     // Basic getters
-    public int getHealth() { return health; }
-    public int getRemainingUpgrades() { return MAX_TOTAL_UPGRADES - totalUpgradeCount; }
-    public boolean canUpgrade() { return totalUpgradeCount < MAX_TOTAL_UPGRADES; }
+    public int getHealth() {
+        return health;
+    }
+
+    public int getRemainingUpgrades() {
+        return MAX_TOTAL_UPGRADES - totalUpgradeCount;
+    }
+
+    public boolean canUpgrade() {
+        return totalUpgradeCount < MAX_TOTAL_UPGRADES;
+    }
 
     // Upgrade levels
-    public int getAttackLevel() { return attackLevel; }
-    public int getDefenseLevel() { return defenseLevel; }
-    public int getSpeedLevel() { return speedLevel; }
-    public int getTotalUpgradeCount() { return totalUpgradeCount; }
+    public int getAttackLevel() {
+        return attackLevel;
+    }
 
-    // Current stats
-    public int getCurrentDamage() { return damage; }
-    public float getCurrentFireRate() { return fireRate; }
-    public int getMaxHealth() { return baseHealth + (defenseLevel * 2); }
+    public int getDefenseLevel() {
+        return defenseLevel;
+    }
+
+    public int getSpeedLevel() {
+        return speedLevel;
+    }
 
     // UI helpers
-    public String getUpgradeRemaining() { return String.valueOf(getRemainingUpgrades()); }
-    public String getUpgradeLevel() { return String.valueOf(totalUpgradeCount); }
+    public String getUpgradeRemaining() {
+        return String.valueOf(getRemainingUpgrades());
+    }
 
     /* ===== DEBUG UTILITY ===== */
 
@@ -554,13 +499,5 @@ public class Tower {
         if (DEBUG_MODE) {
             System.out.println(message);
         }
-    }
-
-    /**
-     * Set enemies reference untuk AOE projectile tracking
-     * Panggil di update() method
-     */
-    public void setEnemiesReference(Array<Enemy> enemies) {
-        this.enemiesRef = enemies;
     }
 }

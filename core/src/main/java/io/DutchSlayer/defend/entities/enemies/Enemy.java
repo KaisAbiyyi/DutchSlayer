@@ -7,7 +7,6 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
-import io.DutchSlayer.defend.entities.projectiles.BombAsset;
 import io.DutchSlayer.defend.entities.projectiles.EnemyProjectile;
 import io.DutchSlayer.defend.entities.towers.Tower;
 import io.DutchSlayer.defend.ui.ImageLoader;
@@ -57,13 +56,10 @@ public class Enemy {
 
     /* ===== AI STATE MACHINE ===== */
     private EnemyState state = EnemyState.MOVING;
-    private float stateTimer = 0f;
     private float shootCooldown = 0f;
-    private float shootInterval;
 
     /* ===== SPECIAL BEHAVIORS ===== */
     private float targetX = 0f;
-    private boolean hasReachedTarget = false;
 
     /* ===== STATUS EFFECTS ===== */
     private boolean isSlowed = false;
@@ -76,13 +72,11 @@ public class Enemy {
     /* ===== REFERENCES FOR INTERACTIONS ===== */
     private Array<Tower> towersRef;
     private Array<EnemyProjectile> enemyProjectilesRef;
-    private Array<BombAsset> bombsRef;
 
     // ===== ANIMASI FIELDS =====
-    private float animationTimer = 0f;
-    private int currentFrame = 0;
+    private float animationTimer;
+    private int currentFrame;
     private static final float ANIMATION_SPEED = 0.2f;
-    private static final float ANIMATION_SPEED_BOMBER = 0.15f;
 
     private boolean hasReachedTargetPosition = false;
 
@@ -102,15 +96,14 @@ public class Enemy {
         this.tex = stats.texture;
         this.health = stats.health;
         this.baseSpeed = stats.speed;
-        this.scale = stats.scale;
-        this.shootInterval = stats.shootInterval;
+        scale = stats.scale;
         this.targetX = stats.targetX;
 
         // Initialize derived properties
         this.maxHealth = this.health;
         this.currentSpeed = this.baseSpeed;
-        this.scaledWidth = tex.getWidth() * this.scale;
-        this.scaledHeight = tex.getHeight() * this.scale;
+        this.scaledWidth = tex.getWidth() * scale;
+        this.scaledHeight = tex.getHeight() * scale;
 
         // ✅ Cache half dimensions
         this.halfWidth = scaledWidth / 2f;
@@ -147,35 +140,28 @@ public class Enemy {
     }
 
     private EnemyStats getEnemyStats(EnemyType type) {
-        switch(type) {
-            case BASIC:
-                return new EnemyStats(
-                    ImageLoader.enemyBasicTex != null ? ImageLoader.enemyBasicTex : ImageLoader.dutchtex,
-                    3, 100f, BASIC_SCALE, 0f, 0f
-                );
-            case SHOOTER:
-                return new EnemyStats(
-                    ImageLoader.enemyShooterTex != null ? ImageLoader.enemyShooterTex : ImageLoader.dutchtex,
-                    2, 80f, SHOOTER_SCALE, SHOOTER_INTERVAL, 0f
-                );
-            case BOMBER:
-                return new EnemyStats(
-                    ImageLoader.enemyBomberTex != null ? ImageLoader.enemyBomberTex : ImageLoader.dutchtex,
-                    2, 120f, BOMBER_SCALE, 0f, 0f
-                );
-            case SHIELD:
-                return new EnemyStats(
-                    ImageLoader.enemyShieldTex != null ? ImageLoader.enemyShieldTex : ImageLoader.dutchtex,
-                    8, 60f, SHIELD_SCALE, 0f, 0f
-                );
-            case BOSS:
-                return new EnemyStats(
-                    ImageLoader.enemyBossTex != null ? ImageLoader.enemyBossTex : ImageLoader.dutchtex,
-                    100, 50f, BOSS_SCALE, BOSS_INTERVAL, 1100f
-                );
-            default:
-                return new EnemyStats(ImageLoader.dutchtex, 3, 100f, BASIC_SCALE, 2f, 0f);
-        }
+        return switch (type) {
+            case BASIC -> new EnemyStats(
+                ImageLoader.enemyBasicTex != null ? ImageLoader.enemyBasicTex : ImageLoader.dutchtex,
+                3, 100f, BASIC_SCALE, 0f, 0f
+            );
+            case SHOOTER -> new EnemyStats(
+                ImageLoader.enemyShooterTex != null ? ImageLoader.enemyShooterTex : ImageLoader.dutchtex,
+                2, 80f, SHOOTER_SCALE, SHOOTER_INTERVAL, 0f
+            );
+            case BOMBER -> new EnemyStats(
+                ImageLoader.enemyBomberTex != null ? ImageLoader.enemyBomberTex : ImageLoader.dutchtex,
+                2, 120f, BOMBER_SCALE, 0f, 0f
+            );
+            case SHIELD -> new EnemyStats(
+                ImageLoader.enemyShieldTex != null ? ImageLoader.enemyShieldTex : ImageLoader.dutchtex,
+                8, 60f, SHIELD_SCALE, 0f, 0f
+            );
+            case BOSS -> new EnemyStats(
+                ImageLoader.enemyBossTex != null ? ImageLoader.enemyBossTex : ImageLoader.dutchtex,
+                100, 50f, BOSS_SCALE, BOSS_INTERVAL, 1100f
+            );
+        };
     }
 
     /**
@@ -261,7 +247,6 @@ public class Enemy {
     }
 
     private void updateShooter(float delta) {
-        stateTimer += delta;
         shootCooldown -= delta;
 
         switch(state) {
@@ -270,7 +255,6 @@ public class Enemy {
                 if (pos.x <= 1000f) {
                     state = EnemyState.ATTACKING;
                     currentSpeed = 0f;
-                    stateTimer = 0f;
                 }
                 break;
 
@@ -285,7 +269,6 @@ public class Enemy {
     }
 
     private void updateBoss(float delta) {
-        stateTimer += delta;
         shootCooldown -= delta;
 
         switch(state) {
@@ -294,7 +277,6 @@ public class Enemy {
                 if (pos.x <= targetX) {
                     state = EnemyState.STATIONARY;
                     currentSpeed = 0f;
-                    hasReachedTarget = true;
                     hasReachedTargetPosition = true;
                 }
                 break;
@@ -418,13 +400,13 @@ public class Enemy {
      * ✅ OPTIMIZATION: Single method untuk frame arrays
      */
     private Texture[] getFramesArray() {
-        switch(type) {
-            case BASIC: return ImageLoader.enemyBasicFrames;
-            case SHIELD: return ImageLoader.enemyShieldFrames;
-            case SHOOTER: return ImageLoader.enemyShooterFrames;
-            case BOMBER: return ImageLoader.enemyBomberFrames;
-            default: return null;
-        }
+        return switch (type) {
+            case BASIC -> ImageLoader.enemyBasicFrames;
+            case SHIELD -> ImageLoader.enemyShieldFrames;
+            case SHOOTER -> ImageLoader.enemyShooterFrames;
+            case BOMBER -> ImageLoader.enemyBomberFrames;
+            default -> null;
+        };
     }
 
     /**
@@ -469,20 +451,6 @@ public class Enemy {
         }
     }
 
-    // ===== REMAINING METHODS (unchanged but optimized) =====
-    public BombAsset createBombAtPosition(float targetX, float targetY) {
-        if (type != EnemyType.BOMBER) return null;
-        return new BombAsset(
-            ImageLoader.bombAssetTex != null ? ImageLoader.bombAssetTex : ImageLoader.trapTex,
-            pos.x, pos.y, targetX, targetY
-        );
-    }
-
-    public BombAsset createBombAtPosition() {
-        if (type != EnemyType.BOMBER) return null;
-        return createBombAtPosition(pos.x - 100f, 150f);
-    }
-
     public void seekProtection(Array<Enemy> allEnemies) {
         if (type != EnemyType.BASIC) return;
 
@@ -513,10 +481,9 @@ public class Enemy {
         }
     }
 
-    public void setReferences(Array<Tower> towers, Array<EnemyProjectile> enemyProjectiles, Array<BombAsset> bombs) {
+    public void setReferences(Array<Tower> towers, Array<EnemyProjectile> enemyProjectiles) {
         this.towersRef = towers;
         this.enemyProjectilesRef = enemyProjectiles;
-        this.bombsRef = bombs;
     }
 
     public boolean canAttack() { return attackCooldown <= 0 && !isKnockedBack; }

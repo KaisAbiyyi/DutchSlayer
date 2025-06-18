@@ -16,23 +16,20 @@ public class AoeProjectile extends Projectile {
     private int aoeRadius;                        // Radius area damage
     private int aoeDamage;                        // Damage per enemy dalam AOE
 
-    // ===== PARABOLA TRAJECTORY SYSTEM - OPTIMIZED =====
-    private boolean useParabola = true;
     private float initialVelocityX;
     private float initialVelocityY;
-    private float gravity = -800f;
+    private float gravity;
     private float timeElapsed = 0f;
-    private Vector2 startPos;
-    private Vector2 targetPos;
+    private final Vector2 startPos;
+    private final Vector2 targetPos;
     private boolean hasExploded = false;
 
     // ===== PRE-CALCULATED VALUES - OPTIMIZED =====
-    private float maxHeight;
+    private final float maxHeight;
     private float totalTime;
-    private float halfWidth;                      // Pre-calculated untuk performa
-    private float halfHeight;                     // Pre-calculated untuk performa
+    private final float halfWidth;                      // Pre-calculated untuk performa
+    private final float halfHeight;                     // Pre-calculated untuk performa
 
-    private static final float FIXED_ARC_HEIGHT = 100f;
     private static final float EXPLOSION_THRESHOLD = 50f; // Pre-calculated constant
     private static final float TIMEOUT_DURATION = 8f;     // Pre-calculated constant
 
@@ -43,7 +40,7 @@ public class AoeProjectile extends Projectile {
                          float startX, float startY,
                          float targetX, float targetY,
                          float radius, float scale, int damage, float customSpeed) {
-        super(tex, startX, startY, targetX, targetY, scale, customSpeed, damage);
+        super(tex, startX, startY, targetX, scale, customSpeed, damage);
 
         this.aoeRadius = (int)radius;
         this.aoeDamage = damage;
@@ -68,22 +65,14 @@ public class AoeProjectile extends Projectile {
     }
 
     /**
-     * Backward compatibility constructor - OPTIMIZED
-     */
-    public AoeProjectile(Texture tex,
-                         float startX, float startY,
-                         float targetX, float targetY,
-                         float radius, float scale, int damage, float v, float customSpeed) {
-        this(tex, startX, startY, targetX, targetY, radius, scale, damage, customSpeed);
-    }
-
-    /**
      * Override update untuk menggunakan fisika parabola - OPTIMIZED
      */
     @Override
     public void update(float delta) {
         if (hasExploded || !isActive()) return; // Early exit optimization
 
+        // ===== PARABOLA TRAJECTORY SYSTEM - OPTIMIZED =====
+        boolean useParabola = true;
         if (useParabola) {
             updateParabolaTrajectory(delta);
         } else {
@@ -151,7 +140,6 @@ public class AoeProjectile extends Projectile {
 
         float explosionX = targetPos.x;
         float explosionY = targetPos.y;
-        int hitCount = 0;
 
         // OPTIMIZED: Pre-calculate radius squared untuk menghindari sqrt
         float radiusSquared = aoeRadius * aoeRadius;
@@ -172,7 +160,6 @@ public class AoeProjectile extends Projectile {
 
             if (distanceSquared <= radiusSquared) {
                 e.takeDamage(aoeDamage);
-                hitCount++;
             }
         }
     }
@@ -212,19 +199,13 @@ public class AoeProjectile extends Projectile {
 
     // ===== OPTIMIZED GETTERS - INLINE UNTUK PERFORMA =====
     public boolean hasExploded() { return hasExploded; }
-    public float getCurrentHeight() { return bounds.y + halfHeight; }
-    public boolean isFlying() { return !hasExploded && isActive(); }
-    public float getMaxHeight() { return maxHeight; }
-    public float getProgress() { return Math.min(1.0f, timeElapsed / totalTime); }
-    public int getAoeRadius() { return aoeRadius; }
-    public int getAoeDamage() { return aoeDamage; }
 
     /**
      * BARU: Reset method untuk object pooling - OPTIMIZED
      */
     public void reset(float startX, float startY, float targetX, float targetY,
                       float radius, int damage, float customSpeed) {
-        super.reset(startX, startY, targetX, targetY, customSpeed, damage);
+        super.reset(startX, startY, targetX, customSpeed, damage);
 
         this.hasExploded = false;
         this.timeElapsed = 0f;
@@ -244,7 +225,4 @@ public class AoeProjectile extends Projectile {
         this.gravity = -2f * (initialVelocityY * totalTime - (heightDiff + maxHeight)) / (totalTime * totalTime);
     }
 
-    public static float getFixedArcHeight() {
-        return FIXED_ARC_HEIGHT;
-    }
 }

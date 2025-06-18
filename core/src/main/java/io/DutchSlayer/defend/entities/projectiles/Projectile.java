@@ -27,19 +27,16 @@ public class Projectile {
     private final float halfHeight;     // Pre-calculated untuk performa
 
     /* ===== COMBAT ===== */
-    protected float speed = 400f;
-    protected int damage = 1;
+    protected float speed;
+    protected int damage;
 
     /* ===== POOLING SUPPORT ===== */
     private boolean active = true;      // Untuk object pooling
 
-    /* ===== REUSABLE OBJECTS - MENGURANGI GC ===== */
-    private static final Vector2 TEMP_VEC = new Vector2(); // Shared temporary vector
-
     /**
      * Constructor master - semua parameter - OPTIMIZED
      */
-    public Projectile(Texture tex, float startX, float startY, float targetX, float targetY, float scale, float customSpeed, int damage) {
+    public Projectile(Texture tex, float startX, float startY, float targetX, float scale, float customSpeed, int damage) {
         this.tex = tex;
         this.speed = customSpeed;
         this.damage = damage;
@@ -67,16 +64,16 @@ public class Projectile {
     }
 
     // Constructor overloads tetap sama...
-    public Projectile(Texture tex, float startX, float startY, float targetX, float targetY, float scale, float customSpeed) {
-        this(tex, startX, startY, targetX, targetY, scale, customSpeed, 1);
+    public Projectile(Texture tex, float startX, float startY, float targetX, float scale, float customSpeed) {
+        this(tex, startX, startY, targetX, scale, customSpeed, 1);
     }
 
-    public Projectile(Texture tex, float startX, float startY, float targetX, float targetY, float scale, int damage) {
-        this(tex, startX, startY, targetX, targetY, scale, 400f, damage);
+    public Projectile(Texture tex, float startX, float startY, float targetX, float scale, int damage) {
+        this(tex, startX, startY, targetX, scale, 400f, damage);
     }
 
-    public Projectile(Texture tex, float startX, float startY, float targetX, float targetY, float scale) {
-        this(tex, startX, startY, targetX, targetY, scale, 400f, 1);
+    public Projectile(Texture tex, float startX, float startY, float targetX, float scale) {
+        this(tex, startX, startY, targetX, scale, 400f, 1);
     }
 
     /**
@@ -142,36 +139,9 @@ public class Projectile {
     }
 
     /**
-     * BARU: Method terpisah untuk check hit dengan return boolean
-     * Berguna untuk game logic yang perlu tahu apakah projectile hit target
-     */
-    public boolean checkHit(Array<Enemy> enemies) {
-        if (!active) return false;
-
-        for (int i = 0; i < enemies.size; i++) {
-            Enemy e = enemies.get(i);
-            if (e.isDestroyed()) continue;
-
-            if (bounds.overlaps(e.getBounds())) {
-                return true; // Hit detected
-            }
-        }
-        return false; // No hit
-    }
-
-    /**
-     * BARU: Check apakah projectile masih di dalam screen bounds
-     * Untuk auto-cleanup projectiles yang keluar layar
-     */
-    public boolean isOutOfBounds(float screenWidth, float screenHeight) {
-        return pos.x < -halfWidth || pos.x > screenWidth + halfWidth ||
-            pos.y < -halfHeight || pos.y > screenHeight + halfHeight;
-    }
-
-    /**
      * BARU: Reset projectile untuk object pooling
      */
-    public void reset(float startX, float startY, float targetX, float targetY, float customSpeed, int damage) {
+    public void reset(float startX, float startY, float targetX, float customSpeed, int damage) {
         this.pos.set(startX, startY);
         this.speed = customSpeed;
         this.damage = damage;

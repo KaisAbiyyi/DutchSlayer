@@ -60,21 +60,6 @@ public class EnemyProjectile {
         );
     }
 
-    /**
-     * Constructor dengan default speed (untuk backward compatibility)
-     */
-    public EnemyProjectile(Texture tex, float startX, float startY, int damage, float speed) {
-        this(tex, startX, startY, damage, speed, SHOOTER_SCALE); // Default scale
-    }
-
-    /**
-     * Constructor lama (untuk backward compatibility)
-     * Parameter targetX dan targetY diabaikan
-     */
-    public EnemyProjectile(Texture tex, float startX, float startY, float targetX, float targetY, int damage) {
-        this(tex, startX, startY, damage, SHOOTER_SPEED, SHOOTER_SCALE);
-    }
-
     /* ===== FACTORY METHODS ===== */
 
     /**
@@ -89,14 +74,6 @@ public class EnemyProjectile {
      */
     public static EnemyProjectile createBossProjectile(Texture tex, float startX, float startY, int damage) {
         return new EnemyProjectile(tex, startX, startY, damage, BOSS_SPEED, BOSS_SCALE);
-    }
-
-    /**
-     * Buat projectile custom
-     */
-    public static EnemyProjectile createCustomProjectile(Texture tex, float startX, float startY,
-                                                         int damage, float speed, float scale) {
-        return new EnemyProjectile(tex, startX, startY, damage, speed, scale);
     }
 
     /**

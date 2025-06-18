@@ -18,9 +18,9 @@ public class SlowProjectile extends Projectile {
      */
     public SlowProjectile(Texture tex,
                           float startX, float startY,
-                          float targetX, float targetY,
+                          float targetX,
                           float slowDuration, float scale, int damage, float customSpeed) {
-        super(tex, startX, startY, targetX, targetY, scale, customSpeed, damage);
+        super(tex, startX, startY, targetX, scale, customSpeed, damage);
         this.slowDuration = slowDuration;
         this.slowDamage = damage;
     }
@@ -30,20 +30,10 @@ public class SlowProjectile extends Projectile {
      */
     public SlowProjectile(Texture tex,
                           float startX, float startY,
-                          float targetX, float targetY,
+                          float targetX,
                           float slowDuration, float scale,
                           float customSpeed) {
-        this(tex, startX, startY, targetX, targetY, slowDuration, scale, 0, customSpeed);
-    }
-
-    /**
-     * Constructor tanpa damage (backward compatibility) - OPTIMIZED
-     */
-    public SlowProjectile(Texture tex,
-                          float startX, float startY,
-                          float targetX, float targetY,
-                          float slowDuration, float scale) {
-        this(tex, startX, startY, targetX, targetY, slowDuration, scale, 0, 400f);
+        this(tex, startX, startY, targetX, slowDuration, scale, 0, customSpeed);
     }
 
     /**
@@ -78,28 +68,11 @@ public class SlowProjectile extends Projectile {
     /**
      * BARU: Reset method untuk object pooling support
      */
-    public void reset(float startX, float startY, float targetX, float targetY,
-                      float slowDuration, float customSpeed, int damage) {
-        super.reset(startX, startY, targetX, targetY, customSpeed, damage);
+    public void reset(float startX, float startY, float targetX,
+                      float customSpeed, int damage) {
+        super.reset(startX, startY, targetX, customSpeed, damage);
         // slowDuration adalah final, jadi tidak bisa direset
         // Untuk full pooling, perlu refactor menjadi non-final
     }
 
-    /**
-     * BARU: Getters untuk debugging/UI
-     */
-    public float getSlowDuration() {
-        return slowDuration;
-    }
-
-    public int getSlowDamage() {
-        return slowDamage;
-    }
-
-    /**
-     * BARU: Check apakah projectile ini pure slow (tanpa damage)
-     */
-    public boolean isPureSlowProjectile() {
-        return slowDamage <= 0;
-    }
 }
