@@ -5,27 +5,12 @@ import com.badlogic.gdx.utils.Array;
 import io.DutchSlayer.attack.screens.GameScreen;
 import io.DutchSlayer.utils.Constant;
 
-/**
- * Factory untuk menciptakan berbagai jenis musuh BasicEnemy dengan fleksibel.
- */
 public class EnemyFactory {
-
-    /**
-     * Membuat satu enemy dengan tipe dan posisi yang ditentukan.
-     */
-
-    /**
-     * Membuat satu enemy dengan tipe acak pada posisi tertentu.
-     */
     public static BasicEnemy createRandomEnemy(float x, float y, GameScreen gameScreen) {
         AttackType[] types = AttackType.values();
         AttackType randomType = types[(int) (Math.random() * types.length)];
         return new BasicEnemy(randomType, x, y, gameScreen);
     }
-
-    /**
-     * Membuat sekumpulan enemy yang terletak sejajar secara horizontal.
-     */
     public static Array<BasicEnemy> spawnWave(int count, float startX, float y, float spacing, GameScreen gameScreen) {
         Array<BasicEnemy> enemies = new Array<>();
         for (int i = 0; i < count; i++) {
@@ -34,13 +19,8 @@ public class EnemyFactory {
         }
         return enemies;
     }
-
-    /**
-     * Membuat enemy dengan posisi acak dan tipe dari daftar yang diizinkan, deterministik berdasarkan stage.
-     * Setiap stage akan menghasilkan susunan musuh yang sama selama stageNumber dan allowedTypes-nya sama.
-     */
     public static Array<BasicEnemy> spawnDeterministicEnemies(int stageNumber, int count, float y, AttackType[] allowedTypes, GameScreen gameScreen) {
-        RandomXS128 rng = new RandomXS128(stageNumber); // seed berdasarkan stage
+        RandomXS128 rng = new RandomXS128(stageNumber);
         Array<BasicEnemy> enemies = new Array<>();
         float mapWidth = Constant.MAP_WIDTH + (float) Math.pow(stageNumber, 1.2);
 
@@ -48,8 +28,8 @@ public class EnemyFactory {
         float maxX = mapWidth - 200f;
         float screenOffset = Constant.SCREEN_WIDTH * 1.2f;
 
-        float minGap = Constant.PLAYER_WIDTH * 2; // Jarak minimal antar musuh
-        int maxAttempts = count * 10; // Hindari infinite loop
+        float minGap = Constant.PLAYER_WIDTH * 2;
+        int maxAttempts = count * 10;
 
         int placed = 0;
         int attempts = 0;
@@ -58,8 +38,6 @@ public class EnemyFactory {
             float rawX = rng.nextFloat() * (maxX - minX) + minX;
             float x = Math.min(rawX + screenOffset, mapWidth - 200f);
             boolean overlaps = false;
-
-            // Cek apakah terlalu dekat dengan musuh lain
             for (BasicEnemy e : enemies) {
                 if (Math.abs(e.getX() - x) < minGap) {
                     overlaps = true;

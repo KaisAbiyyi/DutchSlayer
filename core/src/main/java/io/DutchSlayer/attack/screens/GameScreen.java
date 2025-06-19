@@ -175,7 +175,6 @@ public class GameScreen implements Screen {
     }
 
     private void setupVNScripts() {
-        // === SCENE 1: THE STARE DOWN ===
         Array<String> scene1Dialogues = new Array<>();
         scene1Dialogues.add("NARRATOR: After a long and punishing battle, only one obstacle remains.");
         scene1Dialogues.add("NARRATOR: The command post. The source of the relentless assault.");
@@ -183,7 +182,6 @@ public class GameScreen implements Screen {
         VNScene scene1 = new VNScene(vnScene1Bg, scene1Dialogues);
         vnManager.addScene(scene1);
 
-        // === SCENE 2: THE TAUNT ===
         Array<String> scene2Dialogues = new Array<>();
         scene2Dialogues.add("COMMANDER: Well, well, well! Look what the cat dragged in!");
         scene2Dialogues.add("COMMANDER: A single, mud-covered grunt thinking he can play the hero. How utterly pathetic.");
@@ -191,7 +189,6 @@ public class GameScreen implements Screen {
         VNScene scene2 = new VNScene(vnScene2Bg, scene2Dialogues);
         vnManager.addScene(scene2);
 
-        // === SCENE 3: THE ULTIMATUM ===
         Array<String> scene3Dialogues = new Array<>();
         scene3Dialogues.add("YOU: I'm done running.");
         scene3Dialogues.add("YOU: I'm not here to play hero. I'm here to finish this.");
@@ -204,7 +201,6 @@ public class GameScreen implements Screen {
         vnManager.clearScenes();
 
         if (stageNumber < 3) {
-            // --- Skenario A: Bos Kabur (Stage 1-2) ---
             Array<String> scene4Dialogues = new Array<>();
             scene4Dialogues.add("COMMANDER: No... NO! This can't be happening!");
             scene4Dialogues.add("COMMANDER: My beautiful war machine... destroyed by a single soldier?! Impossible!");
@@ -216,7 +212,6 @@ public class GameScreen implements Screen {
             vnManager.addScene(new VNScene(vnScene5Bg, scene5Dialogues));
 
         } else {
-            // --- Skenario B: Kekalahan Mutlak (Stage 3+) ---
             Array<String> scene4Dialogues = new Array<>();
             scene4Dialogues.add("COMMANDER: Heh... so this is it. The end of the line.");
             scene4Dialogues.add("COMMANDER: You really are something else, kid... You actually did it.");
@@ -330,9 +325,7 @@ public class GameScreen implements Screen {
         ScreenUtils.clear(0.53f, 0.81f, 0.92f, 1);
 
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            // Toggle paused state in GameScreen
             isPaused = !isPaused;
-            // Tell the PauseMenu about the new state
             pauseMenu.setPaused(isPaused);
 
             if (isPaused) {
@@ -340,7 +333,6 @@ public class GameScreen implements Screen {
                 if (backgroundMusic.isPlaying()) backgroundMusic.pause();
                 if (bossMusic.isPlaying()) bossMusic.pause();
             } else {
-                // When unpausing via ESC, resume appropriate music
                 if (tankBoss != null && tankBoss.isAlive()) {
                     if (!bossMusic.isPlaying()) bossMusic.play();
                 } else {
@@ -356,14 +348,12 @@ public class GameScreen implements Screen {
             }
         }
 
-        // --- Logic for Player Defeat / Game Over ---
         if (isGameOver() && !isDefeatSequenceActive) {
-            // This condition checks if the player is dead and a defeat sequence hasn't started yet.
-            // If tankBoss is still alive, it means player lost to boss.
+
             if (tankBoss != null && tankBoss.isAlive()) {
-                isDefeatSequenceActive = true; // Player is defeated by boss, trigger defeat VN
-                switchToBossMusic(); // Keep boss music for defeat VN
-                setupAndTriggerBossVictoryVN(); // NOTE: Function name is misleading, it triggers player DEFEAT VN.
+                isDefeatSequenceActive = true;
+                switchToBossMusic();
+                setupAndTriggerBossVictoryVN();
             } else {
                 // Player died not by boss, or boss was already defeated (shouldn't happen here if logic is clean)
                 if(backgroundMusic.isPlaying()) {

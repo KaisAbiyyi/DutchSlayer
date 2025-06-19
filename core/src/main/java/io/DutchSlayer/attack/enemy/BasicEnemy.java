@@ -85,10 +85,6 @@ public class BasicEnemy {
 
         this.fsm = new EnemyFSM(this);
         configureWeaponByType();
-
-        // --- PERBAIKAN: INISIALISASI shootSound UNTUK SEMUA TIPE YANG MUNGKIN MENEMBAK ---
-        // Jika AttackType adalah STRAIGHT_SHOOT, BURST_FIRE, ATAU ARC_GRENADE
-        // Karena ARC_GRENADE juga melakukan STRAIGHT_SHOOT dalam polanya
         if (attackType == AttackType.STRAIGHT_SHOOT || attackType == AttackType.BURST_FIRE || attackType == AttackType.ARC_GRENADE) {
             shootSound = Gdx.audio.newSound(Gdx.files.internal("player/pistol.mp3"));
         }
@@ -117,9 +113,9 @@ public class BasicEnemy {
                 this.additionalAttackTypes = new AttackType[]{AttackType.ARC_GRENADE};
             }
             case ARC_GRENADE -> {
-                fireCooldown = 2.5f; // Ini adalah cooldown utama untuk memulai pola granat
+                fireCooldown = 2.5f;
                 reloadTime = 3.0f;
-                maxShotsBeforeReload = 2; // Ini mungkin tidak relevan untuk pola yang lebih kompleks
+                maxShotsBeforeReload = 2;
                 this.additionalAttackTypes = new AttackType[]{AttackType.STRAIGHT_SHOOT};
             }
         }
@@ -346,7 +342,6 @@ public class BasicEnemy {
     }
 
     private void shootStraight() {
-        // --- PERBAIKAN: Pastikan shootSound dimainkan di sini ---
         if (shootSound != null) {
             shootSound.play(0.5f); // Volume 0.5f (opsional, sesuaikan)
         }
@@ -365,13 +360,6 @@ public class BasicEnemy {
         Bullet bullet = new Bullet(cx, cy, angle, true);
         bullet.setTextureRegion(region);
         bullets.add(bullet);
-    }
-
-    private void burstFire() {
-        // This method is not called directly in performAttack anymore for BURST_FIRE
-        // The individual shoots are handled by shootStraight() in updateShoot() loop.
-        // So, the sound should primarily be in shootStraight().
-        // If you want a *different* sound for the *start* of a burst, you'd add it where enemyBurstIndex is set to 1.
     }
 
     private void throwArcGrenade() {
@@ -413,10 +401,6 @@ public class BasicEnemy {
         float dx = playerRef.x - x;
         float dashSpeed = Constant.PLAYER_SPEED * 2.5f;
         x += (dx < 0 ? -dashSpeed : dashSpeed) * FIXED_DELTA;
-    }
-
-    private void jumpSmash() {
-        System.out.println("Performing jump attack");
     }
 
     public void takeHit() {

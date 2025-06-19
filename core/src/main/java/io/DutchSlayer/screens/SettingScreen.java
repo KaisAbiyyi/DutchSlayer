@@ -30,7 +30,7 @@ public class SettingScreen implements Screen {
     private final Skin skin;
 
     private final Texture background;
-    private final Texture titleTexture;
+    // private final Texture titleTexture; // REMOVED: No longer using an image for the title
     private final Texture volumeTexture;
 
     public enum SettingsContext {
@@ -86,7 +86,7 @@ public class SettingScreen implements Screen {
         this.skin = new Skin(Gdx.files.internal("uiskin/uiskin.json"));
 
         this.background = new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
-        this.titleTexture = new Texture(Gdx.files.internal("button/SettingScreen.png"));
+        // this.titleTexture = new Texture(Gdx.files.internal("button/SettingScreen.png")); // REMOVED
         this.volumeTexture = new Texture(Gdx.files.internal("button/volume.png"));
 
         System.out.println("🔧 SettingsScreen created with context: " + context);
@@ -239,20 +239,6 @@ public class SettingScreen implements Screen {
             .left();
         rootTable.row();
 
-        // Row 2: "Setting" Title (centered)
-        Image titleImg = new Image(titleTexture);
-        rootTable.add(titleImg)
-            .width(800)
-            .height(450)
-            .padTop(-200)
-            .padBottom(-150)
-            .center();
-        rootTable.row();
-
-        // Row 3 onwards: Container for Sliders & Toggle
-        Table contentTable = new Table();
-        contentTable.defaults().padTop(15).padBottom(15).padLeft(10).padRight(10);
-
         // Define a new font style for labels that matches the title text color
         // Assuming 'default-font' is used for title, retrieve it and set a new color.
         BitmapFont labelFont = skin.getFont("default-font");
@@ -266,6 +252,21 @@ public class SettingScreen implements Screen {
 
         // Create a LabelStyle with the desired font and color
         Label.LabelStyle labelStyle = new Label.LabelStyle(labelFont, new Color(0.25f, 0.15f, 0.05f, 1.0f)); // Same color as customButtonStyle.fontColor
+
+
+        // Row 2: "Setting" Title (centered)
+        // Image titleImg = new Image(titleTexture); // REMOVED
+        Label titleLabel = new Label("SETTINGS", labelStyle); // Using Label instead of Image
+        titleLabel.setFontScale(2.5f); // Adjust font scale to match desired title size
+        rootTable.add(titleLabel)
+            .padTop(10) // Adjusted padding
+            .padBottom(50) // Adjusted padding
+            .center();
+        rootTable.row();
+
+        // Row 3 onwards: Container for Sliders & Toggle
+        Table contentTable = new Table();
+        contentTable.defaults().padTop(15).padBottom(15).padLeft(10).padRight(10);
 
         // Master Volume: Label + Slider
         Label masterLabel = new Label("Master Volume", labelStyle); // Apply the new style
@@ -447,7 +448,7 @@ public class SettingScreen implements Screen {
         if (stage != null) stage.dispose();
         if (skin != null) skin.dispose();
         if (background != null) background.dispose();
-        if (titleTexture != null) titleTexture.dispose();
+        // if (titleTexture != null) titleTexture.dispose(); // REMOVED
         if (buttonUpTexture != null) buttonUpTexture.dispose();
         if (buttonDownTexture != null) buttonDownTexture.dispose();
         if (volumeTexture != null) volumeTexture.dispose();

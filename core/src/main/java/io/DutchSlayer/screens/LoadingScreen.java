@@ -67,7 +67,7 @@ public class LoadingScreen implements Screen {
 
         // Kembalikan posisi ke tengah layar
         loadingLabel.setPosition(
-            (Constant.SCREEN_WIDTH - loadingLabel.getWidth()) / 2, // Tengah horizontal
+            (Constant.SCREEN_WIDTH - loadingLabel.getWidth()) / 2 -75f, // Tengah horizontal
             (Constant.SCREEN_HEIGHT - loadingLabel.getHeight()) / 2 // Tengah vertikal
         );
         stage.addActor(loadingLabel);
