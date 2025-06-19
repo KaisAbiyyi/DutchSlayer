@@ -35,7 +35,6 @@ import io.DutchSlayer.attack.screens.ui.VNScene;
 import io.DutchSlayer.defend.utils.AudioManager;
 import io.DutchSlayer.screens.PauseMenu;
 import io.DutchSlayer.utils.Constant;
-import io.DutchSlayer.assets.AssetLoader;
 
 public class GameScreen implements Screen {
     private final Main game;
@@ -103,8 +102,6 @@ public class GameScreen implements Screen {
         this.uiViewport = new FitViewport(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT, uiCamera);
         this.mapWidth = Constant.MAP_WIDTH * (1f + 0.15f * (stageNumber - 1));
         this.rng = new RandomXS128(stageNumber);
-
-        AssetLoader.load();
 
         this.player = new Player(camera);
         this.player.setGameScreen(this);
@@ -494,7 +491,6 @@ public class GameScreen implements Screen {
         if (vnScene6Bg != null) vnScene6Bg.dispose();
         if (vnScene7Bg != null) vnScene7Bg.dispose();
         player.dispose();
-        AssetLoader.dispose();
         vnManager.dispose();
 
         if (backgroundMusic != null) backgroundMusic.dispose();
