@@ -11,14 +11,6 @@ public class EnemyFactory {
         AttackType randomType = types[(int) (Math.random() * types.length)];
         return new BasicEnemy(randomType, x, y, gameScreen);
     }
-    public static Array<BasicEnemy> spawnWave(int count, float startX, float y, float spacing, GameScreen gameScreen) {
-        Array<BasicEnemy> enemies = new Array<>();
-        for (int i = 0; i < count; i++) {
-            float spawnX = startX + i * spacing;
-            enemies.add(createRandomEnemy(spawnX, y, gameScreen));
-        }
-        return enemies;
-    }
     public static Array<BasicEnemy> spawnDeterministicEnemies(int stageNumber, int count, float y, AttackType[] allowedTypes, GameScreen gameScreen) {
         RandomXS128 rng = new RandomXS128(stageNumber);
         Array<BasicEnemy> enemies = new Array<>();
