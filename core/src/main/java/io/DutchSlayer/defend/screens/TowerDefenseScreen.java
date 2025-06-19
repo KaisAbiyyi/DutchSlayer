@@ -60,18 +60,16 @@ public class TowerDefenseScreen implements Screen {
         uiManager = new UIManager(camera, font, layout);
         gameLogic = new GameLogic(gameState, uiManager);
         inputHandler = new InputHandler(this, gameState, uiManager, camera, game);
-        // UBAH BARIS INI: Lewatkan 'this' (instance TowerDefenseScreen) ke PauseMenu
         this.pauseMenu = new PauseMenu(game, new FitViewport(1280, 720), font, this); //
 
         // Initialize game world
         initializeGameWorld();
 
-        // Set input processor (This is the initial set, and needs to be re-set after pause/resume from menu)
         Gdx.input.setInputProcessor(inputHandler);
     }
 
-    public InputHandler getInputHandler() { //
-        return inputHandler; //
+    public InputHandler getInputHandler() {
+        return inputHandler;
     }
 
 
@@ -89,8 +87,8 @@ public class TowerDefenseScreen implements Screen {
             10, 0.1f
         ));
 
-        float baseSpacing = 150f;          // Base jarak antar zone (bisa diubah)
-        float additionalGap = 20f;         // Extra gap antar tower (bisa diubah)
+        float baseSpacing = 150f;
+        float additionalGap = 20f;
         float totalSpacing = baseSpacing + additionalGap;
 
         float firstCenter = 100f + totalSpacing;
@@ -281,22 +279,19 @@ public class TowerDefenseScreen implements Screen {
             float enemyWidth = e.getBounds().width;
             float enemyHeight = e.getBounds().height;
 
-            // ===== HP BAR CONFIGURATION =====
-            float barWidth = Math.min(enemyWidth * 0.6f, 30f);  // Max 30px, 60% dari enemy width
-            float barHeight = 3f;                               // Lebih tipis: 3px
-            float barX = enemyX + (enemyWidth - barWidth) / 2f; // Center horizontal
-            float barY = enemyY + enemyHeight + 4f;             // Lebih dekat: 4px di atas enemy
+            float barWidth = Math.min(enemyWidth * 0.6f, 30f);
+            float barHeight = 3f;
+            float barX = enemyX + (enemyWidth - barWidth) / 2f;
+            float barY = enemyY + enemyHeight + 4f;
 
-            // ===== CALCULATE HP PERCENTAGE =====
             float healthPercent = (float)e.getHealth() / e.getMaxHealth();
             float filledWidth = barWidth * healthPercent;
 
-            // ===== DRAW HP BAR BACKGROUND =====
             shapes.begin(ShapeRenderer.ShapeType.Filled);
             shapes.setColor(0.2f, 0.2f, 0.2f, 0.9f);
             shapes.rect(barX, barY, barWidth, barHeight);
 
-            // ===== DRAW HP BAR FILL =====
+            // DRAW HP BAR FILL
             Color healthColor;
             if (healthPercent > 0.6f) {
                 healthColor = Color.GREEN;
@@ -310,7 +305,7 @@ public class TowerDefenseScreen implements Screen {
             shapes.rect(barX, barY, filledWidth, barHeight);
             shapes.end();
 
-            // ===== DRAW HP BAR BORDER =====
+            // DRAW HP BAR BORDER
             shapes.begin(ShapeRenderer.ShapeType.Line);
             shapes.setColor(Color.WHITE);
             shapes.rect(barX, barY, barWidth, barHeight);
