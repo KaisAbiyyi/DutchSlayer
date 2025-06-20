@@ -4,25 +4,19 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Texture;
 import io.DutchSlayer.attack.player.Player;
-import io.DutchSlayer.utils.Constant;
 
-/**
- * Assault Rifle: menembakkan 3 peluru burst secara berurutan dalam arah yang sama.
- * Total peluru 60 per pickup, habis = fallback ke pistol.
- */
 public class AssaultRifle implements Weapon {
 
     private int ammo;
     private boolean firedThisPress = false;
     private float burstTimer = 0f;
     private int burstIndex = 0;
-    private static final float BURST_DELAY = 0.08f; // jeda antar peluru burst
+    private static final float BURST_DELAY = 0.08f;
 
-    private final Sound fireSound; // <-- Deklarasi Sound
+    private final Sound fireSound;
 
     public AssaultRifle() {
         this.ammo = 60;
-        // Muat suara AR sekali saat objek AssaultRifle dibuat
         this.fireSound = Gdx.audio.newSound(Gdx.files.internal("player/pistol.mp3"));
     }
 
@@ -39,8 +33,6 @@ public class AssaultRifle implements Weapon {
 
     @Override
     public void fire(Player player) {
-        // Jangan mainkan suara di sini, karena fire() hanya mempersiapkan burst.
-        // Suara akan dimainkan di updateBurst() untuk setiap peluru.
         if (ammo < 3 || firedThisPress) return;
 
         firedThisPress = true;
@@ -55,9 +47,8 @@ public class AssaultRifle implements Weapon {
         if (burstTimer >= BURST_DELAY) {
             burstTimer -= BURST_DELAY;
 
-            fireSound.play(0.6f); // Mainkan suara AR untuk setiap peluru dalam burst (volume 0.6 opsional)
+            fireSound.play(0.6f);
 
-            // Logika penembakan AR Anda yang sudah ada
             float centerX = player.getX() + player.getWidth() + 10f;
             float fireY = player.getFireY();
             if (!player.isDucking()) {
@@ -65,11 +56,10 @@ public class AssaultRifle implements Weapon {
             }
             float angle = player.getFireAngle();
 
-            // Sebaiknya Texture juga dimuat sekali dan di-reuse
             Texture playerBulletTexture = new Texture(Gdx.files.internal("player/bullet.png"));
 
             Bullet bullet = new Bullet(centerX, fireY, angle, false);
-            bullet.setTexture(playerBulletTexture); // Sebaiknya setTextureRegion
+            bullet.setTexture(playerBulletTexture);
             player.getBullets().add(bullet);
             burstIndex++;
 

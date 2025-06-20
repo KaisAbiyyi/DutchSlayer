@@ -25,28 +25,22 @@ import io.DutchSlayer.defend.ui.ImageLoader;
 import io.DutchSlayer.defend.utils.AudioManager;
 import io.DutchSlayer.screens.PauseMenu;
 
-
 public class TowerDefenseScreen implements Screen {
-
-    // Core components
     private final Main game;
     private final OrthographicCamera camera;
     private final ShapeRenderer shapes;
     private final BitmapFont font;
     private final GlyphLayout layout = new GlyphLayout();
 
-    // Refactored components
     public final GameState gameState;
     private final GameLogic gameLogic;
     private final UIManager uiManager;
     private final InputHandler inputHandler;
 
-    // Tambahkan flag untuk track apakah sedang ke settings
     public final PauseMenu pauseMenu;
     public TowerDefenseScreen(final Main game, int stage) {
         this.game = game;
 
-        // Initialize core components
         camera = new OrthographicCamera();
         camera.setToOrtho(false, 1280, 720);
 
@@ -55,14 +49,12 @@ public class TowerDefenseScreen implements Screen {
         shapes = new ShapeRenderer();
         font = new BitmapFont();
 
-        // Initialize refactored components
         gameState = new GameState(stage);
         uiManager = new UIManager(camera, font, layout);
         gameLogic = new GameLogic(gameState, uiManager);
         inputHandler = new InputHandler(this, gameState, uiManager, camera, game);
-        this.pauseMenu = new PauseMenu(game, new FitViewport(1280, 720), font, this); //
+        this.pauseMenu = new PauseMenu(game, new FitViewport(1280, 720), font, this);
 
-        // Initialize game world
         initializeGameWorld();
 
         Gdx.input.setInputProcessor(inputHandler);
@@ -72,9 +64,8 @@ public class TowerDefenseScreen implements Screen {
         return inputHandler;
     }
 
-
     private void initializeGameWorld() {
-        // Initialize main tower
+
         float tyMain = GameConstants.GROUND_Y + 95f;
         gameState.towers.add(new Tower(
             ImageLoader.maintowertex,
@@ -113,7 +104,6 @@ public class TowerDefenseScreen implements Screen {
             gameState.zones.add(new Zone(verts));
         }
 
-        // Initialize trap zones
         int numTrapZones = 3;
         float trapFirstCx = firstCenter + totalSpacing*3;
         float trapY0 = GameConstants.GROUND_Y;
@@ -176,7 +166,6 @@ public class TowerDefenseScreen implements Screen {
         float vw = camera.viewportWidth;
         float vy = camera.viewportHeight;
 
-        // Background sky
         game.batch.setProjectionMatrix(camera.combined);
         game.batch.begin();
         if (ImageLoader.skytex != null) {
@@ -184,7 +173,6 @@ public class TowerDefenseScreen implements Screen {
         }
         game.batch.end();
 
-        // Ground tiles
         Texture grass = ImageLoader.terratex;
         float tileSize = 150f;
         float overlap = 20f;
@@ -200,7 +188,6 @@ public class TowerDefenseScreen implements Screen {
     }
 
     private void renderGameWorld() {
-        // Draw main tower
         game.batch.begin();
         for (Tower t : gameState.towers) {
             if (t.isMain) {
@@ -209,13 +196,11 @@ public class TowerDefenseScreen implements Screen {
             }
         }
 
-        // Draw boss if present
         if (gameState.currentBoss != null) {
             gameState.currentBoss.drawBatch(game.batch);
         }
         game.batch.end();
 
-        // Draw deploy zones
         shapes.setProjectionMatrix(camera.combined);
         shapes.begin(ShapeRenderer.ShapeType.Line);
         shapes.setColor(Color.LIGHT_GRAY);
@@ -224,7 +209,6 @@ public class TowerDefenseScreen implements Screen {
         }
         shapes.end();
 
-        // Draw trap zones
         shapes.begin(ShapeRenderer.ShapeType.Line);
         shapes.setColor(Color.ORANGE);
         for (int i = 0; i < gameState.trapZones.size; i++) {
@@ -234,18 +218,14 @@ public class TowerDefenseScreen implements Screen {
         }
         shapes.end();
 
-        // Draw traps
         game.batch.begin();
         for (Trap t : gameState.trapZones) t.drawBatch(game.batch);
         game.batch.end();
-
         renderEnemyHealthBars();
 
-        // Draw game entities
         game.batch.begin();
         for (Tower t : gameState.towers) t.drawBatch(game.batch);
 
-        // Draw enemies with health indicators
         for (Enemy e : gameState.enemies) {
             e.drawBatch(game.batch);
         }
@@ -253,7 +233,6 @@ public class TowerDefenseScreen implements Screen {
         for (io.DutchSlayer.defend.entities.projectiles.Projectile p : gameState.projectiles) p.drawBatch(game.batch);
         for (EnemyProjectile ep : gameState.enemyProjectiles) ep.drawBatch(game.batch);
 
-        // Draw bombs with status indicators
         for (BombAsset bomb : gameState.bombs) {
             bomb.drawBatch(game.batch);
         }
@@ -261,7 +240,6 @@ public class TowerDefenseScreen implements Screen {
         font.setColor(1f, 1f, 1f, 1f);
         game.batch.end();
 
-        // Draw fallback shapes for missing textures
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         for (Tower t : gameState.towers) t.drawShape(shapes);
         for (Enemy e : gameState.enemies) e.drawShape(shapes);
@@ -291,7 +269,6 @@ public class TowerDefenseScreen implements Screen {
             shapes.setColor(0.2f, 0.2f, 0.2f, 0.9f);
             shapes.rect(barX, barY, barWidth, barHeight);
 
-            // DRAW HP BAR FILL
             Color healthColor;
             if (healthPercent > 0.6f) {
                 healthColor = Color.GREEN;
@@ -305,7 +282,6 @@ public class TowerDefenseScreen implements Screen {
             shapes.rect(barX, barY, filledWidth, barHeight);
             shapes.end();
 
-            // DRAW HP BAR BORDER
             shapes.begin(ShapeRenderer.ShapeType.Line);
             shapes.setColor(Color.WHITE);
             shapes.rect(barX, barY, barWidth, barHeight);
@@ -317,7 +293,6 @@ public class TowerDefenseScreen implements Screen {
         float vw = camera.viewportWidth;
         float vy = camera.viewportHeight;
 
-        // Navbar background
         shapes.setProjectionMatrix(camera.combined);
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         shapes.setColor(Color.DARK_GRAY);
@@ -327,10 +302,8 @@ public class TowerDefenseScreen implements Screen {
         game.batch.setProjectionMatrix(camera.combined);
         game.batch.begin();
 
-        // Draw UI components
         uiManager.drawGoldUI(game.batch, gameState);
 
-        // Draw Remove & Pause buttons
         float rightMargin = 20f;
         float yNav = vy - GameConstants.NAVBAR_HEIGHT/2 + 10f;
         float pauseSize = 80f;
@@ -341,7 +314,6 @@ public class TowerDefenseScreen implements Screen {
         float removeX = pauseX - 20f - removeSize;
         float removeY = yNav - removeSize/2 - 8f;
 
-        // Pause button
         if (ImageLoader.PauseBtntex != null) {
             if (gameState.isPauseButtonHovered) {
                 game.batch.setColor(0.8f, 0.8f, 1f, 1f);
@@ -361,7 +333,6 @@ public class TowerDefenseScreen implements Screen {
             }
         }
 
-        // Remove button
         if (ImageLoader.removeBtnTex != null) {
             if (gameState.selectedType == NavItem.REMOVE) {
                 game.batch.setColor(1f, 0.2f, 0.2f, 1f);
@@ -377,13 +348,11 @@ public class TowerDefenseScreen implements Screen {
         uiManager.drawNavbarButtons(game.batch, shapes, gameState);
         game.batch.end();
 
-        // Draw progress indicators
         if (!gameState.isPaused && !gameState.isGameOver && !gameState.isGameWon) {
             uiManager.drawWaveProgressBar(game.batch, shapes, gameState);
             uiManager.drawStageInfo(game.batch, gameState);
         }
     }
-
 
     private void renderTowerUpgradePanel() {
         if (gameState.selectedTowerUI != null) {
@@ -391,7 +360,6 @@ public class TowerDefenseScreen implements Screen {
             float px = gameState.selectedTowerUI.x + (gameState.selectedTowerUI.getBounds().width/2) + 10;
             float py = gameState.selectedTowerUI.y - panelH/2;
 
-            // Panel background
             shapes.begin(ShapeRenderer.ShapeType.Filled);
             shapes.setColor(0, 0, 0, 0.7f);
             shapes.rect(px, py, panelW, panelH);
@@ -402,7 +370,6 @@ public class TowerDefenseScreen implements Screen {
             shapes.rect(px, py, panelW, panelH);
             shapes.end();
 
-            // Header text
             String header = "Upgrade Left " + gameState.selectedTowerUI.getUpgradeRemaining();
             layout.setText(font, header);
             float headerX = px + (panelW - layout.width)/2;
@@ -413,7 +380,6 @@ public class TowerDefenseScreen implements Screen {
             font.draw(game.batch, header, headerX, headerY);
             game.batch.end();
 
-            // Upgrade buttons
             float margin = 8f;
             float btnH = 24f;
             float btnW = panelW - margin*2;
@@ -482,7 +448,7 @@ public class TowerDefenseScreen implements Screen {
         }
     }
 
-    // Public methods for InputHandler
+
     public void restartGame() {
         gameState.isGameOver = false;
         gameState.isGameWon = false;
@@ -509,7 +475,6 @@ public class TowerDefenseScreen implements Screen {
         gameState.enemyProjectiles.clear();
         gameState.bombs.clear();
 
-        // Reset towers
         gameState.towers.clear();
         float towerMainH = ImageLoader.maintowertex.getHeight() * 0.6f;
         float tyMain = GameConstants.GROUND_Y + towerMainH/5f;
@@ -517,18 +482,15 @@ public class TowerDefenseScreen implements Screen {
             ImageLoader.maintowertex, ImageLoader.projTex, 100, tyMain, 0.3f, false, true, TowerType.BASIC, 10, 0.1f
         ));
 
-        // Reset zones
         for (Zone z : gameState.zones) {
             z.occupied = false;
         }
         gameState.deployedTowerZones.clear();
 
-        // Reset traps
         for (Trap trap : gameState.trapZones) {
             trap.occupied = false;
         }
 
-        // Reset Cooldown
         for (int i = 0; i < 3; i++) {
             gameState.towerCooldowns[i] = 0f;
             gameState.trapCooldowns[i] = 0f;
@@ -536,16 +498,13 @@ public class TowerDefenseScreen implements Screen {
             gameState.trapCooldownActive[i] = false;
         }
 
-        // ===== RESET UI SELECTIONS =====
         gameState.selectedType = null;
         gameState.selectedTowerUI = null;
         gameState.currentBoss = null;
 
-        // ===== RESET CAMERA =====
         gameState.isBossIntroduction = false;
         gameState.bossIntroTimer = 0f;
 
-        // ===== RESET STAGE-SPECIFIC SETTINGS =====
         switch(gameState.currentStage) {
             case 1:
                 gameState.gold = 100;
@@ -591,14 +550,12 @@ public class TowerDefenseScreen implements Screen {
         return (int)(GameConstants.BASE_SPEED_UPGRADE_COST * Math.pow(GameConstants.UPGRADE_COST_MULTIPLIER, tower.getSpeedLevel()));
     }
 
-    // Navigation enum
     public enum NavItem {
         T1, T2, T3,
         TRAP1, TRAP2, TRAP3,
         REMOVE
     }
 
-    // Zone class
     public static class Zone {
         public final float[] verts;
         public boolean occupied;
@@ -621,7 +578,6 @@ public class TowerDefenseScreen implements Screen {
         }
     }
 
-    // TOWER METHODS
     public boolean canDeployTower(int towerIndex) {
         return gameLogic.canDeployTower(towerIndex);
     }
@@ -630,7 +586,7 @@ public class TowerDefenseScreen implements Screen {
         gameLogic.startTowerCooldown(towerIndex);
     }
 
-    // TRAP METHODS
+
     public boolean canDeployTrap(int trapIndex) {
         return gameLogic.canDeployTrap(trapIndex);
     }
@@ -639,17 +595,15 @@ public class TowerDefenseScreen implements Screen {
         gameLogic.startTrapCooldown(trapIndex);
     }
 
-    // TRAP INDEX MAPPING
     public int getTrapIndex(NavItem navItem) {
         return switch (navItem) {
-            case TRAP1 -> GameConstants.TRAP_ATTACK_INDEX;     // 0
-            case TRAP2 -> GameConstants.TRAP_SLOW_INDEX;       // 1
-            case TRAP3 -> GameConstants.TRAP_EXPLOSION_INDEX;  // 2
+            case TRAP1 -> GameConstants.TRAP_ATTACK_INDEX;
+            case TRAP2 -> GameConstants.TRAP_SLOW_INDEX;
+            case TRAP3 -> GameConstants.TRAP_EXPLOSION_INDEX;
             default -> -1;
         };
     }
 
-    // TRAP COST HELPER
     public int getTrapCost(NavItem selectedType) {
         return switch (selectedType) {
             case TRAP1 -> GameConstants.TRAP_ATTACK_COST;

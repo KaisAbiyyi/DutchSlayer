@@ -20,10 +20,10 @@ public class ImageLoader {
     public static Texture towerTex;
     public static Texture maintowertex;
     public static Texture tower1Tex, tower2Tex, tower3Tex;
-    // ===== TOWER ANIMATION FRAMES =====
-    public static Texture[] towerAOEFrames = new Texture[2];      // AOE tower: normal + recoil
-    public static Texture[] towerSpeedFrames = new Texture[2];    // Speed tower: normal + shooting
-    public static Texture[] towerDefensifFrames = new Texture[3]; // ⭐ ADD: Defensif tower frames
+
+    public static Texture[] towerAOEFrames = new Texture[2];
+    public static Texture[] towerSpeedFrames = new Texture[2];
+    public static Texture[] towerDefensifFrames = new Texture[3];
 
     public static Texture projTex, projtowtex;
     public static Texture aoeProjTex, fastProjTex, slowProjTex;
@@ -34,29 +34,29 @@ public class ImageLoader {
     public static Texture trapSlowTex;
     public static Texture trapBombTex;
 
-    public static Texture enemyBasicTex;     // Tentara dengan kapak
-    public static Texture enemyShooterTex;   // Enemy dengan senjata
-    public static Texture enemyBomberTex;    // Enemy bomb
-    public static Texture enemyShieldTex;    // Enemy shield
-    public static Texture enemyBossTex;      // Enemy boss
-    public static Texture[] enemyBasicFrames = new Texture[4]; // Array untuk 4 frame animasi
-    public static Texture[] enemyShieldFrames = new Texture[4]; // Array untuk 4 frame animasi Shield
-    public static Texture[] enemyShooterFrames = new Texture[4]; // Array untuk 4 frame animasi Shooter
-    public static Texture[] enemyBomberFrames = new Texture[4];  // Array untuk 4 frame animasi Bomber
+    public static Texture enemyBasicTex;
+    public static Texture enemyShooterTex;
+    public static Texture enemyBomberTex;
+    public static Texture enemyShieldTex;
+    public static Texture enemyBossTex;
+    public static Texture[] enemyBasicFrames = new Texture[4];
+    public static Texture[] enemyShieldFrames = new Texture[4];
+    public static Texture[] enemyShooterFrames = new Texture[4];
+    public static Texture[] enemyBomberFrames = new Texture[4];
 
-    public static Texture bombAssetTex;      // Asset bomb yang ditaruh
-    public static Texture enemyProjectileTex; // Projectile enemy
+    public static Texture bombAssetTex;
+    public static Texture enemyProjectileTex;
     public static Texture removeBtnTex;
     public static Texture hammerCursorTex;
     public static Texture PauseBtntex;
     public static Texture explosionTex;
 
     public static Texture UITowerAOE;
-    public static Texture UITowerSpeed;     // ← ADD THIS
-    public static Texture UITowerDefensif;  // ← ADD THIS
-    public static Texture UITrapAttack;     // ← ADD THIS
-    public static Texture UITrapSlow;       // ← ADD THIS
-    public static Texture UITrapBomb;       // ← ADD THIS
+    public static Texture UITowerSpeed;
+    public static Texture UITowerDefensif;
+    public static Texture UITrapAttack;
+    public static Texture UITrapSlow;
+    public static Texture UITrapBomb;
 
     public static Texture goldIconTex;
 
@@ -67,13 +67,11 @@ public class ImageLoader {
     public static Texture BtnRetry;
     public static Texture BtnMode;
 
-    // ===== PAUSE MENU ASSETS =====
     public static Texture PauseUI;
     public static Texture MenuBtn;
     public static Texture ResumeBtn;
     public static Texture SettingBtn;
 
-    /** Panggil sekali di create() sebelum digunakan */
     public static void load() {
         grassTex = loadOrNull("Defend/Grass1.png");
         terratex = loadOrNull("backgrounds/terrain3.png");
@@ -115,12 +113,11 @@ public class ImageLoader {
         tower1Tex = loadOrNull("Defend/Tower/TowerAOE.png");
         tower2Tex = loadOrNull("Defend/Tower/TowerSpeed.png");
         tower3Tex = loadOrNull("Defend/Tower/TowerDefensif.png");
-        towerAOEFrames[0] = loadOrNull("Defend/Tower/TowerAOE/TowerAOE1.png");     // Normal
-        towerAOEFrames[1] = loadOrNull("Defend/Tower/TowerAOE/TowerAOE2.png");     // Recoil/Shooting
+        towerAOEFrames[0] = loadOrNull("Defend/Tower/TowerAOE/TowerAOE1.png");
+        towerAOEFrames[1] = loadOrNull("Defend/Tower/TowerAOE/TowerAOE2.png");
 
-        // Speed Tower Animation (Machine Gun)
-        towerSpeedFrames[0] = loadOrNull("Defend/Tower/TowerSpeed/TowerSpeed1.png"); // Normal
-        towerSpeedFrames[1] = loadOrNull("Defend/Tower/TowerSpeed/TowerSpeed2.png"); // Shooting/Muzzle Flash
+        towerSpeedFrames[0] = loadOrNull("Defend/Tower/TowerSpeed/TowerSpeed1.png");
+        towerSpeedFrames[1] = loadOrNull("Defend/Tower/TowerSpeed/TowerSpeed2.png");
 
         towerDefensifFrames[0] = loadOrNull("Defend/Tower/TowerDefensif/TowerDefensif1.png");
         towerDefensifFrames[1] = loadOrNull("Defend/Tower/TowerDefensif/TowerDefensif2.png");
@@ -138,20 +135,17 @@ public class ImageLoader {
         trapSlowTex   = loadOrNull("Defend/Trap/TrapSlow.png");
         trapBombTex   = loadOrNull("Defend/Trap/TrapBomb.png");
 
-        // ===== LOAD CURSOR & UI TEXTURES =====
-        hammerCursorTex = loadOrNull("Defend/Kursor/Hammer.png");
         removeBtnTex = loadOrNull("Defend/Button/BtnRemove.png");
         PauseBtntex = loadOrNull("Defend/Button/BtnPause.png");
 
-        UITowerAOE = loadOrNull("Defe" +
-            "nd/UI/UITowerAOE.png");
-        UITowerSpeed = loadOrNull("Defend/UI/UITowerSpeed.png");       // GANTI DENGAN PATH YANG BENAR NANTI
-        UITowerDefensif = loadOrNull("Defend/UI/UITowerDefend.png"); // GANTI DENGAN PATH YANG BENAR NANTI
-        UITrapAttack = loadOrNull("Defend/UI/UITrapAttack.png");       // GANTI DENGAN PATH YANG BENAR NANTI
-        UITrapSlow = loadOrNull("Defend/UI/UITrapSlow.png");           // GANTI DENGAN PATH YANG BENAR NANTI
+        UITowerAOE = loadOrNull("Defend/UI/UITowerAOE.png");
+        UITowerSpeed = loadOrNull("Defend/UI/UITowerSpeed.png");
+        UITowerDefensif = loadOrNull("Defend/UI/UITowerDefend.png");
+        UITrapAttack = loadOrNull("Defend/UI/UITrapAttack.png");
+        UITrapSlow = loadOrNull("Defend/UI/UITrapSlow.png");
         UITrapBomb = loadOrNull("Defend/UI/UITrapBomb.png");
 
-        goldIconTex = loadOrNull("Defend/UI/GoldIcon.png");// GANTI DENGAN PATH YANG BENAR NANTI
+        goldIconTex = loadOrNull("Defend/UI/GoldIcon.png");
 
         WinUI = loadOrNull("Defend/UI/LoseAndWin/WinUI.png");
         LoseUI = loadOrNull("Defend/UI/LoseAndWin/LoseUI.png");
@@ -175,20 +169,15 @@ public class ImageLoader {
         }
     }
 
-    /**
-     * Helper methods untuk mendapatkan tower animation frames
-     */
     public static Texture[] getTowerAnimationFrames(TowerType type) {
         return switch (type) {
             case AOE -> towerAOEFrames;
             case FAST -> towerSpeedFrames;
             case SLOW -> towerDefensifFrames;
-            default -> null; // No animation for other types
+            default -> null;
         };
     }
 
-
-    /** Pastikan dipanggil di dispose() */
     public static void dispose() {
         if (towerTex != null) towerTex.dispose();
         if (enemyTex  != null) enemyTex.dispose();
@@ -273,7 +262,6 @@ public class ImageLoader {
             }
         }
 
-        // ⭐ ADD DISPOSAL UNTUK DEFENSIF FRAMES
         for (Texture towerDefensifFrame : towerDefensifFrames) {
             if (towerDefensifFrame != null) {
                 towerDefensifFrame.dispose();

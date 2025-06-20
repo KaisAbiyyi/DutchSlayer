@@ -6,10 +6,6 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import io.DutchSlayer.defend.entities.enemies.Enemy;
 
-/**
- * AoeProjectile adalah projectile yang memberikan damage area (AOE - Area of Effect)
- * Ketika mengenai target, semua enemy dalam radius tertentu akan terkena damage
- */
 public class AoeProjectile extends Projectile {
     private int aoeRadius;
     private int aoeDamage;
@@ -22,7 +18,6 @@ public class AoeProjectile extends Projectile {
     private final Vector2 targetPos;
     private boolean hasExploded = false;
 
-    // ===== PRE-CALCULATED VALUES - OPTIMIZED =====
     private final float maxHeight;
     private float totalTime;
     private final float halfWidth;
@@ -31,9 +26,6 @@ public class AoeProjectile extends Projectile {
     private static final float EXPLOSION_THRESHOLD = 50f;
     private static final float TIMEOUT_DURATION = 8f;
 
-    /**
-     * Constructor untuk AOE Projectile - OPTIMIZED
-     */
     public AoeProjectile(Texture tex,
                          float startX, float startY,
                          float targetX, float targetY,
@@ -50,7 +42,7 @@ public class AoeProjectile extends Projectile {
         this.targetPos = new Vector2(targetX, targetY);
         this.maxHeight = 150f;
 
-        // Pre-calculate values untuk mengurangi komputasi di runtime
+
         float horizontalDistance = Math.abs(targetX - startX);
         this.totalTime = horizontalDistance / (customSpeed * 0.8f);
         this.initialVelocityX = (targetX - startX) / totalTime;
@@ -60,9 +52,6 @@ public class AoeProjectile extends Projectile {
         this.gravity = -2f * (initialVelocityY * totalTime - (heightDiff + maxHeight)) / (totalTime * totalTime);
     }
 
-    /**
-     * Override update untuk menggunakan fisika parabola - OPTIMIZED
-     */
     @Override
     public void update(float delta) {
         if (hasExploded || !isActive()) return;
@@ -77,9 +66,6 @@ public class AoeProjectile extends Projectile {
         checkTargetCollision();
     }
 
-    /**
-     * Update posisi menggunakan rumus fisika parabola
-     */
     private void updateParabolaTrajectory(float delta) {
         timeElapsed += delta;
 
@@ -92,9 +78,6 @@ public class AoeProjectile extends Projectile {
         bounds.y = newY - halfHeight;
     }
 
-    /**
-     * Check collision dengan area target - OPTIMIZED
-     */
     private void checkTargetCollision() {
         float currentX = bounds.x + halfWidth;
         float currentY = bounds.y + halfHeight;
@@ -111,9 +94,6 @@ public class AoeProjectile extends Projectile {
         }
     }
 
-    /**
-     * Trigger explosion - OPTIMIZED
-     */
     private void explode() {
         if (hasExploded) return;
 
@@ -121,9 +101,6 @@ public class AoeProjectile extends Projectile {
         setActive(false);
     }
 
-    /**
-     * METHOD BARU: Trigger AOE damage secara manual - OPTIMIZED
-     */
     public void triggerAOEDamage(Array<Enemy> enemies) {
         if (!hasExploded) return;
 
@@ -149,9 +126,6 @@ public class AoeProjectile extends Projectile {
         }
     }
 
-    /**
-     * Override onHit untuk AOE damage - OPTIMIZED dengan VOID return type
-     */
     @Override
     public void onHit(Array<Enemy> enemies) {
         if (hasExploded) {
@@ -159,19 +133,13 @@ public class AoeProjectile extends Projectile {
         }
     }
 
-    /**
-     * Override drawBatch - OPTIMIZED
-     */
     @Override
     public void drawBatch(SpriteBatch batch) {
-        if (tex == null || hasExploded || !isActive()) return; // Early exit
+        if (tex == null || hasExploded || !isActive()) return;
 
         batch.draw(tex, bounds.x, bounds.y, bounds.width, bounds.height);
     }
 
-    /**
-     * Override getX dan getY - OPTIMIZED dengan pre-calculated values
-     */
     @Override
     public float getX() {
         return bounds.x + halfWidth;
@@ -184,9 +152,6 @@ public class AoeProjectile extends Projectile {
 
     public boolean hasExploded() { return hasExploded; }
 
-    /**
-     * BARU: Reset method untuk object pooling - OPTIMIZED
-     */
     public void reset(float startX, float startY, float targetX, float targetY,
                       float radius, int damage, float customSpeed) {
         super.reset(startX, startY, targetX, customSpeed, damage);

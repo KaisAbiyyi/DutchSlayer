@@ -2,7 +2,7 @@ package io.DutchSlayer.attack.boss.fsm;
 
 public enum TankBossState {
     IDLE,
-    ENTERING_ARENA, // <--- State baru: Boss sedang masuk ke layar
+    ENTERING_ARENA,
     PERFORMING_BURST,
     BURST_COOLDOWN,
     PRE_GRENADE_DELAY,

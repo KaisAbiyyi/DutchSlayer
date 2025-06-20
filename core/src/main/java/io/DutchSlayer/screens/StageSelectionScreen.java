@@ -2,24 +2,21 @@ package io.DutchSlayer.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.Color; // Import Color
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.Pixmap; // Import Pixmap
-import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.g2d.BitmapFont; // Import BitmapFont
+import com.badlogic.gdx.graphics.*;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.*;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
-
 import io.DutchSlayer.Main;
 import io.DutchSlayer.defend.utils.AudioManager;
-import io.DutchSlayer.defend.utils.TDConstants;
-import io.DutchSlayer.utils.Constant; // Menggunakan Constant.SCREEN_WIDTH/HEIGHT
+import io.DutchSlayer.utils.Constant;
 
 public class StageSelectionScreen implements Screen {
     private final Main game;
@@ -28,34 +25,24 @@ public class StageSelectionScreen implements Screen {
     private final Stage stage;
     private final Skin skin;
     private Texture background;
-    // Removed crownTexture, backButtonTexture, stageBannerTexture, levelTextures as they are replaced or no longer needed.
-    // private Texture crownTexture;
-    // private Texture backButtonTexture;
-    // private Texture stageBannerTexture;
-
     private final boolean isDefendMode;
 
-    // Custom TextButton style properties, same as MainMenuScreen
     private TextButton.TextButtonStyle customButtonStyle;
     private Texture buttonUpTexture;
     private Texture buttonDownTexture;
 
-    // NEW: Gold Button Style properties
     private TextButton.TextButtonStyle goldButtonStyle;
     private Texture goldButtonUpTexture;
     private Texture goldButtonDownTexture;
 
-    // Constants for general button size, border, and padding (copied from MainMenuScreen)
-    private static final int GENERAL_BUTTON_WIDTH = 280; // Used for level buttons
+    private static final int GENERAL_BUTTON_WIDTH = 280;
     private static final int GENERAL_BUTTON_HEIGHT = 80;
     private static final float GENERAL_BUTTON_FONT_SCALE = 1.8f;
 
-    // Constants for BACK button specific size (from MainMenuScreen/SettingScreen)
     private static final int BACK_BUTTON_WIDTH = 180;
     private static final int BACK_BUTTON_HEIGHT = 70;
     private static final float BACK_BUTTON_FONT_SCALE = 1.2f;
 
-    // Constants for button styling (from MainMenuScreen)
     private static final int OUTER_BORDER_THICKNESS = 5;
     private static final int INNER_PADDING = 8;
     private static final int INNER_BORDER_THICKNESS = 3;
@@ -63,45 +50,32 @@ public class StageSelectionScreen implements Screen {
     public StageSelectionScreen(Main game, boolean isDefendMode) {
         this.game = game;
         this.isDefendMode = isDefendMode;
-
         camera = new OrthographicCamera();
-        // Using Constant.SCREEN_WIDTH/HEIGHT for consistency
         viewport = new FitViewport(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT, camera);
         stage = new Stage(viewport);
         Gdx.input.setInputProcessor(stage);
-
         skin = new Skin(Gdx.files.internal("uiskin/uiskin.json"));
+        background = new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
 
-        // Muat semua texture yang diperlukan
-        background        = new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
-        // Crown texture is no longer used, but if it were, it would be loaded here:
-        // crownTexture      = new Texture(Gdx.files.internal("button/crown.png"));
-
-
-        // Initialize custom button styles programmatically
-        initializeCustomButtonStyles(); // Changed method name to plural
+        initializeCustomButtonStyles();
         createUI();
     }
 
-    // Method to initialize custom button styles with nested shapes (both brown and gold)
-    private void initializeCustomButtonStyles() { // Changed method name
-        // Define custom colors for the brown button layers
+    private void initializeCustomButtonStyles() {
         Color brownBorderOuter = new Color(0.3f, 0.15f, 0.05f, 1.0f);
         Color brownOuterFillUp = new Color(0.6f, 0.4f, 0.18f, 1.0f);
         Color brownOuterFillDown = new Color(0.48f, 0.32f, 0.12f, 1.0f);
         Color brownBorderInner = new Color(0.3f, 0.15f, 0.05f, 1.0f);
         Color brownInnerFillUp = new Color(0.57f, 0.38f, 0.16f, 1.0f);
         Color brownInnerFillDown = new Color(0.45f, 0.28f, 0.1f, 1.0f);
-        Color textColor = new Color(0.25f, 0.15f, 0.05f, 1.0f); // Dark text color for brown buttons
+        Color textColor = new Color(0.25f, 0.15f, 0.05f, 1.0f);
 
-        // Get the default font from the skin once
         BitmapFont defaultFont = skin.getFont("default-font");
         if (defaultFont == null) {
             Gdx.app.error("StageSelectionScreen", "Default font not found in uiskin.json. Please ensure 'default-font' is defined.");
         }
         defaultFont.getRegion().getTexture().setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
 
-        // --- Create Pixmap for the 'up' state background (normal brown button) ---
         Pixmap pixmapUp = new Pixmap(GENERAL_BUTTON_WIDTH, GENERAL_BUTTON_HEIGHT, Pixmap.Format.RGBA8888);
         pixmapUp.setColor(brownBorderOuter);
         pixmapUp.fill();
@@ -122,7 +96,7 @@ public class StageSelectionScreen implements Screen {
         buttonUpTexture = new Texture(pixmapUp);
         pixmapUp.dispose();
 
-        // --- Create Pixmap for the 'down' state background (pressed brown button) ---
+
         Pixmap pixmapDown = new Pixmap(GENERAL_BUTTON_WIDTH, GENERAL_BUTTON_HEIGHT, Pixmap.Format.RGBA8888);
         pixmapDown.setColor(brownBorderOuter);
         pixmapDown.fill();
@@ -145,15 +119,13 @@ public class StageSelectionScreen implements Screen {
         customButtonStyle.font = defaultFont;
         customButtonStyle.fontColor = textColor;
 
-
-        // ====== NEW: Gold Button Style Initialization ======
-        Color goldBorderOuter = new Color(0.4f, 0.3f, 0.0f, 1.0f); // Darker gold border
-        Color goldOuterFillUp = new Color(0.8f, 0.6f, 0.2f, 1.0f);  // Lighter gold for main body (up)
-        Color goldOuterFillDown = new Color(0.64f, 0.48f, 0.16f, 1.0f); // Darker gold for main body (down)
-        Color goldBorderInner = new Color(0.4f, 0.3f, 0.0f, 1.0f); // Same dark gold for inner border
-        Color goldInnerFillUp = new Color(0.75f, 0.55f, 0.15f, 1.0f); // Mid-tone gold for inner square (up)
-        Color goldInnerFillDown = new Color(0.6f, 0.45f, 0.12f, 1.0f); // Darker mid-tone gold for inner square (down)
-        Color goldTextColor = new Color(0.2f, 0.1f, 0.0f, 1.0f);       // Very dark brown/gold text color
+        Color goldBorderOuter = new Color(0.4f, 0.3f, 0.0f, 1.0f);
+        Color goldOuterFillUp = new Color(0.8f, 0.6f, 0.2f, 1.0f);
+        Color goldOuterFillDown = new Color(0.64f, 0.48f, 0.16f, 1.0f);
+        Color goldBorderInner = new Color(0.4f, 0.3f, 0.0f, 1.0f);
+        Color goldInnerFillUp = new Color(0.75f, 0.55f, 0.15f, 1.0f);
+        Color goldInnerFillDown = new Color(0.6f, 0.45f, 0.12f, 1.0f);
+        Color goldTextColor = new Color(0.2f, 0.1f, 0.0f, 1.0f);
 
         Pixmap goldPixmapUp = new Pixmap(GENERAL_BUTTON_WIDTH, GENERAL_BUTTON_HEIGHT, Pixmap.Format.RGBA8888);
         goldPixmapUp.setColor(goldBorderOuter);
@@ -161,7 +133,7 @@ public class StageSelectionScreen implements Screen {
         goldPixmapUp.setColor(goldOuterFillUp);
         goldPixmapUp.fillRectangle(OUTER_BORDER_THICKNESS, OUTER_BORDER_THICKNESS,
             GENERAL_BUTTON_WIDTH - (2 * OUTER_BORDER_THICKNESS), GENERAL_BUTTON_HEIGHT - (2 * OUTER_BORDER_THICKNESS));
-        if (innerSquareWidth > 0 && innerSquareHeight > 0) { // Using the same innerSquare dimensions for consistency
+        if (innerSquareWidth > 0 && innerSquareHeight > 0) {
             goldPixmapUp.setColor(goldBorderInner);
             goldPixmapUp.fillRectangle(innerSquareX, innerSquareY, innerSquareWidth, innerSquareHeight);
             goldPixmapUp.setColor(goldInnerFillUp);
@@ -201,7 +173,6 @@ public class StageSelectionScreen implements Screen {
         rootTable.top().left();
         stage.addActor(rootTable);
 
-        // 1) Back button di pojok kiri atas (sekarang TextButton)
         Table topBar = new Table();
         TextButton backButton = new TextButton("BACK", customButtonStyle);
         backButton.getLabel().setFontScale(BACK_BUTTON_FONT_SCALE);
@@ -217,34 +188,30 @@ public class StageSelectionScreen implements Screen {
             .left();
         rootTable.add(topBar).expandX().left().row();
 
-        // 2) Banner judul (sekarang Label dengan nama mode)
         String titleText = isDefendMode ? "DEFEND MODE" : "ATTACK MODE";
         Label titleLabel = new Label(titleText, skin);
-        titleLabel.setFontScale(4.5f); // Same font scale as MainMenuScreen title
-        titleLabel.setColor(customButtonStyle.fontColor); // Same color as MainMenuScreen title
+        titleLabel.setFontScale(4.5f);
+        titleLabel.setColor(customButtonStyle.fontColor);
         rootTable.add(titleLabel)
-            .padTop(10) // <<-- Mengurangi padding atas judul
-            .padBottom(10) // <<-- Mengurangi padding bawah judul
+            .padTop(10)
+            .padBottom(10)
             .center()
             .row();
 
-        // 3) Table untuk tombol level (vertikal)
         Table levelTable = new Table();
-        levelTable.defaults().pad(10); // Default padding for cells within levelTable
+        levelTable.defaults().pad(10);
 
-        // Jumlah stage berbeda berdasarkan mode
-        int numberOfStages = isDefendMode ? 4 : 3; // 4 stage untuk Defend, 3 untuk Attack
-
+        int numberOfStages = isDefendMode ? 4 : 3;
         for (int i = 0; i < numberOfStages; i++) {
             final int levelNum = i + 1;
 
             TextButton levelBtn;
-            if (levelNum == numberOfStages) { // Jika ini level terakhir untuk mode ini
-                levelBtn = new TextButton("Level " + levelNum, goldButtonStyle); // Gunakan gaya emas
+            if (levelNum == numberOfStages) {
+                levelBtn = new TextButton("Level " + levelNum, goldButtonStyle);
             } else {
-                levelBtn = new TextButton("Level " + levelNum, customButtonStyle); // Gunakan gaya standar
+                levelBtn = new TextButton("Level " + levelNum, customButtonStyle);
             }
-            levelBtn.getLabel().setFontScale(GENERAL_BUTTON_FONT_SCALE); // Apply general font scale
+            levelBtn.getLabel().setFontScale(GENERAL_BUTTON_FONT_SCALE);
             levelBtn.addListener(new ClickListener() {
                 @Override
                 public void clicked(InputEvent event, float x, float y) {
@@ -253,18 +220,14 @@ public class StageSelectionScreen implements Screen {
             });
 
             Table btnContainer = new Table();
-            // Ukuran tombol level harus diatur dengan GENERAL_BUTTON_WIDTH dan GENERAL_BUTTON_HEIGHT
+
             btnContainer.add(levelBtn).size(GENERAL_BUTTON_WIDTH, GENERAL_BUTTON_HEIGHT);
-
-            // Crown dihapus seperti permintaan sebelumnya
-            // If (isDefendMode && levelNum == 4) { ... }
-
-            levelTable.add(btnContainer).row(); // Added .row() here to stack vertically
+            levelTable.add(btnContainer).row();
         }
 
         rootTable.add(levelTable)
-            .expand() // Allow levelTable to expand and take available space (pushing up)
-            .center() // Center horizontally
+            .expand()
+            .center()
         ;
     }
 
@@ -304,13 +267,10 @@ public class StageSelectionScreen implements Screen {
     public void dispose() {
         stage.dispose();
         skin.dispose();
-        if (background        != null) background.dispose();
-        // Crown texture is no longer used, so no need to dispose if it wasn't loaded
-        // if (crownTexture      != null) crownTexture.dispose();
-        // Dispose textures created programmatically for brown buttons
+        if (background != null) background.dispose();
+
         if (buttonUpTexture != null) buttonUpTexture.dispose();
         if (buttonDownTexture != null) buttonDownTexture.dispose();
-        // Dispose textures created programmatically for gold buttons
         if (goldButtonUpTexture != null) goldButtonUpTexture.dispose();
         if (goldButtonDownTexture != null) goldButtonDownTexture.dispose();
     }

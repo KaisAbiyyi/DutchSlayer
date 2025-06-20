@@ -15,16 +15,16 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import io.DutchSlayer.Main;
 import io.DutchSlayer.screens.MainMenuScreen;
-import io.DutchSlayer.screens.ModeSelectionScreen; // Import ModeSelectionScreen
+import io.DutchSlayer.screens.ModeSelectionScreen;
 import io.DutchSlayer.utils.Constant;
 
 public class GameVictoryScreen implements Screen {
 
     private final Main game;
-    private Stage stage;
-    private Skin skin;
-    private Music backgroundMusic;
-    private Texture backgroundTexture;
+    private final Stage stage;
+    private final Skin skin;
+    private final Music backgroundMusic;
+    private final Texture backgroundTexture;
     private TextButton.TextButtonStyle customButtonStyle;
     private Texture buttonUpTexture;
     private Texture buttonDownTexture;
@@ -36,19 +36,15 @@ public class GameVictoryScreen implements Screen {
     private static final int INNER_BORDER = 3;
     private static final float FONT_SCALE = 1.8f;
 
-    private final int currentStage;
-    private static final int MAX_STAGE = 3; // Define your maximum stage number here
+    private static final int MAX_STAGE = 3;
 
     public GameVictoryScreen(Main game, int currentStage) {
         this.game = game;
-        this.currentStage = currentStage;
-
         stage = new Stage(new FitViewport(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT), game.batch);
         Gdx.input.setInputProcessor(stage);
         skin = new Skin(Gdx.files.internal("uiskin/uiskin.json"));
 
         backgroundTexture = new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
-
         initializeCustomButtonStyle();
 
         backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("backgrounds/WinMusic.mp3"));
@@ -63,7 +59,6 @@ public class GameVictoryScreen implements Screen {
         congrats.setFontScale(2.5f);
         congrats.setColor(new Color(0.25f, 0.15f, 0.05f, 1.0f));
 
-        // Main Menu Button
         TextButton mainMenuButton = new TextButton("MAIN MENU", customButtonStyle);
         mainMenuButton.getLabel().setFontScale(FONT_SCALE);
         mainMenuButton.addListener(new ClickListener() {
@@ -73,9 +68,9 @@ public class GameVictoryScreen implements Screen {
             }
         });
 
-        TextButton nextActionButton; // Renamed for clarity
+        TextButton nextActionButton;
 
-        if (currentStage < MAX_STAGE) { // If not the final stage
+        if (currentStage < MAX_STAGE) {
             nextActionButton = new TextButton("NEXT STAGE", customButtonStyle);
             nextActionButton.getLabel().setFontScale(FONT_SCALE);
             nextActionButton.addListener(new ClickListener() {
@@ -84,19 +79,19 @@ public class GameVictoryScreen implements Screen {
                     game.setScreen(new GameScreen(game, currentStage + 1));
                 }
             });
-        } else { // If it is the final stage
-            nextActionButton = new TextButton("MODE SELECTION", customButtonStyle); // Change text for final stage
+        } else {
+            nextActionButton = new TextButton("MODE SELECTION", customButtonStyle);
             nextActionButton.getLabel().setFontScale(FONT_SCALE);
             nextActionButton.addListener(new ClickListener() {
                 @Override
                 public void clicked(InputEvent event, float x, float y) {
-                    game.setScreen(new ModeSelectionScreen(game)); // Go to ModeSelectionScreen
+                    game.setScreen(new ModeSelectionScreen(game));
                 }
             });
         }
 
         table.add(congrats).padBottom(40).row();
-        table.add(nextActionButton).size(BUTTON_WIDTH, BUTTON_HEIGHT).pad(10).row(); // Use the dynamic button
+        table.add(nextActionButton).size(BUTTON_WIDTH, BUTTON_HEIGHT).pad(10).row();
         table.add(mainMenuButton).size(BUTTON_WIDTH, BUTTON_HEIGHT).pad(10);
     }
 

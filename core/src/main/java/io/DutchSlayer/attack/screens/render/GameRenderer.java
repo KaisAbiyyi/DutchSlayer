@@ -4,7 +4,6 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import io.DutchSlayer.attack.boss.TankBoss;
 import io.DutchSlayer.attack.enemy.BasicEnemy;
@@ -23,7 +22,6 @@ public class GameRenderer {
         SpriteBatch spriteBatch = screen.getSpriteBatch();
         ShapeRenderer shapeRenderer = screen.getShapeRenderer();
 
-        // Ambil semua texture yang dibutuhkan
         Texture backgroundTexture = screen.getBackgroundTexture();
         Texture bgTreeTexture = screen.getBgTreeTexture();
         Texture bgMountainTexture = screen.getBgMountainTexture();
@@ -32,21 +30,15 @@ public class GameRenderer {
         Texture wallTexture = screen.getWallTexture();
         BitmapFont font = screen.getFont();
 
-        // =======================================================================
-        // FASE 1: RENDERING DENGAN SpriteBatch (sebelum Boss dan Shape)
-        // =======================================================================
         spriteBatch.setProjectionMatrix(camera.combined);
         spriteBatch.begin();
 
-        // 1. Background
         spriteBatch.draw(backgroundTexture, camera.position.x - Constant.SCREEN_WIDTH / 2f, 0, Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT);
 
-        // 2. Parallax Layers
         drawParallaxLayer(spriteBatch, camera, bgMountainTexture, 0.1f, Constant.TERRAIN_HEIGHT + 100f, 0.5f * 4);
         drawParallaxLayer(spriteBatch, camera, bgTreeTexture, 0.2f, Constant.TERRAIN_HEIGHT + 200f, 0.175f * 4);
         drawParallaxLayer(spriteBatch, camera, terrain2Texture, 0.2f, Constant.TERRAIN_HEIGHT + 50f, 0.27f * 4);
 
-        // 3. Background Objects (Pohon & Bangunan)
         float worldViewLeft = camera.position.x - Constant.SCREEN_WIDTH / 2f;
         for (Building b : screen.getBuildings()) {
             float offsetX = (1f - 0.8f) * (b.getX() - worldViewLeft);
@@ -56,44 +48,34 @@ public class GameRenderer {
             t.render(spriteBatch, 0);
         }
 
-        // 4. Terrain
         float scaledWidth = 550f;
         float scaledHeight = Constant.TERRAIN_HEIGHT + 225f;
         for (float x = 0; x < screen.getMapWidth(); x += scaledWidth) {
             spriteBatch.draw(terrainTexture, x, -50f, scaledWidth, scaledHeight);
         }
 
-        // 5. Player
         screen.getPlayer().render(spriteBatch, delta);
 
-        // 6. Enemies
         for (BasicEnemy enemy : screen.getEnemies()) {
             enemy.render(spriteBatch, delta);
         }
 
-        // 7. Player Grenades
         for (io.DutchSlayer.attack.player.weapon.Grenade grenade : screen.getGrenades()) {
             grenade.render(spriteBatch);
         }
 
-        // 8. Wall Trap
         if (screen.isTriggerWallTrap()) {
             spriteBatch.draw(wallTexture, screen.getLeftWall().x, screen.getLeftWall().y, screen.getLeftWall().width, screen.getLeftWall().height);
             spriteBatch.draw(wallTexture, screen.getRightWall().x, screen.getRightWall().y, screen.getRightWall().width, screen.getRightWall().height);
         }
 
-        spriteBatch.end(); // <-- Akhiri batch utama SEBELUM memanggil render boss/shape
+        spriteBatch.end();
 
-        // =======================================================================
-        // FASE 2: RENDERING DENGAN ShapeRenderer DAN RENDER BOSS
-        // =======================================================================
         TankBoss boss = screen.getTankBoss();
         shapeRenderer.setProjectionMatrix(camera.combined);
 
-        // Mulai ShapeRenderer untuk debug musuh biasa, pickup, dan boss
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
-        // 1. Render debug untuk musuh biasa dan pickup
         for (BasicEnemy e : screen.getEnemies()) {
             e.render(shapeRenderer);
         }
@@ -101,31 +83,23 @@ public class GameRenderer {
             p.renderShape(shapeRenderer);
         }
 
-        // 2. Panggil metode render gabungan milik boss.
-        // Metode ini mengharapkan ShapeRenderer sudah aktif.
         if (boss != null) {
-            boss.render(shapeRenderer, spriteBatch); // <-- PANGGIL METODE ASLI DI SINI
+            boss.render(spriteBatch);
         }
 
-        shapeRenderer.end(); // Akhiri ShapeRenderer setelah semua shape digambar
+        shapeRenderer.end();
 
-        // Gambar Health Bar Boss (metode ini sudah mandiri dan aman dipanggil di sini)
         drawBossHealthBar(screen, boss);
 
-        // =======================================================================
-        // FASE 3: RENDERING DENGAN SpriteBatch (setelah Boss dan Shape)
-        // =======================================================================
         spriteBatch.setProjectionMatrix(camera.combined);
-        spriteBatch.begin(); // <-- Mulai batch baru untuk UI dan proyektil
+        spriteBatch.begin();
 
-        // 1. Enemy Bullets
         for (BasicEnemy enemy : screen.getEnemies()) {
             for (Bullet bullet : enemy.getBullets()) {
                 if (bullet.isAlive()) bullet.render(spriteBatch);
             }
         }
 
-        // 2. HUD dan label pickup
         drawHUD(screen, spriteBatch, font);
         for (PickupItem item : screen.getPickupItems()) {
             item.renderLabel(spriteBatch, font);
@@ -134,7 +108,6 @@ public class GameRenderer {
         spriteBatch.end();
     }
 
-    // Helper method untuk parallax yang lebih efisien
     private void drawParallaxLayer(SpriteBatch batch, OrthographicCamera camera, Texture texture, float parallaxFactor, float yPosition, float scale) {
         float texWidth = texture.getWidth() * scale;
         float texHeight = texture.getHeight() * scale;
@@ -146,7 +119,6 @@ public class GameRenderer {
         }
     }
 
-    // Kode di bawah ini tidak perlu diubah
     private void drawBossHealthBar(GameScreen screen, TankBoss boss) {
         if (boss == null || !boss.isAlive()) {
             return;
@@ -199,35 +171,6 @@ public class GameRenderer {
         spriteBatch.end();
     }
 
-
-    private void drawParallax(SpriteBatch batch, OrthographicCamera camera, Texture texture,
-                              float parallaxFactor, float yPosition, float scale) {
-        float texWidth = texture.getWidth() * scale;
-        float texHeight = texture.getHeight() * scale;
-        float offsetX = (camera.position.x * parallaxFactor) % texWidth;
-        float startX = camera.position.x - Constant.SCREEN_WIDTH / 2f - offsetX - texWidth;
-
-        batch.setProjectionMatrix(camera.combined);
-        batch.begin();
-        for (float x = startX; x < camera.position.x + Constant.SCREEN_WIDTH / 2f + texWidth; x += texWidth) {
-            batch.draw(texture, x, yPosition, texWidth, texHeight);
-        }
-        batch.end();
-    }
-
-    private void drawTerrain(SpriteBatch batch, OrthographicCamera camera, Texture terrainTexture, float mapWidth) {
-        batch.setProjectionMatrix(camera.combined);
-        batch.begin();
-
-        float scaledWidth = 550f;
-        float scaledHeight = Constant.TERRAIN_HEIGHT + 225f;
-
-        for (float x = 0; x < mapWidth; x += scaledWidth) {
-            batch.draw(terrainTexture, x, -50f, scaledWidth, scaledHeight);
-        }
-
-        batch.end();
-    }
 
     private void drawHUD(GameScreen screen, SpriteBatch batch, BitmapFont font) {
         Player player = screen.getPlayer();

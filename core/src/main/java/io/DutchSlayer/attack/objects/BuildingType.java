@@ -23,10 +23,4 @@ public enum BuildingType {
         this.texture = new Texture(path); // otomatis load saat enum diakses
     }
 
-    public static void disposeAll() {
-        for (BuildingType type : BuildingType.values()) {
-            type.texture.dispose();
-        }
-    }
-
 }

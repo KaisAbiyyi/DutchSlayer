@@ -6,57 +6,38 @@ import com.badlogic.gdx.math.Rectangle;
 import io.DutchSlayer.defend.ui.ImageLoader;
 
 public class Trap {
-    /* ===== GEOMETRY & COLLISION ===== */
-    public final Rectangle bounds;          // Area collision trap
-    public boolean occupied = false;        // Apakah trap sudah dipasang
-    private final float centerX, centerY;   // Center point untuk calculations
-    private final float[] verts;                  // Vertex array untuk polygon shape
+    public final Rectangle bounds;
+    public boolean occupied = false;
+    private final float centerX, centerY;
+    private final float[] verts;
 
-    private final float w, h;               // Ukuran sprite setelah scaling
-    private Texture tex;                    // Texture trap berdasarkan type
+    private final float w, h;
+    private Texture tex;
+    private final TrapType type;
 
-    // ===== TRAP TYPE SYSTEM =====
-    private final TrapType type;                  // Jenis trap (ATTACK/SLOW/EXPLOSION)
+    private float cooldown = 0f;
+    private static final boolean SINGLE_USE = true;
 
-    /* ===== TRAP MECHANICS ===== */
-    private float cooldown = 0f;            // Cooldown setelah aktivasi
-
-    private static final boolean SINGLE_USE = true;     // Trap hilang setelah sekali pakai
-
-    /**
-     * Constructor untuk membuat trap dengan type tertentu
-     * @param verts Vertex array untuk hit-zone polygon
-     * @param scale Scale factor untuk sprite
-     * @param type Jenis trap (ATTACK/SLOW/EXPLOSION)
-     */
     public Trap(float[] verts, float scale, TrapType type) {
-        this.verts = verts.clone();     // Copy array untuk safety
+        this.verts = verts.clone();
         this.type = type;
-        /* ===== VISUAL COMPONENTS ===== */
-        // Scale factor untuk sprite
 
-        // ===== CALCULATE COLLISION BOUNDS FROM VERTICES =====
         float minX = Float.MAX_VALUE;
         float minY = Float.MAX_VALUE;
         float maxX = Float.MIN_VALUE;
         float maxY = Float.MIN_VALUE;
 
-        // Loop vertices untuk find bounding box
         for (int i = 0; i < verts.length; i += 2) {
-            minX = Math.min(minX, verts[i]);        // X coordinates
+            minX = Math.min(minX, verts[i]);
             maxX = Math.max(maxX, verts[i]);
-            minY = Math.min(minY, verts[i+1]);      // Y coordinates
+            minY = Math.min(minY, verts[i+1]);
             maxY = Math.max(maxY, verts[i+1]);
         }
 
-        // Create collision bounds (expanded untuk easier collision)
         this.bounds = new Rectangle(minX, minY, maxX-minX, maxY-minY);
-
-        // Calculate center point untuk distance calculations
         this.centerX = minX + (maxX-minX)/2f;
         this.centerY = minY + (maxY-minY)/2f;
 
-        // ===== SET TEXTURE BASED ON TRAP TYPE =====
         switch(type) {
             case ATTACK:
                 this.tex = ImageLoader.trapAttackTex;
@@ -68,64 +49,45 @@ public class Trap {
                 this.tex = ImageLoader.trapBombTex;
                 break;
             default:
-                this.tex = ImageLoader.trapTex; // Fallback
+                this.tex = ImageLoader.trapTex;
                 break;
         }
 
-        // Ultimate fallback jika texture null
         if (tex == null) {
             tex = ImageLoader.trapTex;
         }
 
-        // Calculate sprite dimensions
-        this.w       = tex.getWidth()  * scale;
-        this.h       = tex.getHeight() * scale;
+        this.w = tex.getWidth()  * scale;
+        this.h = tex.getHeight() * scale;
     }
 
-    /**
-     * Old constructor untuk backward compatibility (default ke ATTACK type)
-     */
     public Trap(float[] verts, float scale) {
         this(verts, scale, TrapType.ATTACK);
     }
 
-    /**
-     * Update trap logic setiap frame (handle cooldown)
-     */
     public void update(float delta) {
         if (cooldown > 0) {
             cooldown -= delta;
         }
     }
 
-    /**
-     * Render trap dengan visual effects
-     */
     public void drawBatch(SpriteBatch batch) {
         boolean isUsed = false;
         if (occupied && !(SINGLE_USE && isUsed)) {
             if (isOnCooldown()) {
-                // Trap on cooldown - warna agak redup
                 batch.setColor(0.5f, 0.5f, 0.5f, 0.8f);
             } else {
-                // Trap ready - warna normal
+
                 batch.setColor(1f, 1f, 1f, 1f);
             }
 
-            // Calculate sprite position
             float spriteX = centerX - w/2f;
             float spriteY = getTowerAlignedY();
-
             batch.draw(tex, spriteX, spriteY, w, h);
-
             batch.setColor(1f, 1f, 1f, 1f);
         }
     }
 
-    /**
-     * Calculate Y position yang aligned dengan tower deployment
-     * Formula sama dengan tower deployment di GameScreen
-     */
     private float getTowerAlignedY() {
         float y0 = verts[1];
         float y1 = verts[3];
@@ -138,9 +100,11 @@ public class Trap {
     public boolean isOnCooldown() {
         return cooldown > 0;
     }
+
     public boolean isUsed() {
         return false;
     }
+
     public TrapType getType() {
         return type;
     }

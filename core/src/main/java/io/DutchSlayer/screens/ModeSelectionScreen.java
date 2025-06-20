@@ -2,70 +2,60 @@ package io.DutchSlayer.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.Color; // Import Color for button style
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.Pixmap; // Import Pixmap for button style
-import com.badlogic.gdx.graphics.g2d.BitmapFont; // Import BitmapFont
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.ui.Label; // Import Label for text title
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton; // Import TextButton
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable; // For creating drawables
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
 import io.DutchSlayer.Main;
 import io.DutchSlayer.defend.utils.AudioManager;
 import io.DutchSlayer.defend.utils.GameMode;
-import io.DutchSlayer.utils.Constant; // Using Constant.SCREEN_WIDTH/HEIGHT for consistency
+import io.DutchSlayer.utils.Constant;
 
 public class ModeSelectionScreen implements Screen {
-
     private final Main game;
     private final Stage stage;
     private final FitViewport viewport;
     private final Skin skin;
 
     private final Texture background;
-    // Custom TextButton style properties, same as MainMenuScreen
     private TextButton.TextButtonStyle customButtonStyle;
     private Texture buttonUpTexture;
     private Texture buttonDownTexture;
 
-    // Constants for general button size, border, and padding - consistent with MainMenuScreen
-    private static final int GENERAL_BUTTON_WIDTH = 380; // Adjusted for mode selection buttons
+    private static final int GENERAL_BUTTON_WIDTH = 380;
     private static final int GENERAL_BUTTON_HEIGHT = 100;
-    private static final float GENERAL_BUTTON_FONT_SCALE = 1.8f; // Adjusted font scale to fit buttons
+    private static final float GENERAL_BUTTON_FONT_SCALE = 1.8f;
 
-    // Constants for BACK button specific size (from MainMenuScreen/SettingScreen)
     private static final int BACK_BUTTON_WIDTH = 180;
     private static final int BACK_BUTTON_HEIGHT = 70;
     private static final float BACK_BUTTON_FONT_SCALE = 1.2f;
 
-    // Constants for button styling (from MainMenuScreen)
     private static final int OUTER_BORDER_THICKNESS = 5;
     private static final int INNER_PADDING = 8;
     private static final int INNER_BORDER_THICKNESS = 3;
 
     public ModeSelectionScreen(Main game) {
         this.game = game;
-        // Using Constant.SCREEN_WIDTH/HEIGHT for consistency
         this.viewport = new FitViewport(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT);
         this.stage = new Stage(viewport);
         this.skin = new Skin(Gdx.files.internal("uiskin/uiskin.json"));
-
         this.background = new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
-
         initializeCustomButtonStyle();
-
         Gdx.input.setInputProcessor(stage);
         createUI();
     }
 
-    // Method to initialize custom button style with nested shapes, copied from MainMenuScreen
     private void initializeCustomButtonStyle() {
         Color brownBorderOuter = new Color(0.3f, 0.15f, 0.05f, 1.0f);
         Color brownOuterFillUp = new Color(0.6f, 0.4f, 0.18f, 1.0f);
@@ -158,17 +148,15 @@ public class ModeSelectionScreen implements Screen {
         customButtonStyle.fontColor = textColor;
     }
 
-
     private void createUI() {
         Table rootTable = new Table();
         rootTable.setFillParent(true);
         rootTable.top().left();
         stage.addActor(rootTable);
 
-        // Back Button (top-left corner) - now a TextButton with custom style
         Table topBar = new Table();
         TextButton backButton = new TextButton("BACK", customButtonStyle);
-        backButton.getLabel().setFontScale(BACK_BUTTON_FONT_SCALE); // Apply specific font scale
+        backButton.getLabel().setFontScale(BACK_BUTTON_FONT_SCALE);
         backButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -178,23 +166,20 @@ public class ModeSelectionScreen implements Screen {
         topBar.add(backButton).size(BACK_BUTTON_WIDTH, BACK_BUTTON_HEIGHT).pad(10).left();
         rootTable.add(topBar).expandX().left().row();
 
-        // Title (Now a Label with "Dutch Slayer" text, consistent with MainMenuScreen)
         Label titleLabel = new Label("Dutch Slayer", skin);
-        titleLabel.setFontScale(4.5f); // Same font scale as MainMenuScreen title
-        titleLabel.setColor(customButtonStyle.fontColor); // Same color as MainMenuScreen title
+        titleLabel.setFontScale(4.5f);
+        titleLabel.setColor(customButtonStyle.fontColor);
         rootTable.add(titleLabel)
-            .padTop(50) // Adjust padding to position the title
+            .padTop(50)
             .padBottom(50)
             .center()
             .row();
 
-        // Button Table
         Table buttonTable = new Table();
-        buttonTable.defaults().pad(20); // Increased padding between buttons for better spacing
+        buttonTable.defaults().pad(20);
 
-        // Defense Button - now a TextButton with custom style
         TextButton defenseBtn = new TextButton("DEFENSE MODE", customButtonStyle);
-        defenseBtn.getLabel().setFontScale(GENERAL_BUTTON_FONT_SCALE); // Apply general font scale
+        defenseBtn.getLabel().setFontScale(GENERAL_BUTTON_FONT_SCALE);
         defenseBtn.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -202,11 +187,10 @@ public class ModeSelectionScreen implements Screen {
                 game.setScreen(new StageSelectionScreen(game, true));
             }
         });
-        buttonTable.add(defenseBtn).size(GENERAL_BUTTON_WIDTH + 120, GENERAL_BUTTON_HEIGHT + 20).padTop(-100).row(); // Adjusted size
+        buttonTable.add(defenseBtn).size(GENERAL_BUTTON_WIDTH + 120, GENERAL_BUTTON_HEIGHT + 20).padTop(-100).row();
 
-        // Platformer Button - now a TextButton with custom style
         TextButton platformerBtn = new TextButton("PLATFORMER MODE", customButtonStyle);
-        platformerBtn.getLabel().setFontScale(GENERAL_BUTTON_FONT_SCALE); // Apply general font scale
+        platformerBtn.getLabel().setFontScale(GENERAL_BUTTON_FONT_SCALE);
         platformerBtn.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -214,7 +198,7 @@ public class ModeSelectionScreen implements Screen {
                 game.setScreen(new StageSelectionScreen(game, false));
             }
         });
-        buttonTable.add(platformerBtn).size(GENERAL_BUTTON_WIDTH + 120, GENERAL_BUTTON_HEIGHT + 20).padBottom(100).row(); // Adjusted size
+        buttonTable.add(platformerBtn).size(GENERAL_BUTTON_WIDTH + 120, GENERAL_BUTTON_HEIGHT + 20).padBottom(100).row();
 
         rootTable.add(buttonTable).expand().center();
     }
@@ -253,7 +237,7 @@ public class ModeSelectionScreen implements Screen {
         stage.dispose();
         skin.dispose();
         background.dispose();
-        // Disposed textures created programmatically
+
         if (buttonUpTexture != null) buttonUpTexture.dispose();
         if (buttonDownTexture != null) buttonDownTexture.dispose();
     }

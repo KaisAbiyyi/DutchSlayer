@@ -3,20 +3,20 @@ package io.DutchSlayer.attack.screens;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.audio.Music;
-import com.badlogic.gdx.graphics.Color; // NEW: Import Color
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.Pixmap; // NEW: Import Pixmap
-import com.badlogic.gdx.graphics.Texture; // NEW: Import Texture
-import com.badlogic.gdx.graphics.g2d.BitmapFont; // NEW: Import BitmapFont
-import com.badlogic.gdx.scenes.scene2d.InputEvent; // NEW: Import InputEvent
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener; // NEW: Import ClickListener
-import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable; // NEW: Import TextureRegionDrawable
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import io.DutchSlayer.Main;
-import io.DutchSlayer.screens.MainMenuScreen; // NEW: Import MainMenuScreen for Main Menu button
+import io.DutchSlayer.screens.MainMenuScreen;
 import io.DutchSlayer.utils.Constant;
 
 public class GameOverScreen implements Screen {
@@ -24,15 +24,12 @@ public class GameOverScreen implements Screen {
     private final Main game;
     private final Stage stage;
     private final Viewport viewport;
-    private final int stageNumber;
     private final Music backgroundMusic;
-    private Texture backgroundTexture; // NEW: Background texture
-    private TextButton.TextButtonStyle customButtonStyle; // NEW: Custom button style
-    private Texture buttonUpTexture; // NEW: Texture for button up state
-    private Texture buttonDownTexture; // NEW: Texture for button down state
-    private Skin skin; // Make skin a field to dispose it
-
-    // Constants for button styling (copied from SettingScreen/GameVictoryScreen for consistency)
+    private final Texture backgroundTexture;
+    private TextButton.TextButtonStyle customButtonStyle;
+    private Texture buttonUpTexture;
+    private Texture buttonDownTexture;
+    private final Skin skin;
     private static final int BUTTON_WIDTH = 380;
     private static final int BUTTON_HEIGHT = 100;
     private static final int OUTER_BORDER = 5;
@@ -44,57 +41,50 @@ public class GameOverScreen implements Screen {
         this.game = game;
         this.viewport = new FitViewport(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT);
         this.stage = new Stage(viewport);
-        this.stageNumber = stageNumber;
-        this.skin = new Skin(Gdx.files.internal("uiskin/uiskin.json")); // pastikan ada uiskin.json
+        this.skin = new Skin(Gdx.files.internal("uiskin/uiskin.json"));
 
-        // Load background texture
-        backgroundTexture = new Texture(Gdx.files.internal("backgrounds/Main Menu.png")); // NEW
+        backgroundTexture = new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
+        initializeCustomButtonStyle();
 
-        // Initialize custom button style
-        initializeCustomButtonStyle(); // NEW
-
-        // Load music
         backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("backgrounds/LoseMusic.mp3"));
         backgroundMusic.setLooping(true);
-        backgroundMusic.setVolume(0.5f); // Atur volume musik
+        backgroundMusic.setVolume(0.5f);
 
         Table table = new Table();
         table.setFillParent(true);
-        stage.addActor(table); // Add table to stage early
+        stage.addActor(table);
 
         Label title = new Label("GAME OVER", skin);
-        title.setFontScale(2.5f); // Perkecil sedikit agar tidak terlalu besar dengan style baru
-        // Set color to match the dark brown used in buttons/labels
-        title.setColor(new Color(0.25f, 0.15f, 0.05f, 1.0f)); // NEW: Set warna teks
+        title.setFontScale(2.5f);
 
-        // Retry Button
-        TextButton retryButton = new TextButton("RETRY MISSION", customButtonStyle); // Use custom style
-        retryButton.getLabel().setFontScale(FONT_SCALE); // Apply font scale
-        retryButton.addListener(new ClickListener() { // Use ClickListener
+        title.setColor(new Color(0.25f, 0.15f, 0.05f, 1.0f));
+
+        TextButton retryButton = new TextButton("RETRY MISSION", customButtonStyle);
+        retryButton.getLabel().setFontScale(FONT_SCALE);
+        retryButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 game.setScreen(new GameScreen(game, stageNumber));
             }
         });
 
-        // Main Menu Button (NEW: Add Main Menu button for consistency)
-        TextButton mainMenuButton = new TextButton("MAIN MENU", customButtonStyle); // Use custom style
-        mainMenuButton.getLabel().setFontScale(FONT_SCALE); // Apply font scale
-        mainMenuButton.addListener(new ClickListener() { // Use ClickListener
+        TextButton mainMenuButton = new TextButton("MAIN MENU", customButtonStyle);
+        mainMenuButton.getLabel().setFontScale(FONT_SCALE);
+        mainMenuButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 game.setScreen(new MainMenuScreen(game));
             }
         });
 
-        table.add(title).padBottom(40f).row(); // Increased padding for better spacing
-        table.add(retryButton).size(BUTTON_WIDTH, BUTTON_HEIGHT).pad(10f).row(); // Apply size and padding
-        table.add(mainMenuButton).size(BUTTON_WIDTH, BUTTON_HEIGHT).pad(10f); // Apply size and padding
+        table.add(title).padBottom(40f).row();
+        table.add(retryButton).size(BUTTON_WIDTH, BUTTON_HEIGHT).pad(10f).row();
+        table.add(mainMenuButton).size(BUTTON_WIDTH, BUTTON_HEIGHT).pad(10f);
 
         Gdx.input.setInputProcessor(stage);
     }
 
-    // NEW: Method to initialize custom button style, copied from SettingScreen/GameVictoryScreen
+
     private void initializeCustomButtonStyle() {
         Color brownBorderOuter = new Color(0.3f, 0.15f, 0.05f, 1.0f);
         Color brownOuterFillUp = new Color(0.6f, 0.4f, 0.18f, 1.0f);
@@ -198,7 +188,6 @@ public class GameOverScreen implements Screen {
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // NEW: Draw background before the stage
         game.batch.setProjectionMatrix(viewport.getCamera().combined);
         game.batch.begin();
         game.batch.draw(backgroundTexture, 0, 0, viewport.getWorldWidth(), viewport.getWorldHeight());
@@ -235,9 +224,9 @@ public class GameOverScreen implements Screen {
     public void dispose() {
         stage.dispose();
         backgroundMusic.dispose();
-        backgroundTexture.dispose(); // NEW: Dispose background texture
-        buttonUpTexture.dispose(); // NEW: Dispose button textures
-        buttonDownTexture.dispose(); // NEW: Dispose button textures
-        skin.dispose(); // NEW: Dispose skin
+        backgroundTexture.dispose();
+        buttonUpTexture.dispose();
+        buttonDownTexture.dispose();
+        skin.dispose();
     }
 }

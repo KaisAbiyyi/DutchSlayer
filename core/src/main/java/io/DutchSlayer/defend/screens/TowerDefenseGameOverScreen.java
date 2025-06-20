@@ -19,9 +19,9 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import io.DutchSlayer.Main;
 import io.DutchSlayer.screens.MainMenuScreen;
-import io.DutchSlayer.defend.game.GameConstants; // Import GameConstants jika diperlukan
+import io.DutchSlayer.defend.game.GameConstants;
 import io.DutchSlayer.screens.ModeSelectionScreen;
-import io.DutchSlayer.utils.Constant; // Import Constant untuk ukuran layar
+import io.DutchSlayer.utils.Constant;
 
 public class TowerDefenseGameOverScreen implements Screen {
 
@@ -29,7 +29,7 @@ public class TowerDefenseGameOverScreen implements Screen {
     private final Stage stage;
     private final FitViewport viewport;
     private final int stageNumber;
-    private final boolean isGameWon; // Flag untuk mengetahui apakah menang atau kalah
+    private final boolean isGameWon;
     private final Music backgroundMusic;
     private final Texture backgroundTexture;
     private TextButton.TextButtonStyle customButtonStyle;
@@ -37,7 +37,6 @@ public class TowerDefenseGameOverScreen implements Screen {
     private Texture buttonDownTexture;
     private final Skin skin;
 
-    // Constants for button styling (consistent with other screens)
     private static final int BUTTON_WIDTH = 380;
     private static final int BUTTON_HEIGHT = 100;
     private static final int OUTER_BORDER = 5;
@@ -45,7 +44,6 @@ public class TowerDefenseGameOverScreen implements Screen {
     private static final int INNER_BORDER = 3;
     private static final float FONT_SCALE = 1.8f;
 
-    // Constructor to handle both Win and Lose states
     public TowerDefenseGameOverScreen(Main game, int stageNumber, boolean isGameWon) {
         this.game = game;
         this.stageNumber = stageNumber;
@@ -55,11 +53,9 @@ public class TowerDefenseGameOverScreen implements Screen {
         this.stage = new Stage(viewport);
         this.skin = new Skin(Gdx.files.internal("uiskin/uiskin.json"));
 
-        // Load background and initialize button style
         backgroundTexture = new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
         initializeCustomButtonStyle();
 
-        // Load music based on win/lose
         if (isGameWon) {
             backgroundMusic = Gdx.audio.newMusic(Gdx.files.internal("backgrounds/WinMusic.mp3"));
         } else {
@@ -72,7 +68,6 @@ public class TowerDefenseGameOverScreen implements Screen {
         createUI();
     }
 
-    // Method to initialize custom button style (copied from other screens for consistency)
     private void initializeCustomButtonStyle() {
         Color brownBorderOuter = new Color(0.3f, 0.15f, 0.05f, 1.0f);
         Color brownOuterFillUp = new Color(0.6f, 0.4f, 0.18f, 1.0f);
@@ -149,17 +144,15 @@ public class TowerDefenseGameOverScreen implements Screen {
         } else {
             titleLabel = new Label("DEFEAT!", skin);
         }
-        titleLabel.setFontScale(2.5f); // Sesuaikan ukuran font
-        titleLabel.setColor(new Color(0.25f, 0.15f, 0.05f, 1.0f)); // Warna coklat gelap
+        titleLabel.setFontScale(2.5f);
+        titleLabel.setColor(new Color(0.25f, 0.15f, 0.05f, 1.0f));
 
         table.add(titleLabel).padBottom(40).row();
 
-        // Retry / Next Stage Button
         TextButton actionButton;
         if (isGameWon) {
-            // Jika menang, cek apakah ini stage terakhir
-            if (stageNumber == GameConstants.FINAL_STAGE) { // Asumsi ada GameConstants.FINAL_STAGE
-                actionButton = new TextButton("SELECT MODE", customButtonStyle); // Kembali ke ModeSelection
+            if (stageNumber == GameConstants.FINAL_STAGE) {
+                actionButton = new TextButton("SELECT MODE", customButtonStyle);
                 actionButton.addListener(new ClickListener() {
                     @Override
                     public void clicked(InputEvent event, float x, float y) {
@@ -187,7 +180,6 @@ public class TowerDefenseGameOverScreen implements Screen {
         actionButton.getLabel().setFontScale(FONT_SCALE);
         table.add(actionButton).size(BUTTON_WIDTH, BUTTON_HEIGHT).pad(10).row();
 
-        // Main Menu Button
         TextButton mainMenuButton = new TextButton("MAIN MENU", customButtonStyle);
         mainMenuButton.getLabel().setFontScale(FONT_SCALE);
         mainMenuButton.addListener(new ClickListener() {

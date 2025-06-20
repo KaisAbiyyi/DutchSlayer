@@ -8,29 +8,24 @@ import io.DutchSlayer.utils.Constant;
 
 public class BossGrenade {
 
-    private Vector2 position;
-    private Vector2 velocity;
-    private final float width = 24f;
+    private final Vector2 position;
+    private final Vector2 velocity;
     private final float height = 24f;
     private boolean isAlive = true;
     private boolean exploded = false;
     private boolean damagePhaseActive = false;
 
-    private final float gravity = 700f;
     private float fuseTime = 2.5f;
     private final float explosionRadius = 80f;
-    private final float damage = 30f;
 
-    // Timer untuk berapa lama gambar ledakan ditampilkan
     private float explosionVisualTimer = 0f;
-    private final float explosionVisualDuration = 0.4f; // Durasi gambar ledakan di layar
 
     private final float groundY = Constant.TERRAIN_HEIGHT;
 
-    private Texture grenadeProjectileTexture;
-    private Texture explosionTexture;
-    private Sound explosionSound;
-    private Vector2 explosionPosition;
+    private final Texture grenadeProjectileTexture;
+    private final Texture explosionTexture;
+    private final Sound explosionSound;
+    private final Vector2 explosionPosition;
 
     public BossGrenade(float startX, float startY, float initialVx, float initialVy, Texture grenadeProjectileTexture, Texture explosionTexture, Sound explosionSound) {
         this.position = new Vector2(startX, startY);
@@ -45,6 +40,7 @@ public class BossGrenade {
         if (!isAlive) return;
 
         if (!exploded) {
+            float gravity = 700f;
             velocity.y -= gravity * delta;
             position.x += velocity.x * delta;
             position.y += velocity.y * delta;
@@ -60,7 +56,6 @@ public class BossGrenade {
                 explode();
             }
         } else {
-            // Hitung mundur timer untuk menghapus gambar ledakan dari layar
             explosionVisualTimer -= delta;
             if (explosionVisualTimer <= 0f) {
                 isAlive = false;
@@ -72,9 +67,9 @@ public class BossGrenade {
         if (exploded) return;
         exploded = true;
         damagePhaseActive = true;
-        explosionVisualTimer = explosionVisualDuration; // Set timer untuk visual ledakan
+        float explosionVisualDuration = 0.4f;
+        explosionVisualTimer = explosionVisualDuration;
 
-        // Simpan posisi X saat ini dan posisi Y di tanah (Constant.TERRAIN_HEIGHT)
         this.explosionPosition.set(this.position.x, this.groundY);
 
         if (explosionSound != null) {
@@ -82,32 +77,21 @@ public class BossGrenade {
         }
         System.out.println("Grenade exploded at ground level: " + explosionPosition.x + ", " + explosionPosition.y);
     }
-
-    /**
-     * Metode render yang diperbaiki, meniru Grenade.java.
-     * Tidak ada lagi animasi ukuran dan tidak ada lagi efek transparan.
-     */
     public void render(SpriteBatch batch) {
         if (!isAlive) return;
 
         if (!exploded) {
-            // Gambar proyektil granat saat sedang terbang
             if (grenadeProjectileTexture != null) {
+                float width = 24f;
                 batch.draw(grenadeProjectileTexture, position.x - width / 2f, position.y - height / 2f, width, height);
             }
         } else {
-            // Gambar tekstur ledakan setelah meledak
             if (explosionTexture != null) {
-                // Ukuran ledakan langsung penuh, tidak ada lagi 'progress'
                 float explosionDiameter = explosionRadius * 2f;
 
-                // TIDAK ADA LAGI batch.setColor(...) UNTUK MENGATUR TRANSPARANSI.
-                // Ini adalah kunci untuk memperbaiki masalah layar biru.
-
-                // Gambar tekstur ledakan di posisi yang sudah ditentukan (berpusat di tanah)
                 batch.draw(explosionTexture,
-                    explosionPosition.x - explosionDiameter / 2f, // Posisi X di tengah ledakan
-                    explosionPosition.y,                           // Posisi Y di tanah (origin bawah)
+                    explosionPosition.x - explosionDiameter / 2f,
+                    explosionPosition.y,
                     explosionDiameter, explosionDiameter);
             }
         }
@@ -118,10 +102,11 @@ public class BossGrenade {
     public boolean isDamagePhase() { return exploded && damagePhaseActive; }
     public void markDamagePhaseDone() { damagePhaseActive = false; }
 
-    // Gunakan explosionPosition untuk deteksi damage agar konsisten dengan visual
     public float getX() { return exploded ? explosionPosition.x : position.x; }
     public float getY() { return exploded ? explosionPosition.y : position.y; }
 
     public float getExplosionRadius() { return explosionRadius; }
-    public float getDamage() { return damage; }
+    public float getDamage() {
+        float damage = 30f;
+        return damage; }
 }

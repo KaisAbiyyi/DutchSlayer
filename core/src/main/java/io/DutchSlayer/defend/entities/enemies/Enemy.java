@@ -12,18 +12,13 @@ import io.DutchSlayer.defend.entities.towers.Tower;
 import io.DutchSlayer.defend.ui.ImageLoader;
 import io.DutchSlayer.defend.utils.AudioManager;
 
-/**
- * Optimized Enemy class dengan efficient memory management
- */
 public class Enemy {
-    /* ===== Size Enemy ===== */
     public static final float BASIC_SCALE = 0.2f;
     public static final float SHOOTER_SCALE = 0.18f;
     public static final float BOMBER_SCALE = 0.2f;
     public static final float SHIELD_SCALE = 0.25f;
     public static final float BOSS_SCALE = 0.4f;
 
-    /* ===== CONSTANTS ===== */
     public static float scale;
     private static final float SHOOTER_INTERVAL = 1.5f;
     private static final float BOSS_INTERVAL = 8f;
@@ -31,37 +26,30 @@ public class Enemy {
     private static final float KNOCKBACK_SPEED = 200f;
     private static final float ATTACK_COOLDOWN_DURATION = 1f;
 
-    /* ===== OPTIMIZATIONS: CACHED VALUES ===== */
     private final Vector2 reusableVector = new Vector2();
     private final float halfWidth;
     private final float halfHeight;
     private Texture currentTexture;
     private boolean textureDirty = true;
 
-    /* ===== VISUAL COMPONENTS ===== */
     private final Texture tex;
     private final float scaledWidth;
     private final float scaledHeight;
     private final Rectangle bounds;
 
-    /* ===== POSITION & MOVEMENT ===== */
     private final Vector2 pos;
     private final float baseSpeed;
     private float currentSpeed;
 
-    /* ===== ENEMY STATS ===== */
     private final EnemyType type;
     private int health;
     private final int maxHealth;
 
-    /* ===== AI STATE MACHINE ===== */
     private EnemyState state = EnemyState.MOVING;
     private float shootCooldown = 0f;
 
-    /* ===== SPECIAL BEHAVIORS ===== */
     private float targetX = 0f;
 
-    /* ===== STATUS EFFECTS ===== */
     private boolean isSlowed = false;
     private float slowDuration = 0f;
     private float slowStrength = 0.5f;
@@ -69,29 +57,23 @@ public class Enemy {
     private float knockbackTimer = 0f;
     private float attackCooldown = 0f;
 
-    /* ===== REFERENCES FOR INTERACTIONS ===== */
     private Array<Tower> towersRef;
     private Array<EnemyProjectile> enemyProjectilesRef;
 
-    // ===== ANIMASI FIELDS =====
+
     private float animationTimer;
     private int currentFrame;
     private static final float ANIMATION_SPEED = 0.2f;
 
     private boolean hasReachedTargetPosition = false;
 
-    /**
-     * Constructor Enemy dengan optimized initialization
-     */
     public Enemy(EnemyType type, float xCenter, float yCenter) {
         this.type = type;
         this.pos = new Vector2(xCenter, yCenter);
 
-        // Initialize animasi
         this.animationTimer = 0f;
         this.currentFrame = 0;
 
-        // ===== OPTIMIZED INITIALIZATION =====
         EnemyStats stats = getEnemyStats(type);
         this.tex = stats.texture;
         this.health = stats.health;
@@ -99,17 +81,14 @@ public class Enemy {
         scale = stats.scale;
         this.targetX = stats.targetX;
 
-        // Initialize derived properties
         this.maxHealth = this.health;
         this.currentSpeed = this.baseSpeed;
         this.scaledWidth = tex.getWidth() * scale;
         this.scaledHeight = tex.getHeight() * scale;
 
-        // Cache half dimensions
         this.halfWidth = scaledWidth / 2f;
         this.halfHeight = scaledHeight / 2f;
 
-        // Setup collision bounds
         this.bounds = new Rectangle(
             xCenter - halfWidth,
             yCenter - halfHeight,
@@ -118,9 +97,6 @@ public class Enemy {
         );
     }
 
-    /**
-     * Single method untuk enemy stats initialization
-     */
     private static class EnemyStats {
         final Texture texture;
         final int health;
@@ -164,11 +140,8 @@ public class Enemy {
         };
     }
 
-    /**
-     *  Animation update dengan early exit
-     */
     private void updateAnimation(float delta) {
-        // Early exit untuk non-animated types
+
         if (type == EnemyType.BOSS) return;
 
         boolean shouldAnimate = Math.abs(currentSpeed) > 0 && !isKnockedBack;
@@ -194,9 +167,6 @@ public class Enemy {
         }
     }
 
-    /**
-     * Main update method - optimized flow
-     */
     public void update(float delta) {
         updateEffects(delta);
         updateAI(delta);
@@ -207,9 +177,6 @@ public class Enemy {
         }
     }
 
-    /**
-     *  Simplified AI dispatch
-     */
     private void updateAI(float delta) {
         switch(type) {
             case BASIC:
@@ -301,9 +268,6 @@ public class Enemy {
         }
     }
 
-    /**
-     *  Position update dengan cached values
-     */
     private void updatePosition(float delta) {
         if (currentSpeed != 0f) {
             if (type == EnemyType.BOMBER && state == EnemyState.RETREATING) {
@@ -316,9 +280,6 @@ public class Enemy {
         }
     }
 
-    /**
-     * Shooting dengan reusable vector
-     */
     private void shoot() {
         if (towersRef == null || towersRef.isEmpty() || enemyProjectilesRef == null) return;
 
@@ -348,9 +309,6 @@ public class Enemy {
         enemyProjectilesRef.add(projectile);
     }
 
-    /**
-     *  No object creation, use passed vector
-     */
     private void getProjectileOrigin(Vector2 result) {
         switch(type) {
             case SHOOTER:
@@ -365,15 +323,12 @@ public class Enemy {
         }
     }
 
-    /**
-     *  Texture caching sistem
-     */
     private Texture getCurrentTexture() {
         if (!textureDirty && currentTexture != null) {
             return currentTexture;
         }
 
-        // Update texture only when dirty
+
         currentTexture = getTextureForCurrentFrame();
         textureDirty = false;
         return currentTexture;
@@ -389,12 +344,9 @@ public class Enemy {
             }
         }
 
-        return tex; // Fallback to original texture
+        return tex;
     }
 
-    /**
-     *  Single method untuk frame arrays
-     */
     private Texture[] getFramesArray() {
         return switch (type) {
             case BASIC -> ImageLoader.enemyBasicFrames;
@@ -405,12 +357,9 @@ public class Enemy {
         };
     }
 
-    /**
-     *  Rendering dengan cached values
-     */
     public void drawBatch(SpriteBatch batch) {
         if (tex != null) {
-            // Set color berdasarkan status
+
             if (isKnockedBack) {
                 batch.setColor(1f, 0.5f, 0.5f, 1f);
             } else if (isSlowed) {

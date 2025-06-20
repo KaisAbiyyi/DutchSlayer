@@ -21,7 +21,8 @@ import io.DutchSlayer.utils.Constant;
  */
 public class BasicEnemy {
 
-    private float x, y;
+    private float x;
+    private final float y;
     private final float width, height;
     private final float baseSpeed;
 
@@ -29,39 +30,30 @@ public class BasicEnemy {
     private final EnemyFSM fsm;
 
     private boolean isAlive = true;
-    private int maxHealth = 3;
+    private final int maxHealth = 3;
     private int currentHealth = maxHealth;
 
     private final Array<Bullet> bullets = new Array<>();
     private float fireCooldown = 1.5f;
-    private float fireTimer = 0f;
 
-    private float patrolMinX, patrolMaxX;
+    private final float patrolMinX;
+    private final float patrolMaxX;
     private boolean movingRight = true;
 
     private Sound throwGrenadeSound;
-    private Sound deathSound;
-    private Sound shootSound; // Deklarasi shootSound di sini
+    private final Sound deathSound;
+    private Sound shootSound;
 
-    private final float awarenessRadius = Constant.SCREEN_WIDTH / 2f;
-    private final float attackDistance = 800f;
     public static final float FIXED_DELTA = 1f / 60f;
     private Vector2 playerRef;
 
-    private float reloadTime;
     private float reloadTimer = 0f;
-    private int shotsFired = 0;
-    private int maxShotsBeforeReload;
     private float lastDelta;
-    private float chaseDelay = 2.0f;
-    private float chaseDelayTimer = 0f;
-    private boolean isChasePrepared = false;
 
 
     private EnemyVisuals visuals;
 
-    private AttackType[] additionalAttackTypes;
-    private GameScreen gameScreenRef;
+    private final GameScreen gameScreenRef;
     private float deathTimer = 0f;
     private int currentAttackPhaseIndex = 0;
     private float attackPhaseTimer = 0f;
@@ -85,10 +77,6 @@ public class BasicEnemy {
 
         this.fsm = new EnemyFSM(this);
         configureWeaponByType();
-
-        // --- PERBAIKAN: INISIALISASI shootSound UNTUK SEMUA TIPE YANG MUNGKIN MENEMBAK ---
-        // Jika AttackType adalah STRAIGHT_SHOOT, BURST_FIRE, ATAU ARC_GRENADE
-        // Karena ARC_GRENADE juga melakukan STRAIGHT_SHOOT dalam polanya
         if (attackType == AttackType.STRAIGHT_SHOOT || attackType == AttackType.BURST_FIRE || attackType == AttackType.ARC_GRENADE) {
             shootSound = Gdx.audio.newSound(Gdx.files.internal("player/pistol.mp3"));
         }
@@ -104,24 +92,8 @@ public class BasicEnemy {
 
     private void configureWeaponByType() {
         switch (attackType) {
-            case STRAIGHT_SHOOT -> {
-                fireCooldown = 0.5f;
-                reloadTime = 3.0f;
-                maxShotsBeforeReload = 3;
-                this.additionalAttackTypes = new AttackType[]{};
-            }
-            case BURST_FIRE -> {
-                fireCooldown = 0.5f;
-                reloadTime = 3.0f;
-                maxShotsBeforeReload = 2;
-                this.additionalAttackTypes = new AttackType[]{AttackType.ARC_GRENADE};
-            }
-            case ARC_GRENADE -> {
-                fireCooldown = 2.5f; // Ini adalah cooldown utama untuk memulai pola granat
-                reloadTime = 3.0f;
-                maxShotsBeforeReload = 2; // Ini mungkin tidak relevan untuk pola yang lebih kompleks
-                this.additionalAttackTypes = new AttackType[]{AttackType.STRAIGHT_SHOOT};
-            }
+            case STRAIGHT_SHOOT, BURST_FIRE -> fireCooldown = 0.5f;
+            case ARC_GRENADE -> fireCooldown = 2.5f;
         }
         currentAttackPhaseIndex = 0;
         attackPhaseTimer = 0f;
@@ -203,12 +175,10 @@ public class BasicEnemy {
         }
     }
 
-    public void setChasePrepared(boolean b) {
-        this.isChasePrepared = b;
+    public void setChasePrepared() {
     }
 
-    public void setChaseDelayTimer(float t) {
-        this.chaseDelayTimer = t;
+    public void setChaseDelayTimer() {
     }
 
     public EnemyState getCurrentState() {
@@ -281,9 +251,9 @@ public class BasicEnemy {
                         shotsInPhase = 0;
                         attackPhaseTimer = 0f;
                     }
-                } else if (currentAttackPhaseIndex == 1) { // Fase 2: Straight Shoot
+                } else if (currentAttackPhaseIndex == 1) {
                     if (shotsInPhase < 3) {
-                        shootStraight(); // Panggil shootStraight di sini
+                        shootStraight();
                         shotsInPhase++;
                         attackPhaseTimer = 1.0f;
                     } else {
@@ -346,9 +316,8 @@ public class BasicEnemy {
     }
 
     private void shootStraight() {
-        // --- PERBAIKAN: Pastikan shootSound dimainkan di sini ---
         if (shootSound != null) {
-            shootSound.play(0.5f); // Volume 0.5f (opsional, sesuaikan)
+            shootSound.play(0.5f);
         }
         float cx = x + width / 2f;
         float cy = y + height / 1.75f;
@@ -367,13 +336,6 @@ public class BasicEnemy {
         bullets.add(bullet);
     }
 
-    private void burstFire() {
-        // This method is not called directly in performAttack anymore for BURST_FIRE
-        // The individual shoots are handled by shootStraight() in updateShoot() loop.
-        // So, the sound should primarily be in shootStraight().
-        // If you want a *different* sound for the *start* of a burst, you'd add it where enemyBurstIndex is set to 1.
-    }
-
     private void throwArcGrenade() {
         if (gameScreenRef == null) {
             System.err.println("BasicEnemy: GameScreen reference is null, cannot throw grenade.");
@@ -390,9 +352,6 @@ public class BasicEnemy {
         float startX = x + width / 2f;
         float startY = y + height * 0.75f;
 
-        float targetX = playerRef.x;
-        float targetY = playerRef.y;
-
         float angleRad;
         float power = 600f;
 
@@ -407,16 +366,6 @@ public class BasicEnemy {
         gameScreenRef.getGrenades().add(grenade);
 
         System.out.println("Enemy throwing arc grenade!");
-    }
-
-    private void dashTowardsPlayer() {
-        float dx = playerRef.x - x;
-        float dashSpeed = Constant.PLAYER_SPEED * 2.5f;
-        x += (dx < 0 ? -dashSpeed : dashSpeed) * FIXED_DELTA;
-    }
-
-    private void jumpSmash() {
-        System.out.println("Performing jump attack");
     }
 
     public void takeHit() {
@@ -487,10 +436,6 @@ public class BasicEnemy {
 
     public Array<Bullet> getBullets() {
         return bullets;
-    }
-
-    public boolean isMovingRight() {
-        return movingRight;
     }
 
     public float getX() {

@@ -1,5 +1,5 @@
-// ===== INSTANT BOMB EXPLOSION - NO COUNTDOWN =====
-// File: BombAsset.java
+
+
 package io.DutchSlayer.defend.entities.projectiles;
 
 import com.badlogic.gdx.graphics.Texture;
@@ -51,9 +51,9 @@ public class BombAsset {
         this.currentX = dropX;
         this.currentY = dropY;
 
-        // ⭐ FIXED SCALING: No animation scaling
+
         /* ===== VISUAL SCALING ===== */
-        // ⭐ FIXED: Constant scale untuk bomb
+
         float bombScale = 0.1f;
         this.scaledW = tex.getWidth() * bombScale;
         this.scaledH = tex.getHeight() * bombScale;
@@ -67,21 +67,18 @@ public class BombAsset {
         System.out.println("💣 Bomb created with INSTANT explosion on ground contact!");
     }
 
-    /**
-     * ⭐ SIMPLIFIED: Update dengan instant explosion
-     */
     public void update(float delta) {
-        // ===== EXPLOSION UPDATE =====
+
         if (isShowingExplosion) {
             updateExplosion(delta);
             return;
         }
 
         if (hasExploded) {
-            return; // Sudah selesai
+            return;
         }
 
-        // ===== PHYSICS UPDATE =====
+
         if (falling && !isLanded) {
             float gravity = -500f;
             velocityY += gravity * delta;
@@ -89,16 +86,14 @@ public class BombAsset {
 
             float actualY = baseY + offsetY;
             if (actualY <= GROUND_Y) {
-                // ⭐ INSTANT EXPLOSION saat menyentuh tanah
+
                 offsetY = GROUND_Y - baseY;
                 currentY = baseY + offsetY;
                 falling = false;
                 isLanded = true;
 
-                // ⭐ TRIGGER EXPLOSION IMMEDIATELY
                 triggerExplosion();
 
-                System.out.println("💣 Bomb hit ground and EXPLODED INSTANTLY!");
                 return;
             }
         }
@@ -107,84 +102,52 @@ public class BombAsset {
         updateVisuals();
     }
 
-    /**
-     * ⭐ NEW: Trigger explosion immediately
-     */
     private void triggerExplosion() {
         isShowingExplosion = true;
         explosionTimer = 0f;
         explosionScale = 1.0f;
 
-        // ⭐ PLAY EXPLOSION SOUND
         AudioManager.playTrapExplosionHit();
-
-        // ⭐ DAMAGE TOWERS IMMEDIATELY
         damageTowersInRadius();
-
-        System.out.println("💥 INSTANT EXPLOSION triggered!");
     }
 
-    /**
-     * ⭐ NEW: Damage towers dalam radius
-     */
+
     private void damageTowersInRadius() {
-        // This will be called from GameLogic when shouldExplode() returns true
-        // For now, just mark that explosion should happen
     }
 
-    /**
-     * ⭐ SIMPLIFIED: Update explosion visual
-     */
     private void updateExplosion(float delta) {
         explosionTimer += delta;
-
-        // ⭐ SIMPLE SCALING: Cepat membesar lalu mengecil
         float progress = explosionTimer / EXPLOSION_DISPLAY_TIME;
 
         if (progress <= 0.3f) {
-            // Phase 1: Rapid expansion
             float expandProgress = progress / 0.3f;
             explosionScale = 1.0f + expandProgress;
         } else if (progress <= 0.7f) {
-            // Phase 2: Hold at max
             explosionScale = EXPLOSION_MAX_SCALE;
         } else {
-            // Phase 3: Quick fade
             float fadeProgress = (progress - 0.7f) / 0.3f;
             explosionScale = EXPLOSION_MAX_SCALE * (1.0f - fadeProgress);
         }
 
-        // ⭐ EXPLOSION SELESAI
         if (explosionTimer >= EXPLOSION_DISPLAY_TIME) {
             hasExploded = true;
             isShowingExplosion = false;
-            System.out.println("💥 Explosion completed!");
         }
     }
 
     private void updateVisuals() {
-        // ⭐ FIXED: No scaling animation, constant size
         bounds.set(currentX - scaledW/2, currentY - scaledH/2, scaledW, scaledH);
     }
 
-    /**
-     * ⭐ INSTANT: Check apakah bomb siap meledak (immediately after landing)
-     */
     public boolean shouldExplode() {
         return isLanded && !hasExploded && !isShowingExplosion;
     }
 
-    /**
-     * ⭐ UPDATED: Ledakkan bomb (called by GameLogic)
-     */
+
     public void explode(Array<Tower> towers) {
         if (hasExploded || isShowingExplosion) return;
-
-        System.out.println("💣 BOMB EXPLODING - damaging towers in radius!");
-
         int hitCount = 0;
 
-        // Damage towers dalam radius
         for (Tower tower : towers) {
             if (tower.isDestroyed()) continue;
 
@@ -198,39 +161,29 @@ public class BombAsset {
                 int newHp = tower.getHealth();
                 hitCount++;
                 System.out.println("💥 Tower hit! HP: " + oldHp + " → " + newHp);
-
                 if (tower.isDestroyed()) {
                     System.out.println("🏗️ Tower destroyed by bomb!");
                 }
             }
         }
-
         System.out.println("💥 Bomb hit " + hitCount + " towers");
     }
 
-    /**
-     * ⭐ SIMPLIFIED: Render bomb atau explosion
-     */
     public void drawBatch(SpriteBatch batch) {
         if (tex == null) return;
 
-        // ===== EXPLOSION RENDERING =====
         if (isShowingExplosion) {
             drawExplosion(batch);
             return;
         }
 
-        // ===== NORMAL BOMB RENDERING =====
         if (hasExploded) return;
 
-        // ⭐ SIMPLE: No flashing, no scaling animation
         if (falling) {
-            // Flying effect
             float altitude = currentY - GROUND_Y;
             float alpha = 0.7f + (0.3f * Math.max(0, altitude / 100f));
             batch.setColor(1f, 1f, 1f, alpha);
         } else {
-            // Normal color (no flashing since it explodes instantly)
             batch.setColor(1f, 1f, 1f, 1f);
         }
 
@@ -238,39 +191,29 @@ public class BombAsset {
         batch.setColor(1f, 1f, 1f, 1f);
     }
 
-    /**
-     * ⭐ EXPLOSION RENDERING
-     */
     private void drawExplosion(SpriteBatch batch) {
         Texture explosionTex = getExplosionTexture();
 
         if (explosionTex != null) {
-            // ⭐ EXPLOSION COLOR PROGRESSION
             float progress = explosionTimer / EXPLOSION_DISPLAY_TIME;
-
             if (progress <= 0.2f) {
-                batch.setColor(1.3f, 1.3f, 1.3f, 1f); // Bright white flash
+                batch.setColor(1.3f, 1.3f, 1.3f, 1f);
             } else if (progress <= 0.5f) {
-                batch.setColor(1f, 0.8f, 0.3f, 1f); // Orange fire
+                batch.setColor(1f, 0.8f, 0.3f, 1f);
             } else {
                 float alpha = 1f - ((progress - 0.5f) / 0.5f) * 0.7f;
-                batch.setColor(1f, 0.4f, 0.1f, alpha); // Red fade
+                batch.setColor(1f, 0.4f, 0.1f, alpha);
             }
 
-            // ⭐ CALCULATE EXPLOSION SIZE
             float explosionW = scaledW * explosionScale;
             float explosionH = scaledH * explosionScale;
-
             batch.draw(explosionTex,
                 currentX - explosionW/2,
                 currentY - explosionH/2,
                 explosionW, explosionH);
-
         } else {
-            // ⭐ FALLBACK: Multi-layer bomb texture
             drawFallbackExplosion(batch);
         }
-
         batch.setColor(1f, 1f, 1f, 1f);
     }
 
@@ -278,26 +221,24 @@ public class BombAsset {
         if (ImageLoader.explosionTex != null) {
             return ImageLoader.explosionTex;
         }
-        return tex; // Fallback
+        return tex;
     }
 
     private void drawFallbackExplosion(SpriteBatch batch) {
         float progress = explosionTimer / EXPLOSION_DISPLAY_TIME;
 
-        // ⭐ MULTI-LAYER FALLBACK
         for (int i = 0; i < 3; i++) {
             float layerScale = explosionScale * (1f + i * 0.4f);
             float layerW = scaledW * layerScale;
             float layerH = scaledH * layerScale;
-
             switch(i) {
-                case 0: // Inner white core
+                case 0:
                     batch.setColor(1.2f, 1.2f, 1.2f, 0.9f);
                     break;
-                case 1: // Middle orange
+                case 1:
                     batch.setColor(1f, 0.7f, 0.2f, 0.7f);
                     break;
-                case 2: // Outer red
+                case 2:
                     float alpha = (1f - progress) * 0.5f;
                     batch.setColor(1f, 0.3f, 0.1f, alpha);
                     break;
@@ -318,14 +259,9 @@ public class BombAsset {
         return distance <= EXPLOSION_RADIUS;
     }
 
-    /* ===== GETTERS ===== */
     public float getX() { return currentX; }
     public float getY() { return currentY; }
     public boolean hasExploded() { return hasExploded; }
-    public boolean isLanded() { return isLanded; }
 
-    // ⭐ SIMPLIFIED: No timer since explosion is instant
-    public float getTimeLeft() { return falling ? 1f : 0f; }
-    public float getAltitude() { return Math.max(0, currentY - GROUND_Y); }
-    public boolean isFalling() { return falling; }
+
 }

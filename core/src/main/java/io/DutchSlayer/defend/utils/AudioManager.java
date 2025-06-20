@@ -6,23 +6,14 @@ import com.badlogic.gdx.audio.Sound;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * AudioManager optimized untuk handle semua sound effects dalam game
- * Menggunakan Map untuk mengurangi redundancy dan meningkatkan maintainability
- */
 public class AudioManager {
-
-    /* ===== SOUND IDENTIFIERS ===== */
     public enum SoundType {
-        // Deployment sounds
         BUILDING,
         TRAP,
 
-        // UI sounds
         BUTTON_CLICK,
         NAVBAR_SELECT,
 
-        // Combat sounds
         TOWER_SHOOT,
         AOE_SHOOT,
         SLOW_SHOOT,
@@ -30,14 +21,11 @@ public class AudioManager {
         BOSS_SHOOT,
         ENEMY_DEATH,
 
-        // Trap collision sounds
         TRAP_ATTACK,
         TRAP_SLOW,
         TRAP_EXPLOSION,
 
-        // Tower destruction sounds
         TOWER_BREAK
-
     }
 
     public enum MusicType {
@@ -48,25 +36,20 @@ public class AudioManager {
         DEFEAT
     }
 
-    /* ===== AUDIO STORAGE ===== */
     private static final Map<SoundType, Sound> sounds = new HashMap<>();
     private static final Map<MusicType, Music> musics = new HashMap<>();
 
-    /* ===== SOUND CONFIGURATIONS ===== */
     private static final Map<SoundType, String> soundPaths = new HashMap<>();
     private static final Map<MusicType, String> musicPaths = new HashMap<>();
     private static final Map<SoundType, Float> defaultVolumes = new HashMap<>();
 
-    /* ===== VOLUME SETTINGS ===== */
     private static float masterVolume = 0.8f;
     private static float sfxVolume = 0.8f;
     private static float musicVolume = 0.5f;
 
-    /* ===== MUSIC STATE ===== */
     private static Music currentMusic;
     private static boolean isInitialized = false;
 
-    /* ===== MUSIC TRANSITION SYSTEM ===== */
     private static boolean isFadingOut = false;
     private static boolean isFadingIn = false;
     private static float fadeTimer = 0f;
@@ -78,11 +61,7 @@ public class AudioManager {
         initializeConfigurations();
     }
 
-    /**
-     * Initialize semua konfigurasi audio paths dan volumes
-     */
     private static void initializeConfigurations() {
-        // Sound file paths
         soundPaths.put(SoundType.BUILDING, "assets/SFX/Building.mp3");
         soundPaths.put(SoundType.TRAP, "assets/SFX/trap.mp3");
         soundPaths.put(SoundType.BUTTON_CLICK, "assets/SFX/BtnClick.mp3");
@@ -97,16 +76,12 @@ public class AudioManager {
         soundPaths.put(SoundType.TRAP_SLOW, "assets/SFX/TrapSlow.mp3");
         soundPaths.put(SoundType.TRAP_EXPLOSION, "assets/SFX/TrapBomb.mp3");
         soundPaths.put(SoundType.TOWER_BREAK, "assets/SFX/TowerBreak.mp3");
-
-        // Music file paths
         musicPaths.put(MusicType.MAIN_MENU, "assets/Music/MainSound.mp3");
         musicPaths.put(MusicType.TOWER_DEFENSE, "assets/Music/Backsound.mp3");
         musicPaths.put(MusicType.BOSS_BATTLE, "assets/Music/BossMusic.mp3");
         musicPaths.put(MusicType.VICTORY, "assets/Music/VictoryMusic.mp3");
         musicPaths.put(MusicType.DEFEAT, "assets/Music/DefeatMusic.mp3");
 
-
-        // Default volume multipliers
         defaultVolumes.put(SoundType.BUILDING, 1.0f);
         defaultVolumes.put(SoundType.TRAP, 1.0f);
         defaultVolumes.put(SoundType.BUTTON_CLICK, 1.0f);
@@ -123,29 +98,23 @@ public class AudioManager {
         defaultVolumes.put(SoundType.TOWER_BREAK, 0.7f);
     }
 
-    /**
-     * Initialize AudioManager - load semua audio assets
-     */
     public static void initialize() {
         if (isInitialized) {
             return;
         }
 
         try {
-            // Load all sounds
             for (Map.Entry<SoundType, String> entry : soundPaths.entrySet()) {
                 Sound sound = loadSoundSafe(entry.getValue(), entry.getKey().name());
                 sounds.put(entry.getKey(), sound);
             }
 
-            // Load all musics
             for (Map.Entry<MusicType, String> entry : musicPaths.entrySet()) {
                 Music music = loadMusicSafe(entry.getValue(), entry.getKey().name());
                 musics.put(entry.getKey(), music);
             }
 
             isInitialized = true;
-
         } catch (Exception e) {
             System.err.println("❌ AudioManager: Critical error during initialization - " + e.getMessage());
             e.printStackTrace();
@@ -153,9 +122,6 @@ public class AudioManager {
         }
     }
 
-    /**
-     * Safe sound loading dengan error handling
-     */
     private static Sound loadSoundSafe(String filePath, String soundName) {
         try {
             Sound sound = Gdx.audio.newSound(Gdx.files.internal(filePath));
@@ -166,9 +132,6 @@ public class AudioManager {
         }
     }
 
-    /**
-     * Safe music loading dengan error handling
-     */
     private static Music loadMusicSafe(String filePath, String musicName) {
         try {
             Music music = Gdx.audio.newMusic(Gdx.files.internal(filePath));
@@ -180,23 +143,14 @@ public class AudioManager {
         }
     }
 
-    /* ===== GENERIC SOUND PLAYING METHODS ===== */
-
-    /**
-     * Play sound dengan default volume
-     */
     public static void playSound(SoundType soundType) {
         playSound(soundType, defaultVolumes.getOrDefault(soundType, 1.0f));
     }
 
-    /**
-     * Play sound dengan custom volume multiplier
-     */
     public static void playSound(SoundType soundType, float volumeMultiplier) {
         if (!isInitialized) {
             initialize();
         }
-
         Sound sound = sounds.get(soundType);
         if (sound != null) {
             try {
@@ -210,36 +164,22 @@ public class AudioManager {
         }
     }
 
-    /* ===== CONVENIENT WRAPPER METHODS ===== */
 
-    // Deployment sounds
     public static void playTowerDeploy() { playSound(SoundType.BUILDING); }
     public static void playTrapDeploy() { playSound(SoundType.TRAP); }
-
-    // UI sounds
     public static void PlayBtnSound() { playSound(SoundType.BUTTON_CLICK); }
-
     public static void PlayBtnPaper() { playSound(SoundType.NAVBAR_SELECT); }
-
     public static void playTowerShootWithVolume(float volume) { playSound(SoundType.TOWER_SHOOT, volume); }
-
     public static void playAOEShootWithVolume(float volume) { playSound(SoundType.AOE_SHOOT, volume); }
-
     public static void playSlowProjectileWithVolume(float volume) { playSound(SoundType.SLOW_SHOOT, volume); }
     public static void playEnemyShoot() { playSound(SoundType.ENEMY_SHOOT); }
-
     public static void playBossShoot() { playSound(SoundType.BOSS_SHOOT); }
-
     public static void playEnemyDeath() { playSound(SoundType.ENEMY_DEATH); }
-
-    // Trap collision sounds
     public static void playTrapAttackHit() { playSound(SoundType.TRAP_ATTACK); }
     public static void playTrapSlowHit() { playSound(SoundType.TRAP_SLOW); }
     public static void playTrapExplosionHit() { playSound(SoundType.TRAP_EXPLOSION); }
-
     public static void playTowerRemoval() { playSound(SoundType.TOWER_BREAK, 5.0f); }
 
-    // Enemy death dengan type check
     public static void playEnemyDeath(io.DutchSlayer.defend.entities.enemies.EnemyType enemyType) {
         if (enemyType == io.DutchSlayer.defend.entities.enemies.EnemyType.BOSS) {
             return;
@@ -247,25 +187,17 @@ public class AudioManager {
         playEnemyDeath();
     }
 
-    /* ===== MUSIC METHODS ===== */
-
-    /**
-     * Play music dengan smooth transition check
-     */
     public static void playMusic(MusicType musicType) {
         if (!isInitialized) {
             initialize();
         }
-
         Music music = musics.get(musicType);
         if (music != null) {
             try {
-                // Check jika musik yang diminta sama dengan yang sedang berjalan
                 if (currentMusic == music && currentMusic.isPlaying()) {
                     return;
                 }
 
-                // Stop current music if different
                 if (currentMusic != null && currentMusic.isPlaying() && currentMusic != music) {
                     currentMusic.stop();
                 }
@@ -283,7 +215,6 @@ public class AudioManager {
         }
     }
 
-    // Music convenience methods
     public static void playMainMenuMusic() { playMusic(MusicType.MAIN_MENU); }
     public static void playTowerDefenseMusic() { playMusic(MusicType.TOWER_DEFENSE); }
 
@@ -301,8 +232,6 @@ public class AudioManager {
         }
         currentMusic = null;
     }
-
-    /* ===== MUSIC TRANSITION METHODS ===== */
 
     public static void fadeOutCurrentMusic(float duration) {
         if (currentMusic != null && currentMusic.isPlaying()) {
@@ -378,8 +307,6 @@ public class AudioManager {
         }
     }
 
-    /* ===== VOLUME CONTROL METHODS ===== */
-
     public static void setMasterVolume(float volume) {
         masterVolume = Math.max(0.0f, Math.min(1.0f, volume));
     }
@@ -395,23 +322,17 @@ public class AudioManager {
         }
     }
 
-    // Volume getters
     public static float getMasterVolume() { return masterVolume; }
     public static float getSfxVolume() { return sfxVolume; }
     public static float getMusicVolume() { return musicVolume; }
-
     public static boolean isMusicPlaying() { return currentMusic != null && currentMusic.isPlaying(); }
-
-    /* ===== CLEANUP METHODS ===== */
 
     public static void shutdown() {
         if (!isInitialized) {
             return;
         }
 
-
         try {
-            // Dispose all sounds
             sounds.forEach((type, sound) -> {
                 if (sound != null) {
                     try {
@@ -423,7 +344,6 @@ public class AudioManager {
             });
             sounds.clear();
 
-            // Dispose all musics
             musics.forEach((type, music) -> {
                 if (music != null) {
                     try {
@@ -437,10 +357,8 @@ public class AudioManager {
                 }
             });
             musics.clear();
-
             currentMusic = null;
             isInitialized = false;
-
         } catch (Exception e) {
             System.err.println("❌ AudioManager: Error during shutdown - " + e.getMessage());
         }

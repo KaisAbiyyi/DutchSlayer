@@ -13,13 +13,9 @@ import io.DutchSlayer.defend.screens.TowerDefenseScreen;
 import io.DutchSlayer.defend.ui.ImageLoader;
 import io.DutchSlayer.defend.utils.AudioManager;
 
-/**
- * Contains all game logic and update methods
- */
 public class GameLogic {
     private final GameState gameState;
     private final UIManager uiManager;
-
     private boolean musicFadeStarted = false;
     private boolean bossMusicTriggered = false;
 
@@ -34,9 +30,7 @@ public class GameLogic {
             return;
         }
         gameState.updateButtonPressTimer(delta);
-
         AudioManager.updateMusicTransition(delta);
-
         updateCooldowns(delta);
         updateTraps(delta);
         updateEnemies(delta);
@@ -53,14 +47,12 @@ public class GameLogic {
             updateBossMusicTransition();
         }
 
-        // ⭐ DEBUG: Victory music validation (can be removed after testing)
         if (gameState.isGameWon) {
             validateVictoryMusic();
         }
     }
 
     private void updateCooldowns(float delta) {
-        // Update tower cooldowns
         for (int i = 0; i < 3; i++) {
             if (gameState.towerCooldownActive[i]) {
                 gameState.towerCooldowns[i] -= delta;
@@ -71,7 +63,6 @@ public class GameLogic {
             }
         }
 
-        // Update trap cooldowns
         for (int i = 0; i < 3; i++) {
             if (gameState.trapCooldownActive[i]) {
                 gameState.trapCooldowns[i] -= delta;
@@ -94,7 +85,6 @@ public class GameLogic {
             Enemy e = gameState.enemies.get(i);
             e.update(delta);
 
-            // Check collision with towers
             for (int j = gameState.towers.size - 1; j >= 0; j--) {
                 Tower t = gameState.towers.get(j);
                 if (e.getBounds().overlaps(t.getBounds())) {
@@ -103,13 +93,11 @@ public class GameLogic {
                 }
             }
 
-            // Remove enemies that went off-screen
             if (i < gameState.enemies.size && e.getX() < -e.getWidth()/2) {
                 gameState.enemies.removeIndex(i);
             }
         }
 
-        // Shield protection mechanism
         for (int i = 0; i < gameState.enemies.size; i++) {
             Enemy e = gameState.enemies.get(i);
             if (e.getType() == EnemyType.BASIC) {
@@ -120,10 +108,8 @@ public class GameLogic {
 
     private void handleEnemyTowerCollision(Enemy e, Tower t, int enemyIndex, int towerIndex) {
         if (e.getType() == EnemyType.BOMBER) {
-            // Bomber drops bomb
             float dropX = e.getX();
             float dropY = e.getBounds().y + e.getBounds().height/2;
-
             BombAsset bomb = new BombAsset(
                 ImageLoader.bombAssetTex != null ? ImageLoader.bombAssetTex : ImageLoader.trapTex,
                 dropX, dropY
@@ -237,11 +223,8 @@ public class GameLogic {
         }
     }
 
-    /**
-     * Handle bomb explosion dengan proper zone reset
-     */
     private void handleBombExplosion(BombAsset bomb) {
-        // Get towers yang akan di-explode sebelum bomb.explode() dipanggil
+
         Array<Integer> towersToDestroy = new Array<>();
 
         for (int j = gameState.towers.size - 1; j >= 0; j--) {
@@ -251,10 +234,8 @@ public class GameLogic {
             }
         }
 
-        // Explode bomb (ini akan damage towers)
         bomb.explode(gameState.towers);
 
-        // Check dan reset zones untuk towers yang hancur
         for (int j = towersToDestroy.size - 1; j >= 0; j--) {
             int towerIndex = towersToDestroy.get(j);
             if (towerIndex < gameState.towers.size) {
@@ -309,24 +290,24 @@ public class GameLogic {
 
             boolean shouldRemove = false;
 
-            // ===== SPECIAL HANDLING UNTUK AOE PROJECTILE =====
+
             if (p instanceof AoeProjectile aoeProj) {
 
-                // Check jika AOE sudah exploded
+
                 if (aoeProj.hasExploded()) {
-                    // Trigger AOE damage manual
+
                     aoeProj.triggerAOEDamage(gameState.enemies);
                     shouldRemove = true;
                     System.out.println("🎯 AOE Projectile exploded and triggered damage");
                 }
-                // Check jika AOE keluar bounds
+
                 else if (aoeProj.getX() > 1280 + aoeProj.getBounds().width/2 ||
                     aoeProj.getX() < -aoeProj.getBounds().width/2) {
                     shouldRemove = true;
                     System.out.println("AOE Projectile removed - out of bounds");
                 }
             }
-            // ===== STANDARD PROJECTILE COLLISION =====
+
             else {
                 boolean hit = false;
                 for (int j = gameState.enemies.size - 1; j >= 0; j--) {
@@ -338,13 +319,11 @@ public class GameLogic {
                     }
                 }
 
-                // Remove jika hit atau keluar bounds
                 if (hit || p.getX() > 1280 + p.getBounds().width/2) {
                     shouldRemove = true;
                 }
             }
 
-            // Remove projectile dari array
             if (shouldRemove) {
                 gameState.projectiles.removeIndex(i);
             }
@@ -360,7 +339,7 @@ public class GameLogic {
 
                     gameState.clearBossReference();
 
-                    // Reset boss music flags for potential future waves
+
                     bossMusicTriggered = false;
                     musicFadeStarted = false;
                 } else {
@@ -393,7 +372,6 @@ public class GameLogic {
             }
         }
 
-        // Wave completion check
         if (gameState.spawnCount >= gameState.enemiesThisWave && gameState.enemies.size == 0) {
             if (!gameState.isWaveTransition && !gameState.waveCompleteBonusGiven) {
                 int waveBonus = 50 + (gameState.currentWave * 10);
@@ -442,7 +420,7 @@ public class GameLogic {
         gameState.enemies.add(newEnemy);
 
         if (enemyType == EnemyType.BOSS) {
-            gameState.currentBoss = newEnemy; // Set boss reference immediately
+            gameState.currentBoss = newEnemy;
         }
     }
 
@@ -495,19 +473,13 @@ public class GameLogic {
         }
     }
 
-    /**
-     * Handle music transition untuk Stage 4 Boss
-     */
     private void updateBossMusicTransition() {
-        // Hanya untuk Stage 4
-
         if (gameState.isGameWon || gameState.isGameOver) {
-            return; // Prevent boss music interference dengan victory/defeat music
+            return;
         }
 
         if (gameState.currentStage != 4) return;
 
-        // ===== TRIGGER 1: Wave 2 Complete -> Start Fade Out =====
         Enemy currentBoss = null;
         for (Enemy enemy : gameState.enemies) {
             if (enemy.getType() == EnemyType.BOSS && !enemy.isDestroyed()) {
@@ -517,8 +489,6 @@ public class GameLogic {
             }
         }
 
-        // ===== TRIGGER 2: Boss Detection and Position Monitoring =====
-        // ===== STEP 2: Jika ada boss, mulai music transition =====
         if (currentBoss != null) {
             if (!musicFadeStarted && currentBoss.getX() <= 1200f) {
                 AudioManager.fadeOutCurrentMusic(2f);
@@ -538,10 +508,6 @@ public class GameLogic {
         }
     }
 
-    /**
-     * Reset zone ketika tower hancur
-     * param destroyedTower Objek Tower yang baru saja hancur
-     */
     private void resetTowerZone(Tower destroyedTower) {
         if (destroyedTower.isMain) {
             return;
@@ -561,9 +527,6 @@ public class GameLogic {
         gameState.clearBossReference();
     }
 
-    /**
-     * Method untuk validate victory music
-     */
     private void validateVictoryMusic() {
         if (gameState.isGameWon) {
             if (!AudioManager.isMusicPlaying()) {

@@ -10,26 +10,22 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-// import com.badlogic.gdx.scenes.scene2d.ui.Skin; // Not used, can be removed
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import io.DutchSlayer.Main;
-import io.DutchSlayer.defend.utils.AudioManager;
-import io.DutchSlayer.screens.MainMenuScreen;
-import io.DutchSlayer.defend.screens.TowerDefenseScreen;
 import io.DutchSlayer.attack.screens.GameScreen;
-import io.DutchSlayer.screens.SettingScreen; // Pastikan ini diimpor
+import io.DutchSlayer.defend.screens.TowerDefenseScreen;
+import io.DutchSlayer.defend.utils.AudioManager;
 
 public class PauseMenu {
     private final Stage stage;
     private final Main game;
     private boolean paused = false;
-    private TowerDefenseScreen towerDefenseScreenRef; // NEW: Tambahkan referensi ke TowerDefenseScreen
-    private GameScreen gameScreenRef; // NEW: Pertahankan referensi ke GameScreen
-
+    private TowerDefenseScreen towerDefenseScreenRef;
+    private GameScreen gameScreenRef;
 
     private static final int BUTTON_WIDTH = 280;
     private static final int BUTTON_HEIGHT = 80;
@@ -38,33 +34,25 @@ public class PauseMenu {
     private static final int INNER_BORDER = 3;
     private static final float FONT_SCALE = 1.8f;
 
-    // KONSOLIDASI KONSTRUKTOR UNTUK MENDUKUNG SEMUA JENIS SCREEN
-    public PauseMenu(Main game, Viewport viewport, BitmapFont font) {
-        this(game, viewport, font, null, null); // Panggil konstruktor utama dengan null
-    }
-
     public PauseMenu(Main game, Viewport viewport, BitmapFont font, TowerDefenseScreen tdScreen) {
-        this(game, viewport, font, tdScreen, null); // Panggil konstruktor utama
+        this(game, viewport, font, tdScreen, null);
     }
 
     public PauseMenu(Main game, Viewport viewport, BitmapFont font, GameScreen gameScreen) {
-        this(game, viewport, font, null, gameScreen); // Panggil konstruktor utama
+        this(game, viewport, font, null, gameScreen);
     }
 
-    // KONSTRUKTOR UTAMA
-    public PauseMenu(Main game, Viewport viewport, BitmapFont font, TowerDefenseScreen tdScreen, GameScreen gameScreen) { //
+    public PauseMenu(Main game, Viewport viewport, BitmapFont font, TowerDefenseScreen tdScreen, GameScreen gameScreen) {
         this.game = game;
-        this.towerDefenseScreenRef = tdScreen; //
-        this.gameScreenRef = gameScreen; //
+        this.towerDefenseScreenRef = tdScreen;
+        this.gameScreenRef = gameScreen;
         this.stage = new Stage(viewport);
 
-        // Background image
         Texture bgTexture = new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
         Image bgImage = new Image(bgTexture);
         bgImage.setSize(viewport.getWorldWidth(), viewport.getWorldHeight());
         stage.addActor(bgImage);
 
-        // Overlay background
         Image bgOverlay = new Image(new Texture(Gdx.files.internal("white.png")));
         bgOverlay.setColor(0, 0, 0, 0.6f);
         bgOverlay.setSize(viewport.getWorldWidth(), viewport.getWorldHeight());
@@ -81,27 +69,25 @@ public class PauseMenu {
         resumeButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                setPaused(false); // Ini menyembunyikan PauseMenu dan mengembalikan input processor
+                setPaused(false);
 
-                // PENTING: Set isPaused di GameState TowerDefenseScreen menjadi false
-                // dan kembalikan InputProcessor yang benar.
                 Screen currentScreen = game.getScreen();
-                if (currentScreen instanceof TowerDefenseScreen) { //
-                    TowerDefenseScreen tdScreen = (TowerDefenseScreen) currentScreen; //
-                    tdScreen.gameState.isPaused = false; //
-                    Gdx.input.setInputProcessor(tdScreen.getInputHandler()); // KEMBALIKAN INPUT HANDLER
-                    if (!tdScreen.gameState.isBossIntroduction && !tdScreen.gameState.isPaused) { //
-                        AudioManager.playTowerDefenseMusic(); //
+                if (currentScreen instanceof TowerDefenseScreen) {
+                    TowerDefenseScreen tdScreen = (TowerDefenseScreen) currentScreen;
+                    tdScreen.gameState.isPaused = false;
+                    Gdx.input.setInputProcessor(tdScreen.getInputHandler());
+                    if (!tdScreen.gameState.isBossIntroduction && !tdScreen.gameState.isPaused) {
+                        AudioManager.playTowerDefenseMusic();
                     }
-                } else if (currentScreen instanceof GameScreen) { //
-                    GameScreen gs = (GameScreen) currentScreen; //
-                    gs.setPaused(false); // Ini akan mengatur input processor ke null di GameScreen.setPaused()
-                    // Musik akan ditangani di GameScreen.setPaused() atau di show() jika kembali dari SettingScreen
-                    if (gs.getTankBoss() != null && gs.getTankBoss().isAlive()) { //
-                        gs.switchToBossMusic(); //
-                    } else { //
-                        if (!gs.getBackgroundMusic().isPlaying()) { //
-                            gs.getBackgroundMusic().play(); //
+                } else if (currentScreen instanceof GameScreen) {
+                    GameScreen gs = (GameScreen) currentScreen;
+                    gs.setPaused(false);
+
+                    if (gs.getTankBoss() != null && gs.getTankBoss().isAlive()) {
+                        gs.switchToBossMusic();
+                    } else {
+                        if (!gs.getBackgroundMusic().isPlaying()) {
+                            gs.getBackgroundMusic().play();
                         }
                     }
                 }
@@ -159,10 +145,8 @@ public class PauseMenu {
         this.paused = paused;
         if (paused) {
             updateViewport();
-            Gdx.input.setInputProcessor(stage); //
+            Gdx.input.setInputProcessor(stage);
         }
-        // JANGAN TAMBAHKAN else { Gdx.input.setInputProcessor(null); } di sini.
-        // Penanganan pengembalian InputProcessor dilakukan di listener tombol RESUME.
     }
 
     private TextButton createStyledButton(String text, BitmapFont font) {

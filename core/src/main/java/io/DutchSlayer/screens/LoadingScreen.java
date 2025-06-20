@@ -4,8 +4,8 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.BitmapFont; // Import BitmapFont
-import com.badlogic.gdx.graphics.Color; // Import Color
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
@@ -18,7 +18,6 @@ import io.DutchSlayer.defend.screens.TowerDefenseScreen;
 import io.DutchSlayer.utils.Constant;
 
 public class LoadingScreen implements Screen {
-
     private final Main game;
     private final int stageNumber;
     private final boolean isDefendMode;
@@ -27,7 +26,6 @@ public class LoadingScreen implements Screen {
     private Skin skin;
     private Label loadingLabel;
     private Texture backgroundTexture;
-
     private boolean gameScreenInitialized = false;
 
     public LoadingScreen(Main game, int stageNumber, boolean isDefendMode) {
@@ -45,33 +43,23 @@ public class LoadingScreen implements Screen {
         skin = new Skin(Gdx.files.internal("uiskin/uiskin.json"));
         backgroundTexture = new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
 
-        // Mengambil font default dari skin untuk diubah warnanya
         BitmapFont defaultFont = skin.getFont("default-font");
         if (defaultFont == null) {
             Gdx.app.error("LoadingScreen", "Default font not found in uiskin.json. Using fallback.");
-            defaultFont = new BitmapFont(); // Fallback if not found
+            defaultFont = new BitmapFont();
         }
-        // Pastikan font difilter untuk kualitas yang lebih baik saat diskalakan
+
         defaultFont.getRegion().getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
-
-
-        // Definisikan warna coklat gelap yang konsisten dengan tema tombol Anda
-        Color darkBrown = new Color(0.25f, 0.15f, 0.05f, 1.0f); // Warna yang sama dengan textColor di PauseMenu/SettingScreen
-
-        // Buat LabelStyle baru dengan font dan warna yang diinginkan
+        Color darkBrown = new Color(0.25f, 0.15f, 0.05f, 1.0f);
         Label.LabelStyle loadingLabelStyle = new Label.LabelStyle(defaultFont, darkBrown);
 
-        // Ubah teks menjadi uppercase dan terapkan gaya baru
-        loadingLabel = new Label("LOADING...", loadingLabelStyle); // Teks UPPERCASE
-        loadingLabel.setFontScale(3.0f); // Perbesar ukuran font (sesuaikan sesuai kebutuhan Anda)
-
-        // Kembalikan posisi ke tengah layar
+        loadingLabel = new Label("LOADING...", loadingLabelStyle);
+        loadingLabel.setFontScale(3.0f);
         loadingLabel.setPosition(
-            (Constant.SCREEN_WIDTH - loadingLabel.getWidth()) / 2, // Tengah horizontal
-            (Constant.SCREEN_HEIGHT - loadingLabel.getHeight()) / 2 // Tengah vertikal
+            (Constant.SCREEN_WIDTH - loadingLabel.getWidth()) / 2 -75f,
+            (Constant.SCREEN_HEIGHT - loadingLabel.getHeight()) / 2
         );
         stage.addActor(loadingLabel);
-
         gameScreenInitialized = false;
     }
 

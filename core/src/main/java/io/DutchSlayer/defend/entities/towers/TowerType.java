@@ -2,7 +2,7 @@ package io.DutchSlayer.defend.entities.towers;
 
 public enum TowerType {
     BASIC,
-    AOE,   // area‐of‐effect damage
-    FAST,  // very high fire rate
-    SLOW   // apply slow effect instead of direct damage
+    AOE,
+    FAST,
+    SLOW
 }

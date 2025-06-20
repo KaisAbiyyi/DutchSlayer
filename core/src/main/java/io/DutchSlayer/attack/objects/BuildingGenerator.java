@@ -2,7 +2,6 @@ package io.DutchSlayer.attack.objects;
 
 import com.badlogic.gdx.math.RandomXS128;
 import com.badlogic.gdx.utils.Array;
-import io.DutchSlayer.utils.Constant;
 
 import java.util.Arrays;
 import java.util.List;
@@ -29,7 +28,6 @@ public class BuildingGenerator {
         Array<Building> buildings = new Array<>();
         RandomXS128 rng = new RandomXS128(stageNumber);
 
-        // Layout dasar tetap (tapi jumlah repeat lebih rasional)
         List<BlockDefinition> layout = Arrays.asList(
             new BlockDefinition(BuildingType.ADMIN_OFFICE, 1, 1, false, false),
             new BlockDefinition(BuildingType.FORT, 1, 1, false, false),
@@ -40,7 +38,7 @@ public class BuildingGenerator {
             new BlockDefinition(BuildingType.BARRACKS, 1, 1, true, false)
         );
 
-        int zoneCount = Math.min(5, 2 + stageNumber / 2); // disederhanakan jadi maksimal 5 zona
+        int zoneCount = Math.min(5, 2 + stageNumber / 2);
         float zoneWidth = mapWidth / zoneCount;
 
         for (int z = 0; z < zoneCount; z++) {
@@ -58,13 +56,13 @@ public class BuildingGenerator {
                     buildings.add(new Building(currentX + xOffset, block.type));
 
                     float spacing = block.prefersCluster
-                        ? 50f + rng.nextFloat() * 20f    // antar barracks, plantation
-                        : 100f + rng.nextFloat() * 40f;  // antar warehouse, fort, office
+                        ? 50f + rng.nextFloat() * 20f
+                        : 100f + rng.nextFloat() * 40f;
 
                     currentX += block.type.width + spacing;
                 }
 
-                // Spacing antar tipe bangunan berbeda
+
                 currentX += 120f + rng.nextFloat() * 40f;
             }
         }

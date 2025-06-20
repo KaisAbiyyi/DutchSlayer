@@ -11,18 +11,14 @@ import io.DutchSlayer.attack.player.weapon.AssaultRifle;
 import io.DutchSlayer.attack.player.weapon.Weapon;
 import io.DutchSlayer.utils.Constant;
 
-/**
- * Representasi item yang bisa diambil oleh Player.
- * Bisa berupa senjata baru atau tambahan amunisi granat.
- */
+
 public class PickupItem {
 
     private final float x, y;
     private final float width = 50f;
     private final float height = 50f;
-    private float velocityY = 150f; // ke atas dulu
-    private float gravity = -500f;  // gravitasi turun
-    private float offsetY = 0f;     // offset Y dari posisi dasar
+    private float velocityY = 150f;
+    private float offsetY = 0f;
     private boolean falling = true;
     private final float groundY;
 
@@ -39,6 +35,7 @@ public class PickupItem {
 
     public void update(Player player, float delta) {
         if (!collected && falling) {
+            float gravity = -500f;
             velocityY += gravity * delta;
             offsetY += velocityY * delta;
 
@@ -61,7 +58,7 @@ public class PickupItem {
 
     private boolean overlaps(Player player) {
         Rectangle playerRect = new Rectangle(player.getX(), player.getY(), player.getWidth(), player.getHeight());
-        Rectangle itemRect = new Rectangle(x, y + offsetY, width, height); // ✅ gunakan posisi aktual saat jatuh
+        Rectangle itemRect = new Rectangle(x, y + offsetY, width, height);
         return playerRect.overlaps(itemRect);
     }
 
@@ -97,13 +94,10 @@ public class PickupItem {
         float drawX = x;
         float drawY = y + offsetY;
         float borderSize = 2f;
-        float radius = 6f;
 
-        // Border hitam
         sr.setColor(Color.BLACK);
         sr.rect(drawX - borderSize, drawY - borderSize, width + borderSize * 2, height + borderSize * 2);
 
-        // Isi kotak
         sr.setColor(getColor());
         sr.rect(drawX, drawY, width, height);
     }
@@ -119,25 +113,21 @@ public class PickupItem {
             case GRENADE -> "G";
         };
 
-        // Hitung lebar & tinggi teks aktual
         layout.setText(font, label);
         float textWidth = layout.width;
         float textHeight = layout.height;
 
-        // Pusatkan di dalam kotak
         float centerX = x + width / 2f;
         float centerY = y + offsetY + height / 2f;
 
         float textX = centerX - textWidth / 2f;
         float textY = centerY + textHeight / 2f;
 
-        // Efek bold dengan menggambar 4 arah
         font.draw(batch, label, textX - 1, textY); // kiri
         font.draw(batch, label, textX + 1, textY); // kanan
         font.draw(batch, label, textX, textY - 1); // bawah
         font.draw(batch, label, textX, textY + 1); // atas
 
-        // Gambar utama (di tengah)
         font.setColor(Color.BLACK);
         font.draw(batch, label, textX, textY);
     }
@@ -150,7 +140,4 @@ public class PickupItem {
         };
     }
 
-    public boolean isCollected() {
-        return collected;
-    }
 }

@@ -18,9 +18,6 @@ import io.DutchSlayer.defend.screens.TowerDefenseScreen;
 import io.DutchSlayer.defend.ui.ImageLoader;
 import io.DutchSlayer.defend.utils.AudioManager;
 
-/**
- * Handles all input processing for the tower defense game
- */
 public class InputHandler extends InputAdapter {
     private final TowerDefenseScreen screen;
     private final GameState gameState;
@@ -56,17 +53,17 @@ public class InputHandler extends InputAdapter {
         camera.unproject(v);
         float x = v.x, y = v.y;
 
-        // Win screen handling
+
         if (gameState.isGameWon && !gameState.isPaused) {
             return handleWinScreen(x, y);
         }
 
-        // Lose screen handling
+
         if (gameState.isGameOver && !gameState.isGameWon && !gameState.isPaused) {
             return handleLoseScreen(x, y);
         }
 
-        // Pause handling
+
         if (!gameState.isPaused) {
             if (uiManager.btnPause.contains(x, y)) {
                 gameState.isPaused = true;
@@ -79,19 +76,17 @@ public class InputHandler extends InputAdapter {
 
         if (gameState.isPaused) return true;
 
-        // Tower upgrade panel handling
+
         if (gameState.selectedTowerUI != null) {
             if (handleTowerUpgrade(x, y)) {
                 return true;
             }
         }
 
-        // Remove mode handling
         if (gameState.selectedType == TowerDefenseScreen.NavItem.REMOVE) {
             return handleRemoveMode(x, y);
         }
 
-        // Tower selection for UI
         for (Tower t : gameState.towers) {
             if (t.getBounds().contains(x, y)) {
                 if (t.isMain) {
@@ -106,12 +101,10 @@ public class InputHandler extends InputAdapter {
 
         gameState.selectedTowerUI = null;
 
-        // Navbar selection
         if (y > camera.viewportHeight - GameConstants.NAVBAR_HEIGHT) {
             return handleNavbarSelection(x, y);
         }
 
-        // Deployment handling
         if (gameState.selectedType != null) {
             return handleDeployment(x, y);
         }
@@ -142,7 +135,6 @@ public class InputHandler extends InputAdapter {
             return true;
         }
 
-        // HANDLE NEXT STAGE BUTTON (STAGE 1-3)
         if (uiManager.btnNext != null && uiManager.btnNext.contains(x, y)) {
             AudioManager.PlayBtnPaper();
             gameState.pressButton("next");
@@ -266,7 +258,7 @@ public class InputHandler extends InputAdapter {
     }
 
     private boolean handleRemoveMode(float x, float y) {
-        // Remove tower
+
         for (int i = gameState.towers.size - 1; i >= 0; i--) {
             Tower t = gameState.towers.get(i);
             if (t.getBounds().contains(x, y)) {
@@ -284,7 +276,7 @@ public class InputHandler extends InputAdapter {
                 };
                 gameState.gold += refund;
 
-                // Remove dari deployed zones juga
+
                 TowerDefenseScreen.Zone zoneToReset = t.getOccupiedZone();
                 if (zoneToReset != null) {
                     zoneToReset.occupied = false;
@@ -296,7 +288,7 @@ public class InputHandler extends InputAdapter {
             }
         }
 
-        // Remove trap
+
         for (int i = gameState.trapZones.size - 1; i >= 0; i--) {
             Trap tz = gameState.trapZones.get(i);
             if (Intersector.isPointInPolygon(gameState.trapVerts.get(i), 0, gameState.trapVerts.get(i).length, x, y)
@@ -325,7 +317,6 @@ public class InputHandler extends InputAdapter {
             return true;
         }
 
-        // Tower selection
         for (int i = 0; i < GameConstants.NAV_TOWERS.length; i++) {
             if (x >= uiManager.navTowerX[i] && x <= uiManager.navTowerX[i] + uiManager.navTowerW[i]) {
                 gameState.selectedType = TowerDefenseScreen.NavItem.values()[i];
@@ -334,7 +325,6 @@ public class InputHandler extends InputAdapter {
             }
         }
 
-        // Trap selection
         for (int i = 0; i < GameConstants.NAV_TRAPS.length; i++) {
             if (x >= uiManager.navTrapX[i] && x <= uiManager.navTrapX[i] + uiManager.navTrapW[i]) {
                 gameState.selectedType = TowerDefenseScreen.NavItem.values()[GameConstants.NAV_TOWERS.length + i];
@@ -342,7 +332,6 @@ public class InputHandler extends InputAdapter {
                 return true;
             }
         }
-
         return false;
     }
 
@@ -457,7 +446,7 @@ public class InputHandler extends InputAdapter {
     }
 
     private float getProperTowerY(TowerType type) {
-        float baseY = GameConstants.GROUND_Y + 15f;  // 15px di atas ground
+        float baseY = GameConstants.GROUND_Y + 15f;
         return switch (type) {
             case AOE -> baseY + 15f;
             case FAST -> baseY + 5f;

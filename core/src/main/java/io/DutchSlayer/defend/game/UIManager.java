@@ -10,22 +10,17 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import io.DutchSlayer.defend.ui.ImageLoader;
 
-/**
- * Manages all UI elements and rendering
- */
 public class UIManager {
     private final OrthographicCamera camera;
     private final BitmapFont font;
     private final GlyphLayout layout;
 
-    // Button bounds
     public Rectangle btnPause, btnRemove;
     public Rectangle btnNext, btnMenuWin;
     public Rectangle btnRetryLose, btnMenuLose;
     public Rectangle pausePanel, btnResume, btnSetting, btnMenuPause;
     public Rectangle btnMode;
 
-    // Navbar positions
     public final float[] navTowerX = new float[3];
     public final float[] navTowerW = new float[3];
     public final float[] navTrapX = new float[3];
@@ -35,7 +30,6 @@ public class UIManager {
         this.camera = camera;
         this.font = font;
         this.layout = layout;
-
         calculateNavButtonPositions();
         setupStaticButtons();
     }
@@ -62,13 +56,11 @@ public class UIManager {
         float vw = camera.viewportWidth;
         float yNav = camera.viewportHeight - GameConstants.NAVBAR_HEIGHT / 2 + 10f;
 
-        // Pause button
         float pauseSize = 60f;
         float pauseX = vw - 20f - pauseSize;
         float pauseY = yNav - pauseSize / 2 - 8f;
         btnPause = new Rectangle(pauseX, pauseY, pauseSize, pauseSize);
 
-        // Remove button
         float removeSize = 60f;
         float removeX = pauseX - 20f - removeSize;
         float removeY = yNav - removeSize / 2 - 8f;
@@ -79,25 +71,21 @@ public class UIManager {
         float centerX = camera.viewportWidth / 2f;
         float centerY = camera.viewportHeight / 2f;
 
-        float buttonWidth = 203f;   // Sesuaikan dengan proporsi texture
-        float buttonHeight = 132f;   // Sesuaikan dengan proporsi texture
-        float buttonSpacing = 150f;  // Jarak antar button
+        float buttonWidth = 203f;
+        float buttonHeight = 132f;
+        float buttonSpacing = 150f;
 
-        float buttonY = centerY - GameConstants.UI_HEIGHT / 2f + 60f; // Posisi vertikal
-
-        // Posisi horizontal
+        float buttonY = centerY - GameConstants.UI_HEIGHT / 2f + 60f;
         float leftButtonX = centerX - buttonWidth - buttonSpacing / 2f;
         float rightButtonX = centerX + buttonSpacing / 2f;
 
         btnMenuWin = new Rectangle(leftButtonX, buttonY, buttonWidth, buttonHeight);
         if (currentStage == GameConstants.FINAL_STAGE) {
-            // ===== STAGE 4 (FINAL): Mode Selection Button =====
             btnMode = new Rectangle(rightButtonX, buttonY, buttonWidth, buttonHeight);
             btnNext = null;
         } else {
-            // ===== STAGE 1-3: Next Stage Button =====
             btnNext = new Rectangle(rightButtonX, buttonY, buttonWidth, buttonHeight);
-            btnMode = null; // Clear mode button
+            btnMode = null;
         }
     }
 
@@ -189,7 +177,6 @@ public class UIManager {
             boolean canAfford = gameState.gold >= towerCosts[i];
             boolean isSelected = gameState.selectedType != null && gameState.selectedType.ordinal() == i;
 
-            // Button color logic
             if (isOnCooldown) {
                 batch.setColor(0.7f, 0.7f, 0.7f, 0.9f);
             } else if (isSelected) {
@@ -200,7 +187,6 @@ public class UIManager {
                 batch.setColor(Color.WHITE);
             }
 
-            // Draw button image
             if (towerTextures[i] != null) {
                 batch.draw(towerTextures[i], x, buttonY, buttonSize, buttonSize);
             } else {
@@ -213,7 +199,6 @@ public class UIManager {
                 batch.begin();
             }
 
-            // Cooldown overlay
             if (isOnCooldown) {
                 float cooldownProgress = 1f - (gameState.towerCooldowns[i] / GameConstants.TOWER_MAX_COOLDOWNS[i]);
                 float overlayHeight = buttonSize * (1f - cooldownProgress);
@@ -228,14 +213,13 @@ public class UIManager {
             }
         }
 
-        // Draw trap buttons
+
         for (int i = 0; i < 3; i++) {
             float x = navTrapX[i];
             boolean isOnCooldown = gameState.trapCooldownActive[i];
             boolean canAfford = gameState.gold >= trapCosts[i];
             boolean isSelected = gameState.selectedType != null && gameState.selectedType.ordinal() == (3 + i);
 
-            // Button color logic
             if (isOnCooldown) {
                 batch.setColor(0.5f, 0.5f, 0.5f, 0.7f);
             } else if (isSelected) {
@@ -246,7 +230,6 @@ public class UIManager {
                 batch.setColor(Color.WHITE);
             }
 
-            // Draw button image
             if (trapTextures[i] != null) {
                 batch.draw(trapTextures[i], x, buttonY, buttonSize, buttonSize);
             } else {
@@ -259,7 +242,6 @@ public class UIManager {
                 batch.begin();
             }
 
-            // Cooldown overlay for traps
             if (isOnCooldown) {
                 float cooldownProgress = 1f - (gameState.trapCooldowns[i] / GameConstants.TRAP_MAX_COOLDOWNS[i]);
                 float overlayHeight = buttonSize * (1f - cooldownProgress);
@@ -273,7 +255,6 @@ public class UIManager {
                 batch.begin();
             }
         }
-
         batch.setColor(Color.WHITE);
         font.setColor(Color.WHITE);
     }
@@ -289,36 +270,30 @@ public class UIManager {
         int enemiesKilled = gameState.spawnCount - gameState.enemies.size;
         float killProgress = (float) enemiesKilled / (float) gameState.enemiesThisWave;
 
-        // Background bar
         shapes.setProjectionMatrix(camera.combined);
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         shapes.setColor(0.3f, 0.3f, 0.3f, 0.8f);
         shapes.rect(barX, barY, barWidth, barHeight);
         shapes.end();
 
-        // Spawn progress (Blue)
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         shapes.setColor(0.2f, 0.6f, 1f, 0.8f);
         shapes.rect(barX, barY, barWidth * spawnProgress, barHeight);
         shapes.end();
 
-        // Kill progress (Green)
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         shapes.setColor(0.2f, 1f, 0.2f, 0.8f);
         shapes.rect(barX, barY, barWidth * killProgress, barHeight);
         shapes.end();
 
-        // Border
         shapes.begin(ShapeRenderer.ShapeType.Line);
         shapes.setColor(Color.WHITE);
         shapes.rect(barX, barY, barWidth, barHeight);
         shapes.end();
 
-        // Text labels
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
 
-        // Wave title
         String waveTitle = "Wave " + gameState.currentWave + " / " + GameConstants.MAX_WAVE;
         layout.setText(font, waveTitle);
         float titleX = barX;
@@ -326,7 +301,6 @@ public class UIManager {
         font.setColor(Color.WHITE);
         font.draw(batch, waveTitle, titleX, titleY);
 
-        // Progress text
         String progressText = enemiesKilled + "/" + gameState.enemiesThisWave;
         layout.setText(font, progressText);
         float progressX = barX + (barWidth - layout.width) / 2f;
@@ -334,7 +308,6 @@ public class UIManager {
         font.setColor(Color.WHITE);
         font.draw(batch, progressText, progressX, progressY);
 
-        // Next wave indicator
         if (gameState.spawnCount >= gameState.enemiesThisWave && gameState.enemies.size == 0 && gameState.currentWave < GameConstants.MAX_WAVE) {
             String nextWaveText = "Preparing Wave " + (gameState.currentWave + 1) + "...";
             layout.setText(font, nextWaveText);
@@ -343,7 +316,6 @@ public class UIManager {
             font.setColor(Color.CYAN);
             font.draw(batch, nextWaveText, nextX, nextY);
         }
-
         font.setColor(Color.WHITE);
         batch.end();
     }
@@ -358,9 +330,8 @@ public class UIManager {
         }
 
         layout.setText(font, stageText);
-        float stageX = (camera.viewportWidth - layout.width) / 2f; // Center horizontal
+        float stageX = (camera.viewportWidth - layout.width) / 2f;
 
-        // Calculate position below navbar
         float navbarY = camera.viewportHeight - GameConstants.NAVBAR_HEIGHT;
         float stageY = navbarY - 20f;
 

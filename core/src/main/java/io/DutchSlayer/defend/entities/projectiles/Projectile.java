@@ -9,10 +9,6 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import io.DutchSlayer.defend.entities.enemies.Enemy;
 
-/**
- * Base class untuk semua projectile yang ditembakkan oleh tower
- * Menghandle movement, collision, dan basic damage - OPTIMIZED VERSION
- */
 public class Projectile {
     public final Texture tex;
     private final float scaledW;
@@ -52,10 +48,6 @@ public class Projectile {
         );
     }
 
-
-    /**
-     * Update projectile position - OPTIMIZED
-     */
     public void update(float delta) {
         if (!active) return;
 
@@ -65,11 +57,8 @@ public class Projectile {
         bounds.y = pos.y - halfHeight;
     }
 
-    /**
-     * Render projectile menggunakan SpriteBatch - OPTIMIZED
-     */
     public void drawBatch(SpriteBatch batch) {
-        if (!active || tex == null) return; // Early exit
+        if (!active || tex == null) return;
 
         batch.draw(
             tex,
@@ -80,9 +69,6 @@ public class Projectile {
         );
     }
 
-    /**
-     * Render projectile menggunakan ShapeRenderer
-     */
     public void drawShape(ShapeRenderer shapes) {
         if (!active) return;
 
@@ -92,11 +78,6 @@ public class Projectile {
         }
     }
 
-    /**
-     * Handle collision dengan enemies - OPTIMIZED
-     * Menggunakan damage yang benar dan bisa di-override
-     * RETURN VOID untuk backward compatibility dengan subclass
-     */
     public void onHit(Array<Enemy> enemies) {
         if (!active) return;
 
@@ -112,9 +93,6 @@ public class Projectile {
         }
     }
 
-    /**
-     * BARU: Reset projectile untuk object pooling
-     */
     public void reset(float startX, float startY, float targetX, float customSpeed, int damage) {
         this.pos.set(startX, startY);
         this.speed = customSpeed;

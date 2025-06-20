@@ -13,15 +13,12 @@ public class Main extends Game {
     public SpriteBatch batch;
     public Skin uiSkin;
     public Music bgMusic;
-    public Music defendModeMusic;
     public static GameMode currentMode = GameMode.NONE;
     @Override
     public void create() {
         batch = new SpriteBatch();
         AudioManager.initialize();
         uiSkin = new Skin(Gdx.files.internal("uiskin/uiskin.json"));
-        // Load dan play musik sekali saja di awal
-        // Load legacy bgMusic for compatibility (optional, bisa dihapus nanti)
         try {
             bgMusic = Gdx.audio.newMusic(Gdx.files.internal("Music/MainSound.mp3"));
             bgMusic.setLooping(true);
@@ -30,12 +27,12 @@ public class Main extends Game {
             System.err.println("⚠️ Main: Legacy bgMusic not found, using AudioManager only");
             bgMusic = null;
         }
-        this.setScreen(new MainMenuScreen(this)); // Set awal ke menu utamathis.setScreen(new MainMenuScreen(this)); // Set awal ke menu utamathis.setScreen(new MainMenuScreen(this)); // Set awal ke menu utama
+        this.setScreen(new MainMenuScreen(this));
     }
 
     @Override
     public void render() {
-        super.render(); // Render screen aktif
+        super.render();
     }
 
     @Override
@@ -43,7 +40,7 @@ public class Main extends Game {
         batch.dispose();
         super.dispose();
         AudioManager.shutdown();
-        // Dispose legacy music if exists
+
         if (bgMusic != null) {
             bgMusic.dispose();
         }

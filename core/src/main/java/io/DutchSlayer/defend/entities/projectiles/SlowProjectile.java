@@ -4,17 +4,10 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.utils.Array;
 import io.DutchSlayer.defend.entities.enemies.Enemy;
 
-/**
- * SlowProjectile adalah projectile yang memberikan efek slow pada enemy
- * Bisa juga memberikan damage (opsional) - OPTIMIZED VERSION
- */
 public class SlowProjectile extends Projectile {
     private final float slowDuration;
     private final int slowDamage;
 
-    /**
-     * Constructor lengkap dengan damage - OPTIMIZED
-     */
     public SlowProjectile(Texture tex,
                           float startX, float startY,
                           float targetX,
@@ -24,9 +17,6 @@ public class SlowProjectile extends Projectile {
         this.slowDamage = damage;
     }
 
-    /**
-     * Constructor dengan speed (tanpa damage) - OPTIMIZED
-     */
     public SlowProjectile(Texture tex,
                           float startX, float startY,
                           float targetX,
@@ -35,10 +25,6 @@ public class SlowProjectile extends Projectile {
         this(tex, startX, startY, targetX, slowDuration, scale, 0, customSpeed);
     }
 
-    /**
-     * Override method dari parent class
-     * Return type VOID untuk compatibility, dengan optimasi performa
-     */
     @Override
     public void onHit(Array<Enemy> enemies) {
         if (!isActive()) return;
@@ -60,9 +46,6 @@ public class SlowProjectile extends Projectile {
         }
     }
 
-    /**
-     * BARU: Reset method untuk object pooling support
-     */
     public void reset(float startX, float startY, float targetX,
                       float customSpeed, int damage) {
         super.reset(startX, startY, targetX, customSpeed, damage);

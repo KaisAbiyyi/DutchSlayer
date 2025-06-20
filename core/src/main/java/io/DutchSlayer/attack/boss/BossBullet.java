@@ -2,43 +2,35 @@ package io.DutchSlayer.attack.boss;
 
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion; // Import TextureRegion
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import io.DutchSlayer.utils.Constant;
 
 public class BossBullet {
 
-    private float x, y;
-    private final float speed = 400f;
-    private float width = 40f;
-    private float height = 40f;
+    private float x;
+    private final float y;
+    private final float width = 40f;
+    private final float height = 40f;
     private boolean isAlive = true;
-    private float vx;
-    private Texture bulletFullTexture; // Texture asli yang dimuat
-    private TextureRegion bulletRegion; // TextureRegion yang akan digambar dan diflip
-    private boolean facingRight; // Menandakan apakah peluru harus menghadap kanan
+    private final float vx;
+    private final Texture bulletFullTexture;
+    private final TextureRegion bulletRegion;
 
-    public BossBullet(float startX, float startY, float directionX, boolean bossFacingRight) { // Tambahkan bossFacingRight
+    public BossBullet(float startX, float startY, float directionX, boolean bossFacingRight) {
         this.x = startX;
         this.y = startY;
         this.vx = 400f * directionX;
-        this.facingRight = bossFacingRight; // Simpan arah hadap boss saat peluru ditembakkan
 
         this.bulletFullTexture = new Texture("boss/boss_bullet.png");
-        this.bulletRegion = new TextureRegion(bulletFullTexture); // Buat TextureRegion dari Texture
+        this.bulletRegion = new TextureRegion(bulletFullTexture);
 
-        // Sesuaikan flipping awal berdasarkan arah hadap boss
-        // Asumsi: Gambar aset default peluru menghadap KIRI (jika ada arah) atau netral.
-        // Jika peluru harus menghadap kanan DAN saat ini belum ter-flip, flip.
-        if (facingRight && !bulletRegion.isFlipX()) {
+        if (bossFacingRight && !bulletRegion.isFlipX()) {
             bulletRegion.flip(true, false);
         }
-        // Jika peluru harus menghadap kiri DAN saat ini ter-flip, flip kembali.
-        else if (!facingRight && bulletRegion.isFlipX()) {
+        else if (!bossFacingRight && bulletRegion.isFlipX()) {
             bulletRegion.flip(true, false);
         }
-
-        // Ukuran peluru tetap 40f
     }
 
     public void update(float delta) {
@@ -50,7 +42,6 @@ public class BossBullet {
 
     public void render(SpriteBatch batch) {
         if (!isAlive) return;
-        // Gambar TextureRegion yang sudah diflip
         batch.draw(bulletRegion, x, y, width, height);
     }
 
@@ -85,7 +76,7 @@ public class BossBullet {
 
     public void dispose() {
         if (bulletFullTexture != null) {
-            bulletFullTexture.dispose(); // Dispose Texture asli
+            bulletFullTexture.dispose();
         }
     }
 }

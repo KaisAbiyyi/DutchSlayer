@@ -49,7 +49,6 @@ public interface Weapon {
     String getName();
 
     default void addAmmo(int amount) {
-        // default no-op untuk senjata yang tidak pakai ammo (misal pistol)
     }
 
 

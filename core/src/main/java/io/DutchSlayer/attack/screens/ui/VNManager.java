@@ -12,28 +12,27 @@ import io.DutchSlayer.utils.Constant;
 
 public class VNManager implements Disposable {
 
-    private Array<VNScene> scenes; // Daftar adegan visual novel
-    private int currentSceneIndex; // Indeks adegan yang sedang aktif
+    private final Array<VNScene> scenes;
+    private int currentSceneIndex;
 
-    private int currentTextIndex; // Indeks dialog dalam adegan saat ini
-    private String currentDialogue; // Dialog lengkap yang sedang ditampilkan
-    private StringBuilder displayedText; // Teks yang saat ini terlihat (untuk typewriter effect)
+    private int currentTextIndex;
+    private String currentDialogue;
+    private final StringBuilder displayedText;
 
-    private float textDisplayTimer; // Timer untuk typewriter effect
-    private final float CHAR_PER_SECOND = 40.0f; // Kecepatan typewriter (karakter per detik)
+    private float textDisplayTimer;
 
-    private boolean isDialogueComplete; // True jika seluruh dialog sudah ditampilkan
-    private boolean isActive; // True jika VN sedang berjalan
+    private boolean isDialogueComplete;
+    private boolean isActive;
 
-    private Texture currentBackground; // Gambar latar belakang adegan saat ini
-    private BitmapFont font; // Font untuk dialog
-    private GlyphLayout layout; // Untuk mengukur teks
-    private boolean active = false;
+    private Texture currentBackground;
+    private final BitmapFont font;
+    private final GlyphLayout layout;
+
     public VNManager(BitmapFont font) {
         this.font = font;
         this.scenes = new Array<>();
         this.displayedText = new StringBuilder();
-        this.layout = new GlyphLayout(); // Initialize GlyphLayout
+        this.layout = new GlyphLayout();
         reset();
     }
 
@@ -46,7 +45,6 @@ public class VNManager implements Disposable {
             Gdx.app.log("VNManager", "No scenes added to VNManager.");
             return;
         }
-        active = true;
         isActive = true;
         currentSceneIndex = 0;
         loadCurrentScene();
@@ -57,27 +55,24 @@ public class VNManager implements Disposable {
             return;
         }
 
-        // Update typewriter effect
         if (!isDialogueComplete) {
             textDisplayTimer += delta;
+            float CHAR_PER_SECOND = 40.0f;
             int charsToDisplay = (int) (textDisplayTimer * CHAR_PER_SECOND);
             if (charsToDisplay > currentDialogue.length()) {
                 charsToDisplay = currentDialogue.length();
                 isDialogueComplete = true;
             }
-            displayedText.setLength(0); // Clear previous text
-            displayedText.append(currentDialogue.substring(0, charsToDisplay));
+            displayedText.setLength(0);
+            displayedText.append(currentDialogue, 0, charsToDisplay);
         }
 
-        // Handle input for skipping/advancing
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
             if (!isDialogueComplete) {
-                // Skip typewriter effect, show full text
                 displayedText.setLength(0);
                 displayedText.append(currentDialogue);
                 isDialogueComplete = true;
             } else {
-                // Advance to next dialogue or scene
                 nextDialogue();
             }
         }
@@ -88,12 +83,8 @@ public class VNManager implements Disposable {
     }
 
     public void clearScenes() {
-        // Menghapus semua elemen dari array 'scenes'
         scenes.clear();
-        // Reset juga state internal manager
-        active = false;
         currentSceneIndex = 0;
-        // Jika Anda punya state lain seperti currentDialogueIndex, reset juga di sini
     }
 
     public void render(SpriteBatch batch) {
@@ -101,17 +92,6 @@ public class VNManager implements Disposable {
             return;
         }
 
-        // PASTIKAN PROJECTION MATRIX SUDAH DISET UNTUK UI
-        // Ini penting karena GameScreen mungkin sudah mengatur proyeksi untuk kamera game
-        // VNManager perlu mengatur proyeksi untuk kamera UI (yang biasanya adalah kamera viewport standar)
-        // Jika Anda menggunakan kamera lain untuk VN, pastikan itu yang digunakan di sini.
-        // Asumsi di sini adalah Anda ingin VN mengisi layar penuh.
-        // Jika batch.setProjectionMatrix sudah dilakukan di GameScreen untuk VNManager,
-        // baris ini mungkin redundan, tapi tidak ada salahnya untuk memastikan.
-
-        // batch.setProjectionMatrix(batch.getProjectionMatrix()); // TIDAK PERLU, SUDAH DIATUR DI GAMESCREEN
-
-        // Render background image
         if (currentBackground != null) {
             batch.draw(currentBackground, 0, 0, Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT);
             Gdx.app.log("VNManager", "Drawing background texture.");
@@ -119,23 +99,16 @@ public class VNManager implements Disposable {
             Gdx.app.log("VNManager", "currentBackground is NULL. Check texture loading!");
         }
 
-
-        // Render dialogue box (simple rectangle, you can use a texture)
-        // For simplicity, we'll draw text directly, but a proper box is better.
-
-        // Render text with padding and word wrap
         float textX = 50;
-        float textY = 200; // Position dialogue box from bottom
-        float maxWidth = Constant.SCREEN_WIDTH - 100; // 50 padding on each side
+        float textY = 200;
+        float maxWidth = Constant.SCREEN_WIDTH - 100;
 
-        font.setColor(1, 1, 1, 1); // White color for text
-        font.getData().setScale(1.2f); // Adjust font size as needed
+        font.setColor(1, 1, 1, 1);
+        font.getData().setScale(1.2f);
 
         layout.setText(font, displayedText, font.getColor(), maxWidth, com.badlogic.gdx.utils.Align.left, true);
-        // Pastikan textY yang digunakan di sini sesuai dengan offset yang Anda inginkan
-        font.draw(batch, layout, textX, textY + layout.height); // draw from top-left, so add layout.height
+        font.draw(batch, layout, textX, textY + layout.height);
 
-        // Optional: Draw a prompt for next (e.g., small arrow)
         if (isDialogueComplete) {
             String prompt = "Press SPACE";
             layout.setText(font, prompt);
@@ -164,12 +137,11 @@ public class VNManager implements Disposable {
         if (currentTextIndex < scene.getDialogues().size) {
             loadCurrentDialogue();
         } else {
-            // End of current scene's dialogues, move to next scene or end VN
             currentSceneIndex++;
             if (currentSceneIndex < scenes.size) {
                 loadCurrentScene();
             } else {
-                end(); // All scenes finished
+                end();
             }
         }
     }
@@ -197,8 +169,5 @@ public class VNManager implements Disposable {
 
     @Override
     public void dispose() {
-        // Textures for backgrounds should be disposed by the caller (GameScreen)
-        // if they are shared resources. If they are loaded exclusively here, dispose them.
-        // For now, assuming GameScreen loads and disposes them.
     }
 }
