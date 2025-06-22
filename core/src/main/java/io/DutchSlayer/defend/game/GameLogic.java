@@ -338,10 +338,6 @@ public class GameLogic {
                     System.out.println("👑 BOSS DEFEATED! Returning to normal music...");
 
                     gameState.clearBossReference();
-
-
-                    bossMusicTriggered = false;
-                    musicFadeStarted = false;
                 } else {
                     AudioManager.playEnemyDeath(e.getType());
                 }
@@ -503,6 +499,7 @@ public class GameLogic {
                 if (bossInPosition) {
                     AudioManager.playBossMusicWithTransition(2f);
                     bossMusicTriggered = true;
+                    gameState.isBossMusicActive = true;
                 }
             }
         }
@@ -522,8 +519,6 @@ public class GameLogic {
     }
 
     public void resetBossMusicState() {
-        musicFadeStarted = false;
-        bossMusicTriggered = false;
         gameState.clearBossReference();
     }
 

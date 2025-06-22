@@ -299,6 +299,7 @@ public class Enemy {
         if (towersRef == null || towersRef.isEmpty() || enemyProjectilesRef == null) return;
 
         AudioManager.playBossShoot();
+        getProjectileOrigin(reusableVector);
 
         EnemyProjectile projectile = EnemyProjectile.createBossProjectile(
             ImageLoader.enemyProjectileTex != null ? ImageLoader.enemyProjectileTex : ImageLoader.projTex,

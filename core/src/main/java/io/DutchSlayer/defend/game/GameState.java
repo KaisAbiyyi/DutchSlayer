@@ -65,6 +65,7 @@ public class GameState {
 
     public float buttonPressTimer = 0f;
     public static final float BUTTON_PRESS_DURATION = 0.15f;
+    public boolean isBossMusicActive = false;
 
     public GameState(int stage) {
         this.currentStage = stage;

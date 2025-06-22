@@ -36,10 +36,12 @@ import io.DutchSlayer.defend.utils.AudioManager;
 import io.DutchSlayer.screens.PauseMenu;
 import io.DutchSlayer.utils.Constant;
 
+
 public class GameScreen implements Screen {
     private final Main game;
     private final OrthographicCamera camera;
     private final Viewport viewport;
+    private final OrthographicCamera uiCamera;
     private final Viewport uiViewport;
     private final ShapeRenderer shapeRenderer;
     private final SpriteBatch spriteBatch;
@@ -56,7 +58,7 @@ public class GameScreen implements Screen {
     private final GameRenderer renderer;
     private final GameLogicHandler logicHandler;
     private final PauseMenu pauseMenu;
-    private final VNManager vnManager;
+    private VNManager vnManager;
     private Texture vnScene1Bg, vnScene2Bg, vnScene3Bg;
     private Texture vnScene4Bg, vnScene5Bg, vnScene6Bg, vnScene7Bg;
 
@@ -69,10 +71,13 @@ public class GameScreen implements Screen {
 
     private boolean isPaused = false;
     private boolean isGameOver = false;
+    private boolean isPlayerRespawning = false;
     private boolean triggerWallTrap = false;
     private boolean wallsAreRising = false;
     private boolean bossIntroPlayed = false;
 
+    private final float wallRiseSpeed = 350f;
+    private final float wallTargetY = Constant.TERRAIN_HEIGHT;
     private TankBoss tankBoss;
     private boolean isDefeatSequenceActive = false;
 
@@ -80,8 +85,8 @@ public class GameScreen implements Screen {
     private float victoryDelayTimer = 0f;
     private float cameraTriggerX;
 
-    private final Music backgroundMusic;
-    private final Music bossMusic;
+    private Music backgroundMusic;
+    private Music bossMusic;
 
     private Texture grenadeTexture, explosionTexture;
 
@@ -94,7 +99,7 @@ public class GameScreen implements Screen {
         this.camera = new OrthographicCamera();
         this.viewport = new FitViewport(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT, camera);
         this.viewport.apply();
-        OrthographicCamera uiCamera = new OrthographicCamera();
+        this.uiCamera = new OrthographicCamera();
         this.uiViewport = new FitViewport(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT, uiCamera);
         this.mapWidth = Constant.MAP_WIDTH * (1f + 0.15f * (stageNumber - 1));
         this.rng = new RandomXS128(stageNumber);
@@ -119,6 +124,7 @@ public class GameScreen implements Screen {
         spawnEnemies();
         this.renderer = new GameRenderer();
         this.logicHandler = new GameLogicHandler();
+        // Pass 'this' (GameScreen instance) to PauseMenu
         this.pauseMenu = new PauseMenu(game, uiViewport, font, this);
 
         this.vnManager = new VNManager(font);
@@ -284,12 +290,20 @@ public class GameScreen implements Screen {
         int bonus = stageNumber * 2;
         int numberOfEnemy = base + bonus;
 
-        allowedTypes = switch (stageNumber) {
-            case 1 -> new AttackType[]{AttackType.STRAIGHT_SHOOT};
-            case 2 -> new AttackType[]{AttackType.STRAIGHT_SHOOT, AttackType.ARC_GRENADE};
-            case 3 -> new AttackType[]{AttackType.BURST_FIRE, AttackType.ARC_GRENADE};
-            default -> new AttackType[]{AttackType.STRAIGHT_SHOOT, AttackType.BURST_FIRE, AttackType.ARC_GRENADE};
-        };
+        switch (stageNumber) {
+            case 1:
+                allowedTypes = new AttackType[]{AttackType.STRAIGHT_SHOOT};
+                break;
+            case 2:
+                allowedTypes = new AttackType[]{AttackType.STRAIGHT_SHOOT, AttackType.ARC_GRENADE};
+                break;
+            case 3:
+                allowedTypes = new AttackType[]{AttackType.BURST_FIRE, AttackType.ARC_GRENADE};
+                break;
+            default:
+                allowedTypes = new AttackType[]{AttackType.STRAIGHT_SHOOT, AttackType.BURST_FIRE, AttackType.ARC_GRENADE};
+                break;
+        }
 
         enemies.addAll(EnemyFactory.spawnDeterministicEnemies(stageNumber, numberOfEnemy, Constant.TERRAIN_HEIGHT, allowedTypes, this));
     }
@@ -314,6 +328,7 @@ public class GameScreen implements Screen {
             pauseMenu.setPaused(isPaused);
 
             if (isPaused) {
+                // When pausing, stop both musics
                 if (backgroundMusic.isPlaying()) backgroundMusic.pause();
                 if (bossMusic.isPlaying()) bossMusic.pause();
             } else {
@@ -339,6 +354,7 @@ public class GameScreen implements Screen {
                 switchToBossMusic();
                 setupAndTriggerBossVictoryVN();
             } else {
+                // Player died not by boss, or boss was already defeated (shouldn't happen here if logic is clean)
                 if(backgroundMusic.isPlaying()) {
                     backgroundMusic.stop();
                 }
@@ -350,47 +366,57 @@ public class GameScreen implements Screen {
             }
         }
 
+        // --- Logic for Boss Defeated (Player Victory) ---
+        // This block handles the moment the boss dies and initiates the victory sequence including VN.
         if (tankBoss != null && !tankBoss.isAlive() && !isVictorySequenceActive) {
-            isVictorySequenceActive = true;
-            victoryDelayTimer = 2.0f;
-            if(bossMusic.isPlaying()) bossMusic.stop();
-            setupAndTriggerBossDefeatedVN();
+            isVictorySequenceActive = true; // Player has defeated the boss
+            victoryDelayTimer = 2.0f; // Set initial delay before transitioning to victory screen
+            if(bossMusic.isPlaying()) bossMusic.stop(); // Stop boss music on victory
+            setupAndTriggerBossDefeatedVN(); // Trigger player victory VN
         }
 
-
+        // --- Handle Visual Novel Display (Unified Block) ---
+        // This block must be placed BEFORE game logic updates if VN should pause the game.
         if (vnManager.isActive()) {
-            vnManager.update(delta);
+            vnManager.update(delta); // Update VN state
             spriteBatch.setProjectionMatrix(uiViewport.getCamera().combined);
             spriteBatch.begin();
-            vnManager.render(spriteBatch);
+            vnManager.render(spriteBatch); // Render VN
             spriteBatch.end();
 
-
+            // Transition after Defeat VN (if active and VN has finished)
             if (isDefeatSequenceActive && !vnManager.isActive()) {
                 if(bossMusic.isPlaying()) bossMusic.stop();
                 game.setScreen(new GameOverScreen(game, stageNumber));
-                return;
+                return; // Return after setting new screen
             }
+            // If VN is active (either defeat or victory VN), prevent game logic and other transitions.
             return;
         }
 
+        // --- Game Logic Update (only if not paused, no active sequences, and no VN active) ---
+        // This block is only reached if vnManager.isActive() is FALSE
         if (!isPaused && !isDefeatSequenceActive && !isVictorySequenceActive) {
             logicHandler.update(this, delta);
         }
 
+        // --- Handle Player Victory Transition (after VN if any) ---
+        // This block is only reached if vnManager.isActive() is FALSE (due to the 'return' above)
         if (isVictorySequenceActive) {
             victoryDelayTimer -= delta;
             if (victoryDelayTimer <= 0) {
                 game.setScreen(new GameVictoryScreen(game, stageNumber));
-                return;
+                return; // Return after setting new screen
             }
         }
 
-
+        // --- Render Pause Menu ---
+        // This block is only reached if no VNs or direct screen transitions occurred.
         if (pauseMenu.renderIfActive(delta)) {
-            return;
+            return; // If pause menu is active, don't render game elements
         }
 
+        // --- Render Game World ---
         renderer.render(this, delta);
     }
     @Override
@@ -401,6 +427,7 @@ public class GameScreen implements Screen {
 
     @Override
     public void pause() {
+        // Pause the game when the screen is paused (e.g., app goes to background)
         isPaused = true;
         pauseMenu.setPaused(true);
         if (backgroundMusic.isPlaying()) backgroundMusic.pause();
@@ -409,20 +436,27 @@ public class GameScreen implements Screen {
 
     @Override
     public void resume() {
+        // This is called when the app comes back to foreground
+        // We don't necessarily want to unpause the game automatically here.
+        // The player should still resume manually via the pause menu.
     }
 
     @Override
     public void hide() {
+        // Stop all music when screen is hidden
         if (backgroundMusic != null) backgroundMusic.stop();
         if (bossMusic != null) bossMusic.stop();
     }
 
     @Override
     public void show() {
+        // Ensure input processor is null when GameScreen becomes active (not showing pause menu immediately)
         Gdx.input.setInputProcessor(null);
+        // Stop any music playing from AudioManager (e.g., MainMenuScreen music)
         AudioManager.stopMusic();
 
-        if (!isPaused) {
+        // Start background music if not already playing and not currently paused
+        if (!isPaused) { // Only play if the game isn't already set to paused (e.g., coming from SettingScreen)
             if (backgroundMusic != null && !backgroundMusic.isPlaying()) {
                 backgroundMusic.play();
             }
@@ -465,8 +499,13 @@ public class GameScreen implements Screen {
         if (bossMusic != null) bossMusic.dispose();
     }
 
+    // Add getters for music objects
     public Music getBackgroundMusic() {
         return backgroundMusic;
+    }
+
+    public Music getBossMusic() {
+        return bossMusic;
     }
 
     public VNManager getVnManager() {
@@ -593,6 +632,14 @@ public class GameScreen implements Screen {
         isGameOver = value;
     }
 
+    public boolean isPlayerRespawning() {
+        return isPlayerRespawning;
+    }
+
+    public void setPlayerRespawning(boolean value) {
+        isPlayerRespawning = value;
+    }
+
     public boolean isTriggerWallTrap() {
         return triggerWallTrap;
     }
@@ -610,12 +657,10 @@ public class GameScreen implements Screen {
     }
 
     public float getWallRiseSpeed() {
-        float wallRiseSpeed = 350f;
         return wallRiseSpeed;
     }
 
     public float getWallTargetY() {
-        float wallTargetY = Constant.TERRAIN_HEIGHT;
         return wallTargetY;
     }
 
@@ -631,12 +676,23 @@ public class GameScreen implements Screen {
         pickupItems.add(new PickupItem(x, y, type));
     }
 
+    /**
+     * Returns the PauseMenu instance associated with this GameScreen.
+     * This is crucial for setting the input processor back correctly when
+     * returning from the SettingScreen.
+     * @return The PauseMenu instance.
+     */
     public PauseMenu getPauseMenu() {
         return pauseMenu;
     }
 
+    /**
+     * Sets the paused state of the game screen.
+     * @param value true to pause the game, false to unpause.
+     */
     public void setPaused(boolean value) {
         this.isPaused = value;
+        // When unpausing, ensure input processor is returned to null (default game input)
         if (!value) {
             Gdx.input.setInputProcessor(null);
         }

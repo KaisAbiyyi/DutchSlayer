@@ -1,8 +1,10 @@
-package io.DutchSlayer.lwjgl3;
+package io.MerahPutihTheLastStand.lwjgl3;
 
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
 import io.DutchSlayer.Main;
+
+import java.io.File;
 
 /**
  * Launches the desktop (LWJGL3) application.
@@ -10,10 +12,22 @@ import io.DutchSlayer.Main;
 public class Lwjgl3Launcher {
     public static void main(String[] args) {
         try {
+            System.out.println("Working Directory: " + System.getProperty("user.dir"));
+            System.out.println("Assets folder exists: " + new File("assets").exists());
             if (StartupHelper.startNewJvmIfRequired()) return;
             createApplication();
         } catch (Exception e) {
+            System.err.println("FATAL ERROR occurred:");
             e.printStackTrace();
+
+            // Wait for user input before closing
+            System.out.println("\n=== APPLICATION CRASHED ===");
+            System.out.println("Check debug.log for details");
+            System.out.println("Press Enter to close...");
+
+            try {
+                System.in.read();
+            } catch (Exception ignore) {}
         } // This handles macOS support and helps on Windows.
     }
 

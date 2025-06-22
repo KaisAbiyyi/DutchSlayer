@@ -504,6 +504,7 @@ public class TowerDefenseScreen implements Screen {
 
         gameState.isBossIntroduction = false;
         gameState.bossIntroTimer = 0f;
+        gameState.isBossMusicActive = false;
 
         switch(gameState.currentStage) {
             case 1:
@@ -574,7 +575,11 @@ public class TowerDefenseScreen implements Screen {
     public void show() {
         Gdx.input.setInputProcessor(inputHandler);
         if (!gameState.isPaused) {
-            AudioManager.playTowerDefenseMusic();
+            if (gameState.isBossMusicActive) {
+                AudioManager.playMusic(AudioManager.MusicType.BOSS_BATTLE);
+            } else {
+                AudioManager.playTowerDefenseMusic();
+            }
         }
     }
 
@@ -615,9 +620,9 @@ public class TowerDefenseScreen implements Screen {
 
     @Override
     public void hide() {
-        if (!gameState.isPaused) {
-            AudioManager.stopMusic();
-        }
+//        if (!gameState.isPaused) {
+//            AudioManager.stopMusic();
+//        }
     }
     @Override public void pause() {}
     @Override public void resume() {}
