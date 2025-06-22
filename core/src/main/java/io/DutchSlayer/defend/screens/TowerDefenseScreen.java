@@ -131,6 +131,17 @@ public class TowerDefenseScreen implements Screen {
         if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.ESCAPE)) {
             gameState.isPaused = !gameState.isPaused;
             pauseMenu.setPaused(gameState.isPaused);
+
+            // --- TAMBAHKAN BLOK INI ---
+            // Jika game baru saja dilanjutkan (isPaused menjadi false)
+            if (!gameState.isPaused) {
+                // Periksa apakah musik boss seharusnya aktif
+                if (gameState.isBossMusicActive) {
+                    // Putar ulang musik boss untuk memastikan tidak ada yang menimpanya.
+                    AudioManager.playMusic(AudioManager.MusicType.BOSS_BATTLE);
+                }
+            }
+            // --- AKHIR BLOK TAMBAHAN ---
         }
 
         if (pauseMenu.isPaused()) {
@@ -464,6 +475,7 @@ public class TowerDefenseScreen implements Screen {
 
         gameLogic.resetBossMusicState();
         AudioManager.stopMusic();
+        AudioManager.resetMusicLock();
         AudioManager.playTowerDefenseMusic();
 
         gameState.gold = 80;
@@ -574,12 +586,12 @@ public class TowerDefenseScreen implements Screen {
     @Override
     public void show() {
         Gdx.input.setInputProcessor(inputHandler);
-        if (!gameState.isPaused) {
-            if (gameState.isBossMusicActive) {
-                AudioManager.playMusic(AudioManager.MusicType.BOSS_BATTLE);
-            } else {
-                AudioManager.playTowerDefenseMusic();
-            }
+        // Memeriksa status musik boss setiap kali layar ditampilkan,
+        // tidak peduli status pause.
+        if (gameState.isBossMusicActive) {
+            AudioManager.playMusic(AudioManager.MusicType.BOSS_BATTLE);
+        } else {
+            AudioManager.playTowerDefenseMusic();
         }
     }
 

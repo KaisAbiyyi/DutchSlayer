@@ -56,7 +56,7 @@ public class AudioManager {
     private static float fadeDuration = 3f;
     private static float originalVolume = 0f;
     private static Music nextMusic = null;
-
+    private static boolean isBossMusicLocked = false;
     static {
         initializeConfigurations();
     }
@@ -188,6 +188,13 @@ public class AudioManager {
     }
 
     public static void playMusic(MusicType musicType) {
+        // --- AWAL MODIFIKASI ---
+        // JIKA KUNCI BOSS AKTIF, ABAIKAN PERMINTAAN UNTUK MEMUTAR MUSIK BIASA
+        if (isBossMusicLocked && musicType == MusicType.TOWER_DEFENSE) {
+            return; // Hentikan eksekusi, jangan ganti musiknya
+        }
+        // --- AKHIR MODIFIKASI ---
+
         if (!isInitialized) {
             initialize();
         }
@@ -206,6 +213,13 @@ public class AudioManager {
                 float finalVolume = masterVolume * musicVolume;
                 currentMusic.setVolume(finalVolume);
 
+                // --- TAMBAHKAN LOGIKA PENGUNCIAN DI SINI ---
+                // Jika yang diputar adalah musik boss, aktifkan kuncinya
+                if (musicType == MusicType.BOSS_BATTLE) {
+                    isBossMusicLocked = true;
+                }
+                // --- AKHIR TAMBAHAN ---
+
                 if (!currentMusic.isPlaying() && finalVolume > 0.0f) {
                     currentMusic.play();
                 }
@@ -214,7 +228,9 @@ public class AudioManager {
             }
         }
     }
-
+    public static void resetMusicLock() {
+        isBossMusicLocked = false;
+    }
     public static void playMainMenuMusic() { playMusic(MusicType.MAIN_MENU); }
     public static void playTowerDefenseMusic() { playMusic(MusicType.TOWER_DEFENSE); }
 
