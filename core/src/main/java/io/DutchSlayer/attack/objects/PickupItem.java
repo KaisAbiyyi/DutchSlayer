@@ -123,10 +123,10 @@ public class PickupItem {
         float textX = centerX - textWidth / 2f;
         float textY = centerY + textHeight / 2f;
 
-        font.draw(batch, label, textX - 1, textY); // kiri
-        font.draw(batch, label, textX + 1, textY); // kanan
-        font.draw(batch, label, textX, textY - 1); // bawah
-        font.draw(batch, label, textX, textY + 1); // atas
+        font.draw(batch, label, textX - 1, textY);
+        font.draw(batch, label, textX + 1, textY);
+        font.draw(batch, label, textX, textY - 1);
+        font.draw(batch, label, textX, textY + 1);
 
         font.setColor(Color.BLACK);
         font.draw(batch, label, textX, textY);

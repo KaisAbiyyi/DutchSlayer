@@ -19,13 +19,25 @@ apply plugin: 'io.github.fourlastor.construo'
 import io.github.fourlastor.construo.Target
 
 sourceSets.main.resources.srcDirs += [ rootProject.file('assets').path ]
-mainClassName = 'io.DutchSlayer.lwjgl3.Lwjgl3Launcher'
-application.setMainClass(mainClassName)
 eclipse.project.name = appName + '-lwjgl3'
-java.sourceCompatibility = 21
-java.targetCompatibility = 21
-if (JavaVersion.current().isJava9Compatible()) {
-        compileJava.options.release.set(21)
+//mainClassName = 'io.DutchSlayer.lwjgl3.Lwjgl3Launcher'
+//application.setMainClass(mainClassName)
+//eclipse.project.name = appName + '-lwjgl3'
+// DIUBAH: Konfigurasi Java dimasukkan ke dalam blok 'java'
+application {
+  mainClass.set('io.DutchSlayer.lwjgl3.Lwjgl3Launcher')
+}
+//java.sourceCompatibility = 21
+//java.targetCompatibility = 21
+//if (JavaVersion.current().isJava9Compatible()) {
+//        compileJava.options.release.set(21)
+//}
+java {
+  sourceCompatibility = JavaVersion.VERSION_21
+  targetCompatibility = JavaVersion.VERSION_21
+  if (JavaVersion.current().isJava9Compatible()) {
+    compileJava.options.release.set(21)
+  }
 }
 
 dependencies {
@@ -68,7 +80,7 @@ jar {
   }
 // setting the manifest makes the JAR runnable.
   manifest {
-    attributes 'Main-Class': project.mainClassName
+    attributes 'Main-Class': application.mainClass.get()
   }
 // this last step may help on some OSes that need extra instruction to make runnable JARs.
   doLast {

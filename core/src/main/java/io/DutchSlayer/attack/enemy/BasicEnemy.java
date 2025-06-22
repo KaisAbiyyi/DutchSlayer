@@ -16,9 +16,6 @@ import io.DutchSlayer.attack.player.weapon.Grenade;
 import io.DutchSlayer.attack.screens.GameScreen;
 import io.DutchSlayer.utils.Constant;
 
-/**
- * Enemy dasar dengan FSM dan satu jenis serangan tetap berdasarkan AttackType.
- */
 public class BasicEnemy {
 
     private float x;

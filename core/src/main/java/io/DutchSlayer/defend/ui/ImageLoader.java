@@ -4,11 +4,6 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
 import io.DutchSlayer.defend.entities.towers.TowerType;
 
-/**
- * ImageLoader bertanggung-jawab memuat semua Texture.
- * Jika loading gagal, Texture akan null dan saat render
- * akan digambar sebagai Shape dengan warna berbeda.
- */
 public class ImageLoader {
     public static Texture grassTex;
     public static Texture terratex;

@@ -1,5 +1,3 @@
-
-
 package io.DutchSlayer.defend.entities.projectiles;
 
 import com.badlogic.gdx.graphics.Texture;
@@ -10,34 +8,26 @@ import io.DutchSlayer.defend.entities.towers.Tower;
 import io.DutchSlayer.defend.ui.ImageLoader;
 import io.DutchSlayer.defend.utils.AudioManager;
 
-/**
- * BombAsset dengan instant explosion saat menyentuh tanah
- */
 public class BombAsset {
-    /* ===== VISUAL COMPONENTS ===== */
     private final Texture tex;
     private final float scaledW;
     private final float scaledH;
     private final Rectangle bounds;
 
-    /* ===== POSITION & PHYSICS ===== */
     private final float baseX, baseY;
     private final float currentX;
     private float currentY;
     private float offsetY = 0f;
 
-    /* ===== PHYSICS ===== */
     private float velocityY = 150f;
     private boolean falling = true;
     private boolean isLanded = false;
 
-    /* ===== INSTANT EXPLOSION ===== */
     private boolean hasExploded = false;
     private boolean isShowingExplosion = false;
     private float explosionTimer = 0f;
     private float explosionScale = 2.0f;
 
-    /* ===== CONSTANTS - INSTANT EXPLOSION ===== */
     private static final int DAMAGE = 2;
     private static final float EXPLOSION_RADIUS = 250f;
     private static final float GROUND_Y = 150f;
@@ -50,9 +40,6 @@ public class BombAsset {
         this.baseY = dropY;
         this.currentX = dropX;
         this.currentY = dropY;
-
-
-        /* ===== VISUAL SCALING ===== */
 
         float bombScale = 0.1f;
         this.scaledW = tex.getWidth() * bombScale;
@@ -262,6 +249,4 @@ public class BombAsset {
     public float getX() { return currentX; }
     public float getY() { return currentY; }
     public boolean hasExploded() { return hasExploded; }
-
-
 }

@@ -152,7 +152,7 @@ public class MainMenuScreen implements Screen {
         rootTable.top().left();
         stage.addActor(rootTable);
 
-        Label titleLabel = new Label("Dutch Slayer", skin);
+        Label titleLabel = new Label("Merah Putih: The last Stand", skin);
         titleLabel.setFontScale(4.5f);
         titleLabel.setColor(customButtonStyle.fontColor);
 

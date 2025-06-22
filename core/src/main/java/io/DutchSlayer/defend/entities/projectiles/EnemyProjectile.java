@@ -1,5 +1,3 @@
-
-
 package io.DutchSlayer.defend.entities.projectiles;
 
 import com.badlogic.gdx.graphics.Color;

@@ -20,7 +20,7 @@ public enum BuildingType {
     BuildingType(String path, float width, float height) {
         this.width = width;
         this.height = height;
-        this.texture = new Texture(path); // otomatis load saat enum diakses
+        this.texture = new Texture(path);
     }
 
 }
