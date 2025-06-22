@@ -31,7 +31,7 @@ public class SettingScreen implements Screen {
 
     private final Texture background;
     // private final Texture titleTexture; // REMOVED: No longer using an image for the title
-    private final Texture volumeTexture;
+//    private final Texture volumeTexture;
 
     public enum SettingsContext {
         MAIN_MENU,
@@ -87,7 +87,7 @@ public class SettingScreen implements Screen {
 
         this.background = new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
         // this.titleTexture = new Texture(Gdx.files.internal("button/SettingScreen.png")); // REMOVED
-        this.volumeTexture = new Texture(Gdx.files.internal("button/volume.png"));
+//        this.volumeTexture = new Texture(Gdx.files.internal("button/volume.png"));
 
         System.out.println("🔧 SettingsScreen created with context: " + context);
 
@@ -451,6 +451,6 @@ public class SettingScreen implements Screen {
         // if (titleTexture != null) titleTexture.dispose(); // REMOVED
         if (buttonUpTexture != null) buttonUpTexture.dispose();
         if (buttonDownTexture != null) buttonDownTexture.dispose();
-        if (volumeTexture != null) volumeTexture.dispose();
+//        if (volumeTexture != null) volumeTexture.dispose();
     }
 }
