@@ -179,7 +179,7 @@ public class ModeSelectionScreen implements Screen {
         rootTable.add(topBar).expandX().left().row();
 
         // Title (Now a Label with "Dutch Slayer" text, consistent with MainMenuScreen)
-        Label titleLabel = new Label("Dutch Slayer", skin);
+        Label titleLabel = new Label("MERAH PUTIH: THE LAST STAND", skin);
         titleLabel.setFontScale(4.5f); // Same font scale as MainMenuScreen title
         titleLabel.setColor(customButtonStyle.fontColor); // Same color as MainMenuScreen title
         rootTable.add(titleLabel)

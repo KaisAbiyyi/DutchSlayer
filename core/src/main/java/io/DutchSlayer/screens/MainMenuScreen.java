@@ -190,7 +190,7 @@ public class MainMenuScreen implements Screen {
         stage.addActor(rootTable);
 
         // 1) Title (Now a Label instead of an Image)
-        Label titleLabel = new Label("Dutch Slayer", skin);
+        Label titleLabel = new Label("MERAH PUTIH: THE LAST STAND", skin);
         titleLabel.setFontScale(4.5f); // <<-- Ukuran font diperbesar untuk efek bold banget
         titleLabel.setColor(customButtonStyle.fontColor); // <<-- Warna teks diubah menjadi coklat dari button style
         // Tidak ada kode tambahan untuk shadow atau border di sini,

@@ -18,7 +18,6 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import io.DutchSlayer.Main;
 import io.DutchSlayer.defend.screens.TowerDefenseScreen;
 import io.DutchSlayer.defend.utils.AudioManager;
-// import io.DutchSlayer.defend.utils.TDConstants; // Perhatikan jika TDConstants.SCREEN_WIDTH/HEIGHT berbeda dari Constant - TDConstants is not used, can remove
 import io.DutchSlayer.utils.Constant; // Menggunakan Constant.SCREEN_WIDTH/HEIGHT
 import io.DutchSlayer.attack.screens.GameScreen; // NEW: Import GameScreen
 
@@ -31,7 +30,6 @@ public class SettingScreen implements Screen {
 
     private final Texture background;
     // private final Texture titleTexture; // REMOVED: No longer using an image for the title
-    private final Texture volumeTexture;
 
     public enum SettingsContext {
         MAIN_MENU,
@@ -42,7 +40,6 @@ public class SettingScreen implements Screen {
     private final SettingsContext context;
     // Renamed for clarity and generality
     private final Screen gameOrPreviousScreen; // Can be TowerDefenseScreen or GameScreen
-    private final int currentStage; // This might be unused for non-game screens but is harmless
 
     private TextButton.TextButtonStyle customButtonStyle;
     private Texture buttonUpTexture;
@@ -79,7 +76,7 @@ public class SettingScreen implements Screen {
         this.game = game;
         this.context = context;
         this.gameOrPreviousScreen = previousScreen; // Now accepts any Screen type
-        this.currentStage = currentStage;
+        // This might be unused for non-game screens but is harmless
 
         this.viewport = new FitViewport(Constant.SCREEN_WIDTH, Constant.SCREEN_HEIGHT);
         this.stage = new Stage(viewport);
@@ -87,7 +84,6 @@ public class SettingScreen implements Screen {
 
         this.background = new Texture(Gdx.files.internal("backgrounds/Main Menu.png"));
         // this.titleTexture = new Texture(Gdx.files.internal("button/SettingScreen.png")); // REMOVED
-        this.volumeTexture = new Texture(Gdx.files.internal("button/volume.png"));
 
         System.out.println("🔧 SettingsScreen created with context: " + context);
 
@@ -129,23 +125,21 @@ public class SettingScreen implements Screen {
         int innerSquareWidth = GENERAL_BUTTON_WIDTH - (2 * OUTER_BORDER_THICKNESS) - (2 * INNER_PADDING);
         int innerSquareHeight = GENERAL_BUTTON_HEIGHT - (2 * OUTER_BORDER_THICKNESS) - (2 * INNER_PADDING);
 
-        if (innerSquareWidth > 0 && innerSquareHeight > 0) {
-            pixmapUp.setColor(brownBorderInner);
-            pixmapUp.fillRectangle(
-                innerSquareX,
-                innerSquareY,
-                innerSquareWidth,
-                innerSquareHeight
-            );
+        pixmapUp.setColor(brownBorderInner);
+        pixmapUp.fillRectangle(
+            innerSquareX,
+            innerSquareY,
+            innerSquareWidth,
+            innerSquareHeight
+        );
 
-            pixmapUp.setColor(brownInnerFillUp);
-            pixmapUp.fillRectangle(
-                innerSquareX + INNER_BORDER_THICKNESS,
-                innerSquareY + INNER_BORDER_THICKNESS,
-                innerSquareWidth - (2 * INNER_BORDER_THICKNESS),
-                innerSquareHeight - (2 * INNER_BORDER_THICKNESS)
-            );
-        }
+        pixmapUp.setColor(brownInnerFillUp);
+        pixmapUp.fillRectangle(
+            innerSquareX + INNER_BORDER_THICKNESS,
+            innerSquareY + INNER_BORDER_THICKNESS,
+            innerSquareWidth - (2 * INNER_BORDER_THICKNESS),
+            innerSquareHeight - (2 * INNER_BORDER_THICKNESS)
+        );
 
         buttonUpTexture = new Texture(pixmapUp);
         pixmapUp.dispose();
@@ -163,23 +157,21 @@ public class SettingScreen implements Screen {
             GENERAL_BUTTON_HEIGHT - (2 * OUTER_BORDER_THICKNESS)
         );
 
-        if (innerSquareWidth > 0 && innerSquareHeight > 0) {
-            pixmapDown.setColor(brownBorderInner);
-            pixmapDown.fillRectangle(
-                innerSquareX,
-                innerSquareY,
-                innerSquareWidth,
-                innerSquareHeight
-            );
+        pixmapDown.setColor(brownBorderInner);
+        pixmapDown.fillRectangle(
+            innerSquareX,
+            innerSquareY,
+            innerSquareWidth,
+            innerSquareHeight
+        );
 
-            pixmapDown.setColor(brownInnerFillDown);
-            pixmapDown.fillRectangle(
-                innerSquareX + INNER_BORDER_THICKNESS,
-                innerSquareY + INNER_BORDER_THICKNESS,
-                innerSquareWidth - (2 * INNER_BORDER_THICKNESS),
-                innerSquareHeight - (2 * INNER_BORDER_THICKNESS)
-            );
-        }
+        pixmapDown.setColor(brownInnerFillDown);
+        pixmapDown.fillRectangle(
+            innerSquareX + INNER_BORDER_THICKNESS,
+            innerSquareY + INNER_BORDER_THICKNESS,
+            innerSquareWidth - (2 * INNER_BORDER_THICKNESS),
+            innerSquareHeight - (2 * INNER_BORDER_THICKNESS)
+        );
 
         buttonDownTexture = new Texture(pixmapDown);
         pixmapDown.dispose();
@@ -198,6 +190,7 @@ public class SettingScreen implements Screen {
         // Set font filter for sharper text.
         // This is crucial for non-blurry text when scaling down or up.
         // Make sure this is applied once after getting the font.
+        assert defaultFont != null;
         defaultFont.getRegion().getTexture().setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
 
 
@@ -370,8 +363,7 @@ public class SettingScreen implements Screen {
                 game.setScreen(new MainMenuScreen(game));
                 break;
             case PAUSE_MENU:
-                if (gameOrPreviousScreen instanceof TowerDefenseScreen) { // Check if it's TowerDefenseScreen
-                    TowerDefenseScreen tdScreen = (TowerDefenseScreen) gameOrPreviousScreen;
+                if (gameOrPreviousScreen instanceof TowerDefenseScreen tdScreen) { // Check if it's TowerDefenseScreen
                     tdScreen.gameState.isPaused = true; // Ensure the game state remains paused
                     game.setScreen(tdScreen); // Go back to the specific TD screen instance
                     Gdx.app.postRunnable(() -> {
@@ -388,8 +380,7 @@ public class SettingScreen implements Screen {
                         tdScreen.pauseMenu.setPaused(true);
 
                     }); // Set input processor for its pause menu
-                } else if (gameOrPreviousScreen instanceof GameScreen) { // NEW: Handle GameScreen
-                    GameScreen gsScreen = (GameScreen) gameOrPreviousScreen;
+                } else if (gameOrPreviousScreen instanceof GameScreen gsScreen) { // NEW: Handle GameScreen
                     // GameScreen's pause logic is handled internally in render(), so just setting the screen is usually enough
                     // You might need to set a flag on GameScreen to indicate it was paused before going to settings if its internal state relies on it.
                     // For now, assuming setting the screen back correctly resumes its paused state.
@@ -451,6 +442,5 @@ public class SettingScreen implements Screen {
         // if (titleTexture != null) titleTexture.dispose(); // REMOVED
         if (buttonUpTexture != null) buttonUpTexture.dispose();
         if (buttonDownTexture != null) buttonDownTexture.dispose();
-        if (volumeTexture != null) volumeTexture.dispose();
     }
 }

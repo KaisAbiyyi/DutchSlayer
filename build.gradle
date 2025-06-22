@@ -13,23 +13,42 @@ buildscript {
 
   }
 }
+gradle.projectsLoaded {
+  javaToolchains {
+    removeAllInstallations()
+    register("manualJdk17") {
+      languageVersion = JavaLanguageVersion.of(17)
+      vendor = JvmVendorSpec.ADOPTIUM
+      installationPath = file("C:/Program Files/Java/jdk-17")
+    }
+  }
+}
 
 allprojects {
   apply plugin: 'eclipse'
   apply plugin: 'idea'
+  apply plugin: 'java'  // Tambahkan ini
 
-  // This allows you to "Build and run using IntelliJ IDEA", an option in IDEA's Settings.
   idea {
     module {
       outputDir file('build/classes/java/main')
       testOutputDir file('build/classes/java/test')
     }
   }
+
+  java {
+    toolchain {
+      languageVersion = JavaLanguageVersion.of(17)
+    }
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+  }
 }
 
 configure(subprojects) {
   apply plugin: 'java-library'
-  sourceCompatibility = 21
+  sourceCompatibility = JavaVersion.VERSION_17
+  targetCompatibility = JavaVersion.VERSION_17
 
   // From https://lyze.dev/2021/04/29/libGDX-Internal-Assets-List/
   // The article can be helpful when using assets.txt in your project.
@@ -58,7 +77,7 @@ configure(subprojects) {
 
 subprojects {
   version = "$projectVersion"
-  ext.appName = 'DutchSlayer'
+  ext.appName = 'MerahPutihTheLastStand'
   repositories {
     mavenCentral()
     maven { url 'https://s01.oss.sonatype.org' }
@@ -68,6 +87,10 @@ subprojects {
     maven { url 'https://s01.oss.sonatype.org/content/repositories/snapshots/' }
     maven { url 'https://jitpack.io' }
   }
+  java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+  }
 }
 
-eclipse.project.name = 'DutchSlayer' + '-parent'
+eclipse.project.name = 'MerahPutihTheLastStand' + '-parent'
